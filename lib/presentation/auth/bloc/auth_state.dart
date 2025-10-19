@@ -6,7 +6,7 @@ class AuthState extends Equatable {
 
   const AuthState._({
     this.status = AuthStatus.unknown,
-    this.user = const User(id: '', name: ''),
+    this.user = const User.empty(),
   });
 
   // Trạng thái khởi tạo

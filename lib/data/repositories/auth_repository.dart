@@ -1,17 +1,32 @@
 import 'dart:async';
+import 'package:fe/data/models/user.dart';
+import 'package:fe/data/services/local_storage_service.dart';
+
 import '../services/auth_service.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
 class AuthRepository {
   final AuthService _authService;
+  final LocalStorageService _localStorageService;
   final _controller = StreamController<AuthStatus>();
 
-  AuthRepository({required AuthService authService}) : _authService = authService;
+  AuthRepository({
+    required AuthService authService,
+    required LocalStorageService localStorageService,
+    }) : 
+      _authService = authService,
+      _localStorageService = localStorageService;
 
   Stream<AuthStatus> get status async* {
-    await Future<void>.delayed(const Duration(seconds: 1));
-    yield AuthStatus.unauthenticated;
+    await Future<void>.delayed(const Duration(seconds: 1)); // Giả lập kiểm tra
+
+    final user = await _localStorageService.getUser();
+    if (user != null) {
+      yield AuthStatus.authenticated;
+    } else {
+      yield AuthStatus.unauthenticated;
+    }
     yield* _controller.stream;
   }
 
@@ -19,6 +34,7 @@ class AuthRepository {
     try {
       final user = await _authService.login(email: email, password: password);
       if (user != null) {
+        await _localStorageService.saveUser(user);
         _controller.add(AuthStatus.authenticated);
       } else {
         _controller.add(AuthStatus.unauthenticated);
@@ -46,7 +62,12 @@ class AuthRepository {
 
   Future<void> logout() async {
     await _authService.logout();
+    await _localStorageService.clearUser();
     _controller.add(AuthStatus.unauthenticated);
+  }
+
+  Future<User?> getCurrentUser() async {
+    return _localStorageService.getUser();
   }
 
   void dispose() => _controller.close();

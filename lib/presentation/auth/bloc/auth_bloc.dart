@@ -23,14 +23,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  void _onAuthStatusChanged(AuthStatusChanged event, Emitter<AuthState> emit) {
+  Future<void> _onAuthStatusChanged(AuthStatusChanged event, Emitter<AuthState> emit) async {
     switch (event.status) {
       case AuthStatus.unauthenticated:
         return emit(const AuthState.unauthenticated());
       case AuthStatus.authenticated:
-        // Trong ứng dụng thực tế, bạn sẽ lấy thông tin user từ repository
-        const user = User(id: '1', name: 'Flutter Developer'); 
-        return emit(const AuthState.authenticated(user));
+        final user = await _authRepository.getCurrentUser();
+        return emit(
+          user != null
+              ? AuthState.authenticated(user)
+              : const AuthState.unauthenticated(),
+        );
       case AuthStatus.unknown:
         return emit(const AuthState.unknown());
     }

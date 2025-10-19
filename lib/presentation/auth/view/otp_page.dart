@@ -2,13 +2,13 @@ import 'package:fe/core/constants/app_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pinput/pinput.dart';
 
 import '../../../core/constants/app_size.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
-import 'signup_page.dart';
 
 class OtpPage extends StatelessWidget {
   const OtpPage({super.key});
@@ -50,8 +50,8 @@ class OtpView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const AppHeader(),
-              const SizedBox(height: AppSize.p32),
+              // const AppHeader(),
+              // const SizedBox(height: AppSize.p32),
               // Form Card
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
@@ -80,11 +80,10 @@ class OtpView extends StatelessWidget {
 }
 
 class OtpForm extends StatelessWidget {
-  const OtpForm({super.key });
+  const OtpForm({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -102,11 +101,18 @@ class OtpForm extends StatelessWidget {
         const SizedBox(height: AppSize.p8),
         _OtpInput(),
         const SizedBox(height: AppSize.p12),
-        Text(
-          'Mã OTP đã được gửi đến:\n${ context.read<AuthFormBloc>().state.email}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textGrey, height: 1.5),
+        
+        BlocBuilder<AuthFormBloc, AuthFormState>(
+          buildWhen: (previous, current) => previous.email != current.email,
+          builder: (context, state) {
+            return Text(
+              'Mã OTP đã được gửi đến:\n${state.email}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textGrey, height: 1.5),
+            );
+          },
         ),
+
         const SizedBox(height: AppSize.p24),
         _SubmitButton(),
         const SizedBox(height: AppSize.p16),
@@ -121,16 +127,39 @@ class OtpForm extends StatelessWidget {
 class _OtpInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      onChanged: (otp) => context.read<AuthFormBloc>().add(OtpChanged(otp)),
-      keyboardType: TextInputType.number,
-      textAlign: TextAlign.center,
-      maxLength: 6,
-      decoration: const InputDecoration(
-        //hintText: 'Nhập mã OTP 6 chữ số',
-        counterText: "",
+    final defaultPinTheme = PinTheme(
+      width: 50,
+      height: 55,
+      textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+      decoration: BoxDecoration(
+        color: AppColors.inputBackground,
+        borderRadius: BorderRadius.circular(AppSize.r12),
+        border: Border.all(color: Colors.transparent),
       ),
-      style: const TextStyle(fontSize: 18, letterSpacing: 8),
+    );
+
+    return Pinput(
+      length: 6,
+      defaultPinTheme: defaultPinTheme,
+      
+      focusedPinTheme: defaultPinTheme.copyWith(
+        decoration: defaultPinTheme.decoration!.copyWith(
+          border: Border.all(color: AppColors.primary),
+        ),
+      ),
+      
+      submittedPinTheme: defaultPinTheme,
+
+      autofocus: true,
+      showCursor: true,
+
+      onChanged: (value) {
+        context.read<AuthFormBloc>().add(OtpChanged(value));
+      },
+      // có thể dùng onCompleted nếu chỉ muốn gửi khi đã nhập đủ 6 số
+      // onCompleted: (pin) {
+      //   context.read<AuthFormBloc>().add(OtpChanged(pin));
+      // },
     );
   }
 }

@@ -43,8 +43,8 @@ class LoginView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const AppHeader(),
-              const SizedBox(height: AppSize.p32),
+              // const AppHeader(),
+              // const SizedBox(height: AppSize.p32),
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
                 child: Container(

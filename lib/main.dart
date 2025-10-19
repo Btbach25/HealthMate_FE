@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,7 +13,8 @@ import 'data/services/auth_service.dart';
 void main() {
   // Khởi tạo các repository và service
   final authService = MockAuthService();
-  final authRepository = AuthRepository(authService: authService);
+  final localStorageService = LocalStorageService();
+  final authRepository = AuthRepository(authService: authService , localStorageService: localStorageService,);
   
   runApp(MyApp(authRepository: authRepository));
 }

@@ -53,8 +53,8 @@ class ResetPasswordView extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const AppHeader(),
-              const SizedBox(height: AppSize.p32),
+              // const AppHeader(),
+              // const SizedBox(height: AppSize.p32),
               Container(
                 padding: const EdgeInsets.all(AppSize.p24),
                 decoration: BoxDecoration(

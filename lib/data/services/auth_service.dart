@@ -16,7 +16,7 @@ class MockAuthService implements AuthService {
   Future<User?> login({required String email, required String password}) async {
     await Future.delayed(const Duration(seconds: 1));
     if (email == 'admin@gmail.com' && password == 'admin') {
-      _currentUser = const User(id: '1', name: 'Flutter Developer');
+      _currentUser = const User(id: '1', name: 'Nguyen Van Minh');
       return _currentUser;
     }
     throw Exception('Email hoặc mật khẩu không đúng');
