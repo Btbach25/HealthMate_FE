@@ -13,7 +13,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc({required AuthRepository authRepository})
       : _authRepository = authRepository,
-        super(const AuthState.unknown()) {
+        super(AuthState.unknown()) {
     on<AuthStatusChanged>(_onAuthStatusChanged);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
 
@@ -26,16 +26,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onAuthStatusChanged(AuthStatusChanged event, Emitter<AuthState> emit) async {
     switch (event.status) {
       case AuthStatus.unauthenticated:
-        return emit(const AuthState.unauthenticated());
+        return emit(AuthState.unauthenticated());
       case AuthStatus.authenticated:
         final user = await _authRepository.getCurrentUser();
         return emit(
           user != null
               ? AuthState.authenticated(user)
-              : const AuthState.unauthenticated(),
+              : AuthState.unauthenticated(),
         );
       case AuthStatus.unknown:
-        return emit(const AuthState.unknown());
+        return emit(AuthState.unknown());
     }
   }
 
