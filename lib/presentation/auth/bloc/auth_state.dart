@@ -4,20 +4,17 @@ class AuthState extends Equatable {
   final AuthStatus status;
   final User user;
 
-  const AuthState._({
+  AuthState._({
     this.status = AuthStatus.unknown,
-    this.user = const User.empty(),
-  });
+    User? user,
+  }): user = user ?? User.empty();
 
-  // Trạng thái khởi tạo
-  const AuthState.unknown() : this._();
+  AuthState.unknown() : this._();
 
-  // Trạng thái đã đăng nhập
-  const AuthState.authenticated(User user)
+  AuthState.authenticated(User user)
       : this._(status: AuthStatus.authenticated, user: user);
 
-  // Trạng thái chưa đăng nhập
-  const AuthState.unauthenticated()
+  AuthState.unauthenticated()
       : this._(status: AuthStatus.unauthenticated);
 
   @override
