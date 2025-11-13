@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:fe/data/models/user.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/repositories/auth_repository.dart';
 
 part 'auth_event.dart';

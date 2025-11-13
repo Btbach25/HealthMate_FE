@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/details/view/stats_page.dart';
 import 'package:fe/presentation/main_tabs/shell/view/app_shell.dart';
 
 import 'package:fe/presentation/main_tabs/family_page.dart';
@@ -76,7 +77,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/stats',
-                builder: (context, state) => const Scaffold(body: Center(child: Text('Chỉ số'))),
+                builder: (context, state) => const StatsPage(),
               ),
             ],
           ),

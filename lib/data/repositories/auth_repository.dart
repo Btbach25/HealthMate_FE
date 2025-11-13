@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:fe/data/models/user.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 
 import '../services/auth_service.dart';
