@@ -1,7 +1,7 @@
 import 'package:fe/core/utils/converter.dart';
 
-import '../enums/group_member_role.dart';
-import '../enums/group_member_status.dart';
+import '../../enums/group_member_role.dart';
+import '../../enums/group_member_status.dart';
 
 class GroupMember {
   final String groupId;

@@ -1,11 +1,14 @@
 import 'dart:convert';
-
 import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/converter.dart';
+import 'package:fe/data/enums/login_provider.dart';
+import 'package:fe/data/enums/user_role.dart';
+import 'package:fe/data/enums/user_status.dart';
 
-import '../enums/login_provider.dart';
-import '../enums/user_role.dart';
-import '../enums/user_status.dart';
+import 'package:fe/data/models/user/blood_pressure.dart';
+import 'package:fe/data/models/user/heart_rate.dart';
+import 'package:fe/data/models/user/temperature.dart';
+import 'package:fe/data/models/user/weight.dart';
 
 class User extends Equatable {
   final String id;
@@ -19,6 +22,10 @@ class User extends Equatable {
   final String? passwordHash;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final HeartRate? heartRate;
+  final Weight? weight;
+  final BloodPressure? bloodPressure;
+  final Temperature? temperature;
 
   const User({
     required this.id,
@@ -32,6 +39,10 @@ class User extends Equatable {
     this.passwordHash,
     required this.createdAt,
     required this.updatedAt,
+    this.heartRate,
+    this.weight,
+    this.bloodPressure,
+    this.temperature,
   });
 
   User.empty()
@@ -44,6 +55,10 @@ class User extends Equatable {
           provider: LoginProvider.email,
           createdAt: DateTime(0),
           updatedAt: DateTime(0),
+          heartRate: null,
+          weight: null,
+          bloodPressure: null,
+          temperature: null,
         );
         
   bool get isEmpty => id == '';
@@ -62,6 +77,19 @@ class User extends Equatable {
       passwordHash: json['password_hash'] as String?,
       createdAt: cvToDateRequired(json['created_at'] as String),
       updatedAt: cvToDateRequired(json['updated_at'] as String),
+      
+      heartRate: json['heart_rate'] != null
+          ? HeartRate.fromJson(json['heart_rate'] as Map<String, dynamic>)
+          : null,
+      weight: json['weight'] != null
+          ? Weight.fromJson(json['weight'] as Map<String, dynamic>)
+          : null,
+      bloodPressure: json['blood_pressure'] != null
+          ? BloodPressure.fromJson(json['blood_pressure'] as Map<String, dynamic>)
+          : null,
+      temperature: json['temperature'] != null
+          ? Temperature.fromJson(json['temperature'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -78,6 +106,11 @@ class User extends Equatable {
       'password_hash': passwordHash,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+
+      'heart_rate': heartRate?.toJson(),
+      'weight': weight?.toJson(),
+      'blood_pressure': bloodPressure?.toJson(),
+      'temperature': temperature?.toJson(),
     };
   }
 
@@ -100,6 +133,10 @@ class User extends Equatable {
     String? passwordHash,
     DateTime? createdAt,
     DateTime? updatedAt,
+    HeartRate? heartRate,
+    Weight? weight,
+    BloodPressure? bloodPressure,
+    Temperature? temperature,
   }) {
     return User(
       id: id ?? this.id,
@@ -113,6 +150,10 @@ class User extends Equatable {
       passwordHash: passwordHash ?? this.passwordHash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      heartRate: heartRate ?? this.heartRate,
+      weight: weight ?? this.weight,
+      bloodPressure: bloodPressure ?? this.bloodPressure,
+      temperature: temperature ?? this.temperature,
     );
   }
 
@@ -128,6 +169,10 @@ class User extends Equatable {
         googleId,
         passwordHash,
         createdAt,
-        updatedAt
+        updatedAt,
+        heartRate,
+        weight,
+        bloodPressure,
+        temperature,
       ];
 }

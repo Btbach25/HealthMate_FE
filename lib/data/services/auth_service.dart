@@ -1,4 +1,4 @@
-import '../models/user.dart';
+import '../models/user/user.dart';
 import '../enums/user_role.dart';
 import '../enums/user_status.dart';
 import '../enums/login_provider.dart';

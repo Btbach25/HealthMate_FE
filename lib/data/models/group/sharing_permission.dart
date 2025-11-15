@@ -1,4 +1,4 @@
-import '../enums/metric_type.dart';
+import '../../enums/metric_type.dart';
 
 class SharingPermission {
   final String groupId;

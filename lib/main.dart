@@ -1,7 +1,11 @@
 // lib/main.dart
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/data/repositories/home_repository.dart';
+import 'package:fe/data/repositories/stats_repository.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+import 'package:fe/data/services/mock_home_service.dart';
+import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,26 +15,42 @@ import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_service.dart';
 
 void main() {
-  // Khởi tạo các repository và service
   final authService = MockAuthService();
   final localStorageService = LocalStorageService();
-  final authRepository = AuthRepository(authService: authService , localStorageService: localStorageService,);
-  
-  runApp(MyApp(authRepository: authRepository));
+  final authRepository = AuthRepository(
+    authService: authService,
+    localStorageService: localStorageService,
+  );
+  final homeService = MockHomeService();
+  final homeRepository = HomeRepository(homeService: homeService);
+  final statsService = MockStatsService();
+  final statsRepository = StatsRepository(statsService: statsService);
+
+  runApp(MyApp(authRepository: authRepository, homeRepository: homeRepository,statsRepository: statsRepository,));
 }
 
 class MyApp extends StatelessWidget {
   final AuthRepository _authRepository;
+  final HomeRepository _homeRepository;
+  final StatsRepository _statsRepository;
 
-  const MyApp({super.key, required AuthRepository authRepository})
-      : _authRepository = authRepository;
+  const MyApp({
+    super.key,
+    required AuthRepository authRepository,
+    required HomeRepository homeRepository,
+    required StatsRepository statsRepository,
+  }) : _authRepository = authRepository,
+       _homeRepository = homeRepository,
+       _statsRepository = statsRepository;
 
   @override
   Widget build(BuildContext context) {
-    // Cung cấp Repository cho toàn bộ ứng dụng
-    return RepositoryProvider.value(
-      value: _authRepository,
-      // Cung cấp BLoC toàn cục cho toàn bộ ứng dụng
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: _authRepository),
+        RepositoryProvider.value(value: _homeRepository),
+        RepositoryProvider.value(value: _statsRepository),
+      ],
       child: BlocProvider(
         create: (_) => AuthBloc(authRepository: _authRepository),
         child: const AppView(),
@@ -44,7 +64,6 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy authBloc để truyền vào router
     final authBloc = context.read<AuthBloc>();
     final router = AppRouter(authBloc: authBloc).router;
 
@@ -54,9 +73,7 @@ class AppView extends StatelessWidget {
         primaryColor: AppColors.primary,
         fontFamily: 'Inter',
         scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-        ),
+        colorScheme: const ColorScheme.light(primary: AppColors.primary),
         inputDecorationTheme: const InputDecorationTheme(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
@@ -66,9 +83,7 @@ class AppView extends StatelessWidget {
           fillColor: AppColors.inputBackground,
         ),
         textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
-          ),
+          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
         ),
       ),
       routerConfig: router,
