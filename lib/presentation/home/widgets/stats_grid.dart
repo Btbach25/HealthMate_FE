@@ -10,7 +10,6 @@ class StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ... (Phần logic xử lý data giữ nguyên) ...
     final heartRate = user.heartRate?.value?.round().toString() ?? '...';
     final weight = user.weight?.value?.round().toString() ?? '...';
     final systolic = user.bloodPressure?.systolic?.toString() ?? '...';
@@ -22,14 +21,12 @@ class StatsGrid extends StatelessWidget {
         : 'Chưa có dữ liệu';
     final temperatureUnit = temperatureValue != null ? '°C' : null;
 
-    // --- BỎ GRIDVIEW, DÙNG COLUMN + ROW ---
     const horizontalSpacing = SizedBox(width: 16);
     const verticalSpacing = SizedBox(height: 16);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Hàng 1
         Row(
           children: [
             Expanded(
@@ -56,7 +53,6 @@ class StatsGrid extends StatelessWidget {
           ],
         ),
         verticalSpacing,
-        // Hàng 2
         Row(
           children: [
             Expanded(

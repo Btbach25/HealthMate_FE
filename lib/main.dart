@@ -9,12 +9,16 @@ import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/routing/app_router.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_service.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized(); 
+  await initializeDateFormatting('vi_VN', null);
+
   final authService = MockAuthService();
   final localStorageService = LocalStorageService();
   final authRepository = AuthRepository(

@@ -1,5 +1,6 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/presentation/details/bloc/stats_bloc.dart';
+import 'package:fe/presentation/details/widgets/stats_chart_lazy_loader.dart';
 import 'package:fe/presentation/details/widgets/stats_header_card.dart';
 import 'package:fe/presentation/details/widgets/stats_metric_list.dart';
 import 'package:fe/presentation/details/widgets/stats_tab_bar.dart';
@@ -100,10 +101,10 @@ class _StatsViewState extends State<StatsView>
                         metrics: data.metrics,
                         displayMode: MetricDisplayMode.status,
                       ),
-                      // Tab 3: Biểu đồ
-                      const Center(
-                        child: Text('Nội dung biểu đồ (sẽ làm sau)'),
-                      ),
+                      
+                      // --- THAY ĐỔI TAB 3: BIỂU ĐỒ ---
+                      // Widget này sẽ tự lazy-load BLoC
+                      const StatsChartLazyLoader(),
                     ],
                   ),
                 ),

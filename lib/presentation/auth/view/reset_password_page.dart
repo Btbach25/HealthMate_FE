@@ -11,7 +11,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
-import 'signup_page.dart';
 
 class ResetPasswordPage extends StatelessWidget {
   const ResetPasswordPage({super.key});
