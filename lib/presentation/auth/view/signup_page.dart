@@ -1,4 +1,3 @@
-// lib/presentation/auth/view/signup_page.dart
 import 'package:fe/core/constants/app_styles.dart';
 import 'package:fe/presentation/auth/widgets/confirm_password_input.dart';
 import 'package:fe/presentation/auth/widgets/password_input.dart';
@@ -33,7 +32,6 @@ class SignUpView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // BlocListener để xử lý các side-effect như điều hướng, hiển thị toast
     return BlocListener<AuthFormBloc, AuthFormState>(
       listener: (context, state) {
         if (state.status == FormStatus.failure) {
@@ -41,21 +39,21 @@ class SignUpView extends StatelessWidget {
         }
         if (state.status == FormStatus.success) {
           ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
-          // Sau khi đăng ký thành công, quay lại trang đăng nhập
-          context.go('/login');
+          if (state.needsVerification) {
+            final emailToVerify = state.verificationEmail.isNotEmpty ? state.verificationEmail : state.email;
+            context.go('/otp', extra: {'email': emailToVerify, 'flow': 'signup'});
+          } else {
+            context.go('/login');
+          }
         }
       },
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
-            // horizontal: AppSize.p24, 
-            // vertical: AppSize.p32
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // const AppHeader(),
-              // const SizedBox(height: AppSize.p32),
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
                 child: Container(
@@ -65,7 +63,7 @@ class SignUpView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSize.r12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 5,
                         blurRadius: 20,
                       ),
@@ -128,7 +126,6 @@ class SignUpForm extends StatelessWidget {
   }
 }
 
-// Các Widget Input
 class _NameInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -166,12 +163,11 @@ class _EmailInput extends StatelessWidget {
   }
 }
 
-// Nút Đăng ký
 class _SignUpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthFormBloc, AuthFormState>(
-      buildWhen: (previous, current) => previous.status != current.status,
+      buildWhen: (previous, current) => previous.status != current.status || previous.isValidSignUp != current.isValidSignUp,
       builder: (context, state) {
         return ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -181,7 +177,7 @@ class _SignUpButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSize.r12),
             ),
           ),
-          onPressed: state.status == FormStatus.inProgress
+          onPressed: state.status == FormStatus.inProgress || !state.isValidSignUp
               ? null
               : () => context.read<AuthFormBloc>().add(SignUpSubmitted()),
           child: state.status == FormStatus.inProgress
@@ -196,7 +192,6 @@ class _SignUpButton extends StatelessWidget {
   }
 }
 
-// Link quay lại Đăng nhập
 class _LoginPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

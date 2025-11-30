@@ -41,7 +41,15 @@ class OtpChanged extends AuthFormEvent {
   @override
   List<Object> get props => [otp];
 }
+// Thêm event này để init email khi vào màn hình OTP
+class AuthFormInitialized extends AuthFormEvent {
+  final String email;
+  const AuthFormInitialized({required this.email});
+  @override
+  List<Object> get props => [email];
+}
 
+class OtpResendRequested extends AuthFormEvent {}
 // Events nhấn nút submit
 class LoginSubmitted extends AuthFormEvent {}
 class SignUpSubmitted extends AuthFormEvent {}

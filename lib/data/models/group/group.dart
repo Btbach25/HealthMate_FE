@@ -23,8 +23,8 @@ class Group {
       name: json['name'] as String,
       description: json['description'] as String?,
       ownerId: json['owner_id'] as String,
-      createdAt: cvToDateRequired(json['created_at'] as String),
-      updatedAt: cvToDateRequired(json['updated_at'] as String),
+      createdAt: cvToDate(json['created_at'] as String),
+      updatedAt: cvToDate(json['updated_at'] as String),
     );
   }
 

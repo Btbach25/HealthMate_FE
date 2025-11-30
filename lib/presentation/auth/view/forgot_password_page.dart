@@ -38,7 +38,7 @@ class ForgotPasswordView extends StatelessWidget {
         if (state.status == FormStatus.success) {
           // Hiển thị toast thành công và điều hướng đến trang OTP
           ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
-          context.go('/otp');
+          context.go('/otp', extra: state.email);
         }
       },
       child: SafeArea(
@@ -62,7 +62,7 @@ class ForgotPasswordView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSize.r12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha:0.1),
                         spreadRadius: 5,
                         blurRadius: 20,
                       ),
@@ -88,7 +88,7 @@ class ForgotPasswordForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Icon chìa khóa
-        Icon(Icons.vpn_key_outlined, size: 48, color: AppColors.primary.withOpacity(0.5)),
+        Icon(Icons.vpn_key_outlined, size: 48, color: AppColors.primary.withValues(alpha: 0.5)),
         const SizedBox(height: AppSize.p16),
         const Text('Quên mật khẩu', style: AppStyles.h1, textAlign: TextAlign.center),
         const SizedBox(height: AppSize.p8),

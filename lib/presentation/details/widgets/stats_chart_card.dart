@@ -95,7 +95,7 @@ class StatsChartCard extends StatelessWidget {
     // Nếu bạn muốn màu cố định như sample thì thay list này bằng [AppColors.contentColorCyan, AppColors.contentColorBlue]
     final List<Color> gradientColors = [
       chart.lineColor,
-      chart.lineColor.withOpacity(0.5), // Pha thêm chút trong suốt hoặc màu thứ 2
+      chart.lineColor.withValues(alpha:0.5),
     ];
 
     return LineChartData(
@@ -105,7 +105,7 @@ class StatsChartCard extends StatelessWidget {
       lineTouchData: LineTouchData(
         handleBuiltInTouches: true,
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (LineBarSpot spot) => Colors.white.withOpacity(0.9),
+          getTooltipColor: (LineBarSpot spot) => Colors.white.withValues(alpha: 0.9),
           tooltipBorder: BorderSide(color: chart.lineColor, width: 2),
           tooltipBorderRadius: BorderRadius.circular(8),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
@@ -194,7 +194,7 @@ class StatsChartCard extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: gradientColors
-                  .map((color) => color.withOpacity(0.3)) // Độ trong suốt giảm dần
+                  .map((color) => color.withValues(alpha: 0.3)) // Độ trong suốt giảm dần
                   .toList(),
             ),
           ),

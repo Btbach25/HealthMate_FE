@@ -15,7 +15,7 @@ class BloodPressure {
 
   factory BloodPressure.fromJson(Map<String, dynamic> json) {
     return BloodPressure(
-      time: cvToDateRequired(json['time'] as String),
+      time: cvToDate(json['time'] as String),
       userId: json['user_id'] as String,
       systolic: json['systolic'] as int?,
       diastolic: json['diastolic'] as int?,

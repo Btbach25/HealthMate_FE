@@ -1,21 +1,21 @@
 import 'package:fe/core/utils/converter.dart';
 
-class StepsCount {
+class Temperature {
   final DateTime time;
   final String userId;
-  final int value;
+  final double? value;
 
-  StepsCount({
+  Temperature({
     required this.time,
     required this.userId,
-    required this.value,
+    this.value,
   });
 
-  factory StepsCount.fromJson(Map<String, dynamic> json) {
-    return StepsCount(
-      time: cvToDateRequired(json['time'] as String),
+  factory Temperature.fromJson(Map<String, dynamic> json) {
+    return Temperature(
+      time: cvToDate(json['time'] as String),
       userId: json['user_id'] as String,
-      value: json['value'] as int,
+      value: (json['value'] as num?)?.toDouble(),
     );
   }
 
@@ -27,12 +27,12 @@ class StepsCount {
     };
   }
 
-  StepsCount copyWith({
+  Temperature copyWith({
     DateTime? time,
     String? userId,
-    int? value,
+    double? value,
   }) {
-    return StepsCount(
+    return Temperature(
       time: time ?? this.time,
       userId: userId ?? this.userId,
       value: value ?? this.value,

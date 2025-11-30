@@ -33,7 +33,20 @@ class LoginView extends StatelessWidget {
     return BlocListener<AuthFormBloc, AuthFormState>(
       listener: (context, state) {
         if (state.status == FormStatus.failure) {
-          ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
+          ToastUtils.showCustomToast(
+            context,
+            state.errorMessage,
+            ToastType.error,
+          );
+        }
+        if (state.status == FormStatus.success && state.needsVerification) {
+          ToastUtils.showCustomToast(
+            context,
+            state.successMessage.isNotEmpty ? state.successMessage : 'Đã gửi OTP, vui lòng kiểm tra email',
+            ToastType.success,
+          );
+          final emailToVerify = state.verificationEmail.isNotEmpty ? state.verificationEmail : state.email;
+          context.go('/otp', extra: {'email': emailToVerify, 'flow': 'login'});
         }
       },
       child: SafeArea(
@@ -45,7 +58,12 @@ class LoginView extends StatelessWidget {
               // const AppHeader(),
               // const SizedBox(height: AppSize.p32),
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSize.p24,
+                  0,
+                  AppSize.p24,
+                  AppSize.p32,
+                ),
                 child: Container(
                   padding: const EdgeInsets.all(AppSize.p24),
                   decoration: BoxDecoration(
@@ -53,7 +71,7 @@ class LoginView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSize.r12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 5,
                         blurRadius: 20,
                       ),
@@ -70,7 +88,6 @@ class LoginView extends StatelessWidget {
   }
 }
 
-
 class LoginForm extends StatelessWidget {
   const LoginForm({super.key});
 
@@ -79,9 +96,17 @@ class LoginForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Đăng nhập', style: AppStyles.h1, textAlign: TextAlign.center),
+        const Text(
+          'Đăng nhập',
+          style: AppStyles.h1,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p8),
-        const Text('Truy cập vào ứng dụng HealthMate', style: AppStyles.bodyLg, textAlign: TextAlign.center),
+        const Text(
+          'Truy cập vào ứng dụng HealthMate',
+          style: AppStyles.bodyLg,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p32),
         const Text('Email', style: AppStyles.bodyBold),
         const SizedBox(height: AppSize.p8),
@@ -115,7 +140,8 @@ class _EmailInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      onChanged: (email) => context.read<AuthFormBloc>().add(EmailChanged(email)),
+      onChanged: (email) =>
+          context.read<AuthFormBloc>().add(EmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
       decoration: const InputDecoration(
         hintText: 'Nhập email của bạn (admin@gmail.com)',
@@ -136,14 +162,17 @@ class _PasswordInputState extends State<_PasswordInput> {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      onChanged: (password) => context.read<AuthFormBloc>().add(PasswordChanged(password)),
+      onChanged: (password) =>
+          context.read<AuthFormBloc>().add(PasswordChanged(password)),
       obscureText: _isObscured,
       decoration: InputDecoration(
         hintText: 'Nhập mật khẩu (admin)',
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(
           icon: Icon(
-            _isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            _isObscured
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
           ),
           onPressed: () {
             setState(() {
@@ -156,26 +185,32 @@ class _PasswordInputState extends State<_PasswordInput> {
   }
 }
 
-
 class _LoginButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthFormBloc, AuthFormState>(
-      buildWhen: (previous, current) => previous.status != current.status,
+      // buildWhen: (previous, current) => previous.status != current.status,
       builder: (context, state) {
         return ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             padding: const EdgeInsets.symmetric(vertical: AppSize.p16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSize.r12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSize.r12),
+            ),
           ),
-          onPressed: state.status == FormStatus.inProgress
-              ? null
-              : () => context.read<AuthFormBloc>().add(LoginSubmitted()),
+          onPressed:
+              (state.isValidLogin && state.status != FormStatus.inProgress)
+              ? () => context.read<AuthFormBloc>().add(LoginSubmitted())
+              : null,
           child: state.status == FormStatus.inProgress
               ? const SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text('Đăng nhập', style: AppStyles.button),
         );
@@ -207,12 +242,12 @@ class _GoogleLoginButton extends StatelessWidget {
       icon: Image.asset('assets/icons/google_logo.png', height: 20),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: Colors.grey.shade300),
       ),
-      onPressed: () { /*Handle Google Login */ },
+      onPressed: () {
+        /*Handle Google Login */
+      },
       label: const Text(
         'Đăng nhập với Google',
         style: TextStyle(fontSize: 16, color: Colors.black87),

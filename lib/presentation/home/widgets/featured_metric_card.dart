@@ -26,7 +26,7 @@ class FeaturedMetricCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSize.r12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.08), // Bóng mờ rất nhẹ
+              color: Colors.grey.withValues(alpha: .08), // Bóng mờ rất nhẹ
               blurRadius: 20,
               offset: const Offset(0, 5),
             )

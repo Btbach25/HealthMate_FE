@@ -1,83 +1,55 @@
-import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_icons.dart';
-import 'package:fe/data/models/user/user.dart';
-import 'package:fe/presentation/home/widgets/stat_card.dart';
+import 'package:fe/data/models/home_data.dart';
+import 'package:fe/presentation/home/widgets/stat_config.dart';
 import 'package:flutter/material.dart';
+import 'stat_card.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/health_overview_bloc.dart';
+import 'package:fe/data/models/health/health_overview.dart';
 
 class StatsGrid extends StatelessWidget {
-  final User user;
-  const StatsGrid({super.key, required this.user});
+  final HomeData homeData;
+  const StatsGrid({super.key, required this.homeData});
 
   @override
   Widget build(BuildContext context) {
-    final heartRate = user.heartRate?.value?.round().toString() ?? '...';
-    final weight = user.weight?.value?.round().toString() ?? '...';
-    final systolic = user.bloodPressure?.systolic?.toString() ?? '...';
-    final diastolic = user.bloodPressure?.diastolic?.toString() ?? '...';
-    final bloodPressure = '$systolic/$diastolic';
-    final temperatureValue = user.temperature?.value;
-    final temperature = temperatureValue != null
-        ? '${temperatureValue.toStringAsFixed(1)}'
-        : 'Chưa có dữ liệu';
-    final temperatureUnit = temperatureValue != null ? '°C' : null;
-
     const horizontalSpacing = SizedBox(width: 16);
     const verticalSpacing = SizedBox(height: 16);
+
+    final cardChunks = [
+      defaultStatCardsConfig.sublist(0, 2),
+      defaultStatCardsConfig.sublist(2, defaultStatCardsConfig.length),
+    ];
+
+    // Read health overview from bloc; fallback to empty to keep layout
+    final overview = context.watch<HealthOverviewBloc>().state.overview ?? HealthOverview.empty();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                icon: AppIcons.heart,
-                iconColor: AppColors.heartIconColor,
-                iconBgColor: AppColors.heartIconBg,
-                title: 'Nhịp tim',
-                value: heartRate,
-                unit: 'bpm',
-              ),
-            ),
-            horizontalSpacing,
-            Expanded(
-              child: StatCard(
-                icon: AppIcons.weight,
-                iconColor: AppColors.weightIconColor,
-                iconBgColor: AppColors.weightIconBg,
-                title: 'Cân nặng',
-                value: weight,
-                unit: 'kg',
-              ),
-            ),
-          ],
-        ),
-        verticalSpacing,
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                icon: AppIcons.bloodPressure,
-                iconColor: AppColors.bloodPressureIconColor,
-                title: 'Huyết áp',
-                value: bloodPressure,
-                unit: 'mmHg',
-              ),
-            ),
-            horizontalSpacing,
-            Expanded(
-              child: StatCard(
-                icon: AppIcons.temperature,
-                iconColor: AppColors.tempIconColor,
-                iconBgColor: AppColors.tempIconBg,
-                title: 'Nhiệt độ',
-                value: temperature,
-                unit: temperatureUnit,
-              ),
-            ),
-          ],
-        ),
+        for (int i = 0; i < cardChunks.length; i++) ...[
+          if (i != 0) verticalSpacing,
+          Row(
+            children: [
+              for (int j = 0; j < cardChunks[i].length; j++) ...[
+                Expanded(
+                  child: StatCard(
+                    icon: cardChunks[i][j].icon,
+                    iconColor: cardChunks[i][j].iconColor,
+                    iconBgColor: cardChunks[i][j].iconBgColor,
+                    title: cardChunks[i][j].title,
+                    value: cardChunks[i][j].getValue(overview),
+                    unit: cardChunks[i][j].unit,
+                  ),
+                ),
+                if (j != cardChunks[i].length - 1) horizontalSpacing
+              ]
+            ],
+          )
+        ]
       ],
     );
   }
 }
+
+//////////////////////????????????????????
+//// Chú thích: Chưa chỉnh 

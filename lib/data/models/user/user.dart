@@ -5,11 +5,6 @@ import 'package:fe/data/enums/login_provider.dart';
 import 'package:fe/data/enums/user_role.dart';
 import 'package:fe/data/enums/user_status.dart';
 
-import 'package:fe/data/models/user/blood_pressure.dart';
-import 'package:fe/data/models/user/heart_rate.dart';
-import 'package:fe/data/models/user/temperature.dart';
-import 'package:fe/data/models/user/weight.dart';
-
 class User extends Equatable {
   final String id;
   final String email;
@@ -22,10 +17,6 @@ class User extends Equatable {
   final String? passwordHash;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final HeartRate? heartRate;
-  final Weight? weight;
-  final BloodPressure? bloodPressure;
-  final Temperature? temperature;
 
   const User({
     required this.id,
@@ -39,57 +30,37 @@ class User extends Equatable {
     this.passwordHash,
     required this.createdAt,
     required this.updatedAt,
-    this.heartRate,
-    this.weight,
-    this.bloodPressure,
-    this.temperature,
   });
 
-  User.empty()
-      : this(
-          id: '',
-          email: '',
-          name: '',
-          role: UserRole.user,
-          status: UserStatus.unverified,
-          provider: LoginProvider.email,
-          createdAt: DateTime(0),
-          updatedAt: DateTime(0),
-          heartRate: null,
-          weight: null,
-          bloodPressure: null,
-          temperature: null,
-        );
-        
+  factory User.empty() {
+    return User(
+      id: '',
+      email: '',
+      name: '',
+      role: UserRole.user,
+      status: UserStatus.unverified,
+      provider: LoginProvider.email,
+      createdAt: DateTime(0),
+      updatedAt: DateTime(0),
+    );
+  }
+
   bool get isEmpty => id == '';
   bool get isNotEmpty => id != '';
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      name: json['name'] as String,
-      picture: json['picture'] as String?,
-      role: UserRole.fromValue(json['role'] as String?),
-      status: UserStatus.fromValue(json['status'] as String?),
-      provider: LoginProvider.fromValue(json['provider'] as String?),
-      googleId: json['google_id'] as String?,
-      passwordHash: json['password_hash'] as String?,
-      createdAt: cvToDateRequired(json['created_at'] as String),
-      updatedAt: cvToDateRequired(json['updated_at'] as String),
-      
-      heartRate: json['heart_rate'] != null
-          ? HeartRate.fromJson(json['heart_rate'] as Map<String, dynamic>)
-          : null,
-      weight: json['weight'] != null
-          ? Weight.fromJson(json['weight'] as Map<String, dynamic>)
-          : null,
-      bloodPressure: json['blood_pressure'] != null
-          ? BloodPressure.fromJson(json['blood_pressure'] as Map<String, dynamic>)
-          : null,
-      temperature: json['temperature'] != null
-          ? Temperature.fromJson(json['temperature'] as Map<String, dynamic>)
-          : null,
+      id: cvToString(json['id']),
+      email: cvToString(json['email']),
+      name: cvToString(json['name']),
+      picture: cvToStringOrNull(json['picture']),
+      role: UserRole.fromValue(cvToStringOrNull(json['role'])),
+      status: UserStatus.fromValue(cvToStringOrNull(json['status'])),
+      provider: LoginProvider.fromValue(cvToStringOrNull(json['provider'])),
+      googleId: cvToStringOrNull(json['google_id']),
+      passwordHash: cvToStringOrNull(json['password_hash'] ?? json['password']),
+      createdAt: cvToDate(json['created_at'], defaultValue: DateTime(0)),
+      updatedAt: cvToDate(json['updated_at'], defaultValue: DateTime(0)),
     );
   }
 
@@ -106,19 +77,17 @@ class User extends Equatable {
       'password_hash': passwordHash,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-
-      'heart_rate': heartRate?.toJson(),
-      'weight': weight?.toJson(),
-      'blood_pressure': bloodPressure?.toJson(),
-      'temperature': temperature?.toJson(),
     };
   }
 
   String toJsonString() => jsonEncode(toJson());
 
   factory User.fromJsonString(String source) {
-    final map = jsonDecode(source) as Map<String, dynamic>;
-    return User.fromJson(map);
+    final map = jsonDecode(source);
+    if (map is Map<String, dynamic>) {
+      return User.fromJson(map);
+    }
+    return User.empty();
   }
 
   User copyWith({
@@ -133,10 +102,6 @@ class User extends Equatable {
     String? passwordHash,
     DateTime? createdAt,
     DateTime? updatedAt,
-    HeartRate? heartRate,
-    Weight? weight,
-    BloodPressure? bloodPressure,
-    Temperature? temperature,
   }) {
     return User(
       id: id ?? this.id,
@@ -150,29 +115,12 @@ class User extends Equatable {
       passwordHash: passwordHash ?? this.passwordHash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      heartRate: heartRate ?? this.heartRate,
-      weight: weight ?? this.weight,
-      bloodPressure: bloodPressure ?? this.bloodPressure,
-      temperature: temperature ?? this.temperature,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        name,
-        picture,
-        role,
-        status,
-        provider,
-        googleId,
-        passwordHash,
-        createdAt,
-        updatedAt,
-        heartRate,
-        weight,
-        bloodPressure,
-        temperature,
+        id, email, name, picture, role, status, 
+        provider, googleId, passwordHash, createdAt, updatedAt
       ];
 }

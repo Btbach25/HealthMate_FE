@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:fe/data/models/group/family_notification.dart';
-import 'package:fe/data/models/user/medication_progress.dart';
+import 'package:fe/data/models/health/medication_progress.dart';
 import 'package:fe/data/models/user/user.dart';
 
 class HomeData extends Equatable {
