@@ -32,8 +32,8 @@ class GroupMember {
       status: GroupMemberStatus.fromValue(json['status'] as String?),
       invitedBy: json['invited_by'] as String,
       joinedAt: cvToDate(json['joined_at'] as String?),
-      createdAt: cvToDateRequired(json['created_at'] as String),
-      updatedAt: cvToDateRequired(json['updated_at'] as String),
+      createdAt: cvToDate(json['created_at'] as String),
+      updatedAt: cvToDate(json['updated_at'] as String),
     );
   }
 

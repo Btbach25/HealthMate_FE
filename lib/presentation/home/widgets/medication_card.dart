@@ -1,5 +1,5 @@
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/data/models/user/medication_progress.dart';
+import 'package:fe/data/models/health/medication_progress.dart';
 import 'package:flutter/material.dart';
 
 class MedicationCard extends StatelessWidget {

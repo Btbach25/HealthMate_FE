@@ -17,7 +17,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthStatusChanged>(_onAuthStatusChanged);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
 
-    // Lắng nghe sự thay đổi trạng thái từ repository
     _authStatusSubscription = _authRepository.status.listen(
       (status) => add(AuthStatusChanged(status)),
     );

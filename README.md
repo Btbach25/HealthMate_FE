@@ -1,77 +1,197 @@
-# Flutter Project
+# HealthMate FE (Flutter)
 
-## Giới thiệu
+Một ứng dụng Flutter đa nền tảng (Android, iOS, Web, Desktop) cho sức khỏe cá nhân.
 
-## Yêu cầu hệ thống
+Lưu ý: Phần mô tả/giới thiệu chi tiết dự án sẽ được bổ sung sau.
 
-- Flutter SDK: Phiên bản 3.0 trở lên.
-- Dart SDK: Phiên bản 2.17 trở lên.
-- Công cụ phát triển: Android Studio, Visual Studio Code, hoặc Xcode (cho iOS).
-- Hệ điều hành: Windows, macOS, hoặc Linux.
+## Nội dung
 
-## Cài đặt
+- Giới thiệu dự án
+- Kiến trúc dự án
+- Cài đặt & chạy dự án
+- Quản lý môi trường (.env)
+- Build & phát hành
+- Cấu trúc thư mục
+- Công nghệ sử dụng
+- Ghi chú/Troubleshooting
 
-1. **Clone repository**:
-   ```
-   git clone <URL của repository>
-   cd <tên thư mục dự án>
-   ```
+---
 
-2. **Cài đặt dependencies**:
-   Chạy lệnh sau để tải về các gói phụ thuộc:
-   ```
-   flutter pub get
-   ```
+## Giới thiệu dự án
 
-3. **Cấu hình môi trường**:
-   - Đảm bảo bạn đã thiết lập Flutter đúng cách bằng lệnh `flutter doctor`.
-   - Nếu phát triển cho iOS, cần có Xcode và CocoaPods.
+HealthMate FE là frontend Flutter cho hệ thống theo dõi sức khỏe cá nhân. Ứng dụng cung cấp các tính năng đăng nhập/đăng ký kèm OTP, xem tổng quan sức khỏe, nhắc uống thuốc, thông báo gia đình…
 
-## Chạy ứng dụng
+> Placeholder: Bổ sung mô tả business/feature/ảnh chụp màn hình sau.
 
-- **Chạy trên emulator/simulator**:
-  ```
-  flutter run
-  ```
+---
 
-- **Build APK cho Android**:
-  ```
-  flutter build apk
-  ```
+## Kiến trúc dự án
 
-- **Build IPA cho iOS**:
-  ```
-  flutter build ios
-  ```
+Ứng dụng sử dụng kiến trúc phân lớp + BLoC:
 
-## Cấu trúc thư mục
+- `core/`: thành phần dùng chung (theme, helpers, định nghĩa dùng lại)
+- `data/`: làm việc với dữ liệu
+  - `models/`: các cấu trúc dữ liệu/domain models
+  - `services/`: gọi API, lưu trữ local
+  - `repositories/`: tổng hợp/điều phối nguồn dữ liệu (service + cache) cho UI
+- `presentation/`: UI + State (Flutter + flutter_bloc)
+  - `bloc/`: BLoC/Cubit quản lý luồng dữ liệu UI
+  - `view/` + `widgets/`: màn hình và widget
 
-Dự án được tổ chức theo kiến trúc phân lớp để dễ bảo trì và mở rộng:
+Các quyết định chính:
 
-- **lib/**: Thư mục chính chứa mã nguồn Dart.
-  - **core/**: Các thành phần cốt lõi chung.
-    - **constants/**: Các hằng số cố định (ví dụ: API keys, strings).
-    - **extensions/**: Các extension mở rộng cho các lớp cơ bản của Dart/Flutter.
-    - **theme/**: Cấu hình theme (màu sắc, font chữ) cho ứng dụng.
-    - **utils/**: Các hàm tiện ích chung (ví dụ: helper functions, validators).
-  - **data/**: Lớp dữ liệu, xử lý nguồn dữ liệu.
-    - **enums/**: Các enum định nghĩa (ví dụ: trạng thái, loại dữ liệu).
-    - **models/**: Các model dữ liệu (DTO, entities).
-    - **repositories/**: Các repository để truy cập dữ liệu (local/remote).
-    - **services/**: Các service kết nối API, database, hoặc third-party.
-  - **presentation/**: Lớp giao diện người dùng.
-    - **present/**: Các widget, screen, và bloc/state management.
-  - **main.dart**: File entry point của ứng dụng, khởi tạo app và route.
+- Quản lý trạng thái: `flutter_bloc`
+- Điều hướng: `go_router`
+- Biến môi trường: `flutter_dotenv`
+- Lưu trữ local: `shared_preferences`
+
+Ví dụ dòng chảy dữ liệu:
+
+UI (Widget) ⇄ Bloc ⇄ Repository ⇄ Service ⇄ API
+
+---
+
+## Cài đặt & chạy dự án
+
+Yêu cầu hệ thống:
+
+- Flutter SDK 3.x (khuyến nghị mới nhất)
+- Dart 2.17+
+- Android Studio hoặc Xcode (tùy nền tảng)
+- Trình duyệt Chrome để chạy Web
+
+1) Clone và cài dependencies
+
+```powershell
+git clone https://github.com/<owner>/<repo>.git
+cd HealthMate_FE
+flutter doctor
+flutter pub get
+```
+
+2) Tạo file môi trường
+
+Tại thư mục gốc, tạo các file `.env` sau (đã được khai báo assets trong `pubspec.yaml`):
+
+```
+.env.dev
+.env.prod
+```
+
+Nội dung tối thiểu:
+
+```
+# .env.dev
+BASE_URL=http://localhost:8080/api/v1
+
+# .env.prod
+BASE_URL=https://api.yourdomain.com/api/v1
+```
+
+3) Chạy dự án
+
+Web (Chrome):
+
+```powershell
+flutter run -d chrome --dart-define=ENV=dev
+```
+
+Android (thiết bị/thử nghiệm):
+
+```powershell
+flutter run -d <deviceId> --dart-define=ENV=dev
+```
+
+Lưu ý:
+
+- Tham số `--dart-define=ENV=dev|prod` quyết định file `.env.<env>` sẽ được load.
+- Nếu vừa thêm Provider mới mà hot-reload lỗi, hãy hot-restart.
+
+---
+
+## Quản lý môi trường (.env)
+
+- Sử dụng `flutter_dotenv` để load biến môi trường làm asset (hỗ trợ Web).
+- `main.dart` sẽ đọc biến `ENV` từ `--dart-define` và load tương ứng `.env.dev` hoặc `.env.prod`.
+- Biến bắt buộc hiện tại:
+  - `BASE_URL`: URL gốc API (bao gồm prefix nếu backend yêu cầu, ví dụ `/api/v1`).
+
+Ví dụ sử dụng trong service:
+
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseUrl = dotenv.env['BASE_URL'];
+```
+
+---
+
+## Build & phát hành
+
+Android APK (dev/prod):
+
+```powershell
+flutter build apk --dart-define=ENV=prod
+```
+
+Web (dev/prod):
+
+```powershell
+flutter build web --dart-define=ENV=prod
+```
+
+iOS (yêu cầu macOS + Xcode):
+
+```bash
+flutter build ios --dart-define=ENV=prod
+```
+
+---
+
+## Cấu trúc thư mục (rút gọn)
+
+```
+lib/
+  core/
+    theme/
+    utils/
+  data/
+    models/
+    repositories/
+    services/
+  presentation/
+    auth/
+    home/
+    widgets/
+  main.dart
+assets/
+  fonts/
+  icons/
+  images/
+.env.dev
+.env.prod
+```
+
+---
 
 ## Công nghệ sử dụng
 
-- **Flutter**: Framework chính cho UI.
-- **Dart**: Ngôn ngữ lập trình.
-- **State Management**: Bloc.
-- **Dependencies**: Các gói như `http` cho API, `shared_preferences` cho lưu trữ local (xem `pubspec.yaml` để biết chi tiết).
+- Flutter, Dart
+- flutter_bloc, go_router
+- flutter_dotenv, http, shared_preferences, intl, pinput, fl_chart
 
-## Hướng dẫn phát triển
+---
 
-- **Thêm feature mới**: Tạo thư mục con trong `presentation/` cho UI, và tương ứng trong `data/` cho logic dữ liệu.
-- **Test**: Chạy unit test bằng `flutter test`.
-- **Linting**: Sử dụng `flutter analyze` để kiểm tra code style.
+## Ghi chú / Troubleshooting
+
+- ProviderNotFound sau hot-reload: thực hiện hot-restart.
+- 404 khi tải `.env` trên Web: đảm bảo đã khai báo `.env.*` trong `pubspec.yaml` → `flutter pub get` → chạy lại.
+- Khác biệt API prefix (`/api/v1`): đảm bảo biến `BASE_URL` đã bao gồm đúng prefix theo backend.
+- Đăng nhập yêu cầu xác thực OTP: app sẽ điều hướng sang trang OTP theo flow (signup/login/forgot), xác thực xong sẽ điều hướng phù hợp.
+
+---
+
+## Đóng góp (Contribution)
+
+- Format, phân nhánh, commit convention tùy dự án. Chạy `flutter analyze` trước khi gửi PR.
+- Test cục bộ bằng `flutter test` khi có unit/widget tests.

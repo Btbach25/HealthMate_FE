@@ -9,3 +9,5 @@ abstract class StatsEvent extends Equatable {
 
 /// Sự kiện được gọi khi màn hình Stats cần tải dữ liệu.
 class FetchStatsData extends StatsEvent {}
+
+class FetchChartData extends StatsEvent {}

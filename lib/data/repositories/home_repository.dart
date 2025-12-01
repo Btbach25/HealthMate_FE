@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:fe/data/models/home_data.dart';
 
 import 'package:fe/data/services/home_service.dart';

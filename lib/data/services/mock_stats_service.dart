@@ -1,7 +1,10 @@
 import 'package:fe/data/enums/metric_status.dart';
+import 'package:fe/data/models/details/chart_data_point.dart';
+import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/details/metric_summary.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:fe/data/services/stats_service.dart';
+import 'package:flutter/material.dart';
 
 class MockStatsService implements StatsService {
   @override
@@ -90,5 +93,45 @@ class MockStatsService implements StatsService {
       totalTypes: 6,
       metrics: metrics,
     );
+  }
+
+  @override
+  Future<List<MetricChart>> getChartData() async {
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    final bloodPressurePoints = [
+      ChartDataPoint(time: DateTime(2025, 10, 17), value: 120),
+      ChartDataPoint(time: DateTime(2025, 10, 18), value: 130),
+      ChartDataPoint(time: DateTime(2025, 10, 19), value: 128),
+      ChartDataPoint(time: DateTime(2025, 10, 20), value: 116),
+      ChartDataPoint(time: DateTime(2025, 10, 21), value: 138),
+    ];
+
+    final weightPoints = [
+      ChartDataPoint(time: DateTime(2025, 10, 18), value: 73.8),
+      ChartDataPoint(time: DateTime(2025, 10, 25), value: 73.0),
+      ChartDataPoint(time: DateTime(2025, 11, 1), value: 73.0),
+      ChartDataPoint(time: DateTime(2025, 11, 8), value: 73.9),
+      ChartDataPoint(time: DateTime(2025, 11, 15), value: 73.0),
+    ];
+
+    return [
+      MetricChart(
+        id: 'bp_chart',
+        title: 'Huyết áp theo thời gian',
+        unit: 'mmHg',
+        dataPointCount: 60,
+        lineColor: Colors.red.shade400,
+        points: bloodPressurePoints,
+      ),
+      MetricChart(
+        id: 'weight_chart',
+        title: 'Cân nặng theo thời gian',
+        unit: 'kg',
+        dataPointCount: 5,
+        lineColor: Colors.green.shade600,
+        points: weightPoints,
+      ),
+    ];
   }
 }

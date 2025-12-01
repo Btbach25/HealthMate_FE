@@ -11,6 +11,8 @@ class AuthFormState extends Equatable{
   final String otp;
   final String successMessage;
   final String errorMessage;
+  final bool needsVerification;
+  final String verificationEmail;
 
   const AuthFormState({
     this.status = FormStatus.initial,
@@ -21,7 +23,20 @@ class AuthFormState extends Equatable{
     this.otp = '',
     this.successMessage = '',
     this.errorMessage = '',
+    this.needsVerification = false,
+    this.verificationEmail = '',
   });
+
+  bool get isValidLogin => email.contains('@') && password.length >= 6;
+
+  bool get isValidSignUp => 
+      isValidLogin && 
+      name.isNotEmpty && 
+      password == confirmPassword;
+      
+  bool get isValidResetPassword => password.length >= 6 && password == confirmPassword;
+
+  bool get isValidOtp => otp.length == 6;
 
   AuthFormState copyWith({
     FormStatus? status,
@@ -32,6 +47,8 @@ class AuthFormState extends Equatable{
     String? otp,
     String? successMessage,
     String? errorMessage,
+    bool? needsVerification,
+    String? verificationEmail,
   }) {
     return AuthFormState(
       status: status ?? this.status,
@@ -42,6 +59,8 @@ class AuthFormState extends Equatable{
       otp: otp ?? this.otp,
       successMessage: successMessage ?? this.successMessage,
       errorMessage: errorMessage ?? this.errorMessage,
+      needsVerification: needsVerification ?? this.needsVerification,
+      verificationEmail: verificationEmail ?? this.verificationEmail,
     );
   }
 
@@ -54,6 +73,8 @@ class AuthFormState extends Equatable{
         confirmPassword,
         otp,
         successMessage,
-        errorMessage,
+      errorMessage,
+      needsVerification,
+      verificationEmail,
       ];
 }

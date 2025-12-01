@@ -3,45 +3,63 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/data/repositories/home_repository.dart';
 import 'package:fe/data/repositories/stats_repository.dart';
+import 'package:fe/data/repositories/health_repository.dart';
+import 'package:fe/data/services/health_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/routing/app_router.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_service.dart';
 
-void main() {
-  final authService = MockAuthService();
-  final localStorageService = LocalStorageService();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('vi_VN', null);
+
+  // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
+  const env = String.fromEnvironment('ENV', defaultValue: 'dev');
+  await dotenv.load(fileName: '.env.$env');
+
+  final localStorage = LocalStorageService();
+
+  final authService = AuthApiService(localStorage);
   final authRepository = AuthRepository(
     authService: authService,
-    localStorageService: localStorageService,
+    localStorageService: localStorage,
   );
+
   final homeService = MockHomeService();
   final homeRepository = HomeRepository(homeService: homeService);
   final statsService = MockStatsService();
   final statsRepository = StatsRepository(statsService: statsService);
+  final healthService = HealthService(localStorage);
+  final healthRepository = HealthRepository(service: healthService);
 
-  runApp(MyApp(authRepository: authRepository, homeRepository: homeRepository,statsRepository: statsRepository,));
+  runApp(MyApp(authRepository: authRepository, homeRepository: homeRepository, statsRepository: statsRepository, healthRepository: healthRepository));
 }
 
 class MyApp extends StatelessWidget {
   final AuthRepository _authRepository;
   final HomeRepository _homeRepository;
   final StatsRepository _statsRepository;
+  final HealthRepository _healthRepository;
 
   const MyApp({
     super.key,
     required AuthRepository authRepository,
     required HomeRepository homeRepository,
     required StatsRepository statsRepository,
+    required HealthRepository healthRepository,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
-       _statsRepository = statsRepository;
+       _statsRepository = statsRepository,
+       _healthRepository = healthRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +68,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _authRepository),
         RepositoryProvider.value(value: _homeRepository),
         RepositoryProvider.value(value: _statsRepository),
+        RepositoryProvider.value(value: _healthRepository),
       ],
       child: BlocProvider(
         create: (_) => AuthBloc(authRepository: _authRepository),
