@@ -1,12 +1,15 @@
 // lib/main.dart
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/data/repositories/family_repository.dart';
 import 'package:fe/data/repositories/home_repository.dart';
 import 'package:fe/data/repositories/stats_repository.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+import 'package:fe/data/services/mock_family_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -25,23 +28,33 @@ void main() {
   final homeRepository = HomeRepository(homeService: homeService);
   final statsService = MockStatsService();
   final statsRepository = StatsRepository(statsService: statsService);
+  final familyService = MockFamilyService();
+  final familyRepository = FamilyRepository(familyService: familyService);
 
-  runApp(MyApp(authRepository: authRepository, homeRepository: homeRepository,statsRepository: statsRepository,));
+  runApp(MyApp(
+    authRepository: authRepository,
+    homeRepository: homeRepository,
+    statsRepository: statsRepository,
+    familyRepository: familyRepository,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final AuthRepository _authRepository;
   final HomeRepository _homeRepository;
   final StatsRepository _statsRepository;
+  final FamilyRepository _familyRepository;
 
   const MyApp({
     super.key,
     required AuthRepository authRepository,
     required HomeRepository homeRepository,
     required StatsRepository statsRepository,
+    required FamilyRepository familyRepository,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
-       _statsRepository = statsRepository;
+       _statsRepository = statsRepository,
+       _familyRepository = familyRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +63,17 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _authRepository),
         RepositoryProvider.value(value: _homeRepository),
         RepositoryProvider.value(value: _statsRepository),
+        RepositoryProvider.value(value: _familyRepository),
       ],
-      child: BlocProvider(
-        create: (_) => AuthBloc(authRepository: _authRepository),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => AuthBloc(authRepository: _authRepository),
+          ),
+          BlocProvider(
+            create: (_) => FamilyBloc(familyRepository: _familyRepository),
+          ),
+        ],
         child: const AppView(),
       ),
     );

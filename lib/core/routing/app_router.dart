@@ -5,7 +5,10 @@ import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/details/view/stats_page.dart';
 import 'package:fe/presentation/main_tabs/shell/view/app_shell.dart';
 
-import 'package:fe/presentation/main_tabs/family_page.dart';
+import 'package:fe/presentation/family/view/family_page.dart';
+import 'package:fe/presentation/family/view/family_group_management_page.dart';
+import 'package:fe/presentation/family/view/create_group_page.dart';
+import 'package:fe/presentation/family/view/group_details_page.dart';
 import 'package:fe/presentation/main_tabs/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -68,6 +71,23 @@ class AppRouter {
               GoRoute(
                 path: '/family',
                 builder: (context, state) => const FamilyPage(),
+                routes: [
+                  GoRoute(
+                    path: 'manage',
+                    builder: (context, state) => const FamilyGroupManagementPage(),
+                  ),
+                  GoRoute(
+                    path: 'create',
+                    builder: (context, state) => const CreateGroupPage(),
+                  ),
+                  GoRoute(
+                    path: 'group/:groupId',
+                    builder: (context, state) {
+                      final groupId = state.pathParameters['groupId']!;
+                      return GroupDetailsPage(groupId: groupId);
+                    },
+                  ),
+                ],
               ),
             ],
           ),

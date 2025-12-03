@@ -1,7 +1,11 @@
 enum MetricType {
   heartRate,
   stepsCount,
-  caloriesBurnt;
+  caloriesBurnt,
+  bloodPressure,
+  weight,
+  sleep,
+  temperature;
 
   String get value {
     switch (this) {
@@ -11,6 +15,14 @@ enum MetricType {
         return 'steps_count';
       case MetricType.caloriesBurnt:
         return 'calories_burnt';
+      case MetricType.bloodPressure:
+        return 'blood_pressure';
+      case MetricType.weight:
+        return 'weight';
+      case MetricType.sleep:
+        return 'sleep';
+      case MetricType.temperature:
+        return 'temperature';
     }
   }
 
@@ -22,6 +34,14 @@ enum MetricType {
         return stepsCount;
       case 'calories_burnt':
         return caloriesBurnt;
+      case 'blood_pressure':
+        return bloodPressure;
+      case 'weight':
+        return weight;
+      case 'sleep':
+        return sleep;
+      case 'temperature':
+        return temperature;
       default:
         throw ArgumentError('Invalid metric type: $value');
     }
