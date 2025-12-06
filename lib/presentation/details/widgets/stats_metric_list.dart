@@ -17,7 +17,7 @@ class StatsMetricList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: metrics.length,
       itemBuilder: (context, index) {
         return StatsMetricTile(

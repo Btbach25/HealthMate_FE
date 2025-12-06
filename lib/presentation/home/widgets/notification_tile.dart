@@ -87,8 +87,8 @@ class _NotificationTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) Icon(icon, color: textColor, size: 14),
-          if (icon != null) const SizedBox(width: 4),
+          Icon(icon, color: textColor, size: 14),
+          const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(

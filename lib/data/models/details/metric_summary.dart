@@ -36,7 +36,7 @@ class MetricSummary {
       unit: json['unit'] as String,
       iconName: json['iconName'] as String,
       latestValue: (json['latestValue'] as num).toDouble(),
-      lastUpdate: cvToDateRequired(json['lastUpdate'] as String),
+      lastUpdate: cvToDate(json['lastUpdate'] as String),
       readingCount: json['readingCount'] as int,
       trendPercentage: (json['trendPercentage'] as num?)?.toDouble(),
       status: MetricStatus.fromValue(json['status'] as String?),

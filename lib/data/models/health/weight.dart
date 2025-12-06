@@ -13,7 +13,7 @@ class Weight {
 
   factory Weight.fromJson(Map<String, dynamic> json) {
     return Weight(
-      time: cvToDateRequired(json['time'] as String),
+      time: cvToDate(json['time'] as String),
       userId: json['user_id'] as String,
       value: (json['value'] as num?)?.toDouble(),
     );

@@ -1,19 +1,19 @@
 import 'package:fe/core/utils/converter.dart';
 
-class HeartRate {
+class CaloriesBurnt {
   final DateTime time;
   final String userId;
   final double value;
 
-  HeartRate({
+  CaloriesBurnt({
     required this.time,
     required this.userId,
     required this.value,
   });
 
-  factory HeartRate.fromJson(Map<String, dynamic> json) {
-    return HeartRate(
-      time: cvToDateRequired(json['time'] as String),
+  factory CaloriesBurnt.fromJson(Map<String, dynamic> json) {
+    return CaloriesBurnt(
+      time: cvToDate(json['time'] as String),
       userId: json['user_id'] as String,
       value: (json['value'] as num).toDouble(),
     );
@@ -27,12 +27,12 @@ class HeartRate {
     };
   }
 
-  HeartRate copyWith({
+  CaloriesBurnt copyWith({
     DateTime? time,
     String? userId,
     double? value,
   }) {
-    return HeartRate(
+    return CaloriesBurnt(
       time: time ?? this.time,
       userId: userId ?? this.userId,
       value: value ?? this.value,

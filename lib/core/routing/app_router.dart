@@ -43,7 +43,32 @@ class AppRouter {
       ),
       GoRoute(
         path: '/otp',
-        builder: (BuildContext context, GoRouterState state) => const OtpPage(),
+        builder: (context, state) {
+          // Expect extra as Map: { email: String, flow: OtpFlow }
+          final extra = state.extra;
+          String email = '';
+          OtpFlow flow = OtpFlow.login;
+          if (extra is Map<String, Object?>) {
+            email = (extra['email'] as String?) ?? '';
+            final f = extra['flow'];
+            if (f is OtpFlow) flow = f;
+            if (f is String) {
+              switch (f) {
+                case 'signup':
+                  flow = OtpFlow.signup;
+                  break;
+                case 'forgot':
+                  flow = OtpFlow.forgot;
+                  break;
+                default:
+                  flow = OtpFlow.login;
+              }
+            }
+          } else if (extra is String) {
+            email = extra;
+          }
+          return OtpPage(email: email, flow: flow);
+        },
       ),
       GoRoute(
         path: '/reset-password',

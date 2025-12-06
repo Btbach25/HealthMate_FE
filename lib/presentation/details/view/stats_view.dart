@@ -1,5 +1,6 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/presentation/details/bloc/stats_bloc.dart';
+import 'package:fe/presentation/details/widgets/stats_chart_lazy_loader.dart';
 import 'package:fe/presentation/details/widgets/stats_header_card.dart';
 import 'package:fe/presentation/details/widgets/stats_metric_list.dart';
 import 'package:fe/presentation/details/widgets/stats_tab_bar.dart';
@@ -74,36 +75,28 @@ class _StatsViewState extends State<StatsView>
                                 totalReadings: data.totalReadings,
                                 totalTypes: data.totalTypes,
                               ),
-                              // 2. Action Buttons (Xem, Thêm)
                               _buildActionButtons(),
                             ],
                           ),
                         ),
-                        // Đặt TabBar vào bottom của SliverAppBar
                         bottom: StatsTabBar(controller: _tabController),
-                        // Tính toán chiều cao
-                        expandedHeight: 280, // Chiều cao dự kiến
+                        expandedHeight: 280,
                       ),
                     ];
                   },
-                  // Nội dung của TabBarView
                   body: TabBarView(
                     controller: _tabController,
                     children: [
-                      // Tab 1: Gần đây
                       StatsMetricList(
                         metrics: data.metrics,
                         displayMode: MetricDisplayMode.trend,
                       ),
-                      // Tab 2: Tổng quan
                       StatsMetricList(
                         metrics: data.metrics,
                         displayMode: MetricDisplayMode.status,
                       ),
-                      // Tab 3: Biểu đồ
-                      const Center(
-                        child: Text('Nội dung biểu đồ (sẽ làm sau)'),
-                      ),
+                      
+                      const StatsChartLazyLoader(),
                     ],
                   ),
                 ),
@@ -117,13 +110,11 @@ class _StatsViewState extends State<StatsView>
     );
   }
 
-  /// Widget con cho 2 nút "Xem chi tiết" và "Thêm chỉ số"
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Row(
         children: [
-          // Nút 1: Xem chi tiết
           Expanded(
             child: OutlinedButton.icon(
               icon: const Icon(Icons.visibility_outlined),
@@ -142,7 +133,6 @@ class _StatsViewState extends State<StatsView>
             ),
           ),
           const SizedBox(width: 16),
-          // Nút 2: Thêm chỉ số
           Expanded(
             child: ElevatedButton.icon(
               icon: const Icon(Icons.add, color: Colors.white),

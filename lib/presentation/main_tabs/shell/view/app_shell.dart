@@ -53,7 +53,7 @@ class _CustomBottomNavBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(
-          color: AppColors.background.withOpacity(0.8),
+          color: AppColors.background.withValues(alpha: 0.8),
           child: SafeArea(
             top: false,
             child: Padding(

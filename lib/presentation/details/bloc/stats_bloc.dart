@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:fe/data/repositories/stats_repository.dart';
 
@@ -14,6 +15,7 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       super(StatsState.initial()) {
     // Đăng ký trình xử lý sự kiện
     on<FetchStatsData>(_onFetchStatsData);
+    on<FetchChartData>(_onFetchChartData);
   }
 
   Future<void> _onFetchStatsData(
@@ -35,4 +37,25 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       );
     }
   }
+  Future<void> _onFetchChartData(
+      FetchChartData event,
+      Emitter<StatsState> emit,
+    ) async {
+      // Chỉ fetch nếu chưa fetch lần nào
+      if (state.chartStatus != ChartStatus.initial) return;
+
+      emit(state.copyWith(chartStatus: ChartStatus.loading));
+      try {
+        final chartData = await _statsRepository.getChartData();
+        emit(state.copyWith(
+          chartStatus: ChartStatus.loaded,
+          chartData: chartData,
+        ));
+      } catch (e) {
+        emit(state.copyWith(
+          chartStatus: ChartStatus.error,
+          chartErrorMessage: e.toString(),
+        ));
+      }
+    }
 }

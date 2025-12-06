@@ -1,4 +1,5 @@
 import 'package:fe/data/exceptions/api_exception.dart';
+import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:fe/data/services/stats_service.dart';
 
@@ -19,6 +20,21 @@ class StatsRepository {
       // Wrap unexpected errors
       throw UnknownException(
         message: 'Lỗi khi tải dữ liệu thống kê.',
+        originalError: e,
+      );
+    }
+  }
+
+  Future<List<MetricChart>> getChartData() async {
+    try {
+      return await _statsService.getChartData();
+    } on ApiException {
+      // Re-throw ApiException as-is (already has proper error messages)
+      rethrow;
+    } catch (e) {
+      // Wrap unexpected errors
+      throw UnknownException(
+        message: 'Lỗi khi tải dữ liệu biểu đồ.',
         originalError: e,
       );
     }

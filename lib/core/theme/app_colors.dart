@@ -100,4 +100,28 @@ class AppColors {
       spreadRadius: 0,
     ),
   ];
+
+  static Color getIconColorForType(String type) {
+    switch (type) {
+      case 'heartRate':
+        return heartIconColor;
+      case 'weight':
+        return weightIconColor;
+      // Thêm các loại khác nếu cần
+      default:
+        return Colors.grey; // Màu mặc định
+    }
+  }
+
+  static Color getIconBgColorForType(String type) {
+    switch (type) {
+      case 'heartRate':
+        return heartIconBg;
+      case 'weight':
+        return weightIconBg;
+      // Thêm các loại khác nếu cần
+      default:
+        return Colors.grey[200]!;
+    }
+  }
 }
