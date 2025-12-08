@@ -85,7 +85,7 @@ class AppColors {
   
   static List<BoxShadow> get cardShadowHover => [
     BoxShadow(
-      color: cardShadow.withOpacity(0.3),
+      color: cardShadow.withValues(alpha: 0.3),
       blurRadius: 16,
       offset: const Offset(0, 4),
       spreadRadius: 0,
@@ -94,7 +94,7 @@ class AppColors {
   
   static List<BoxShadow> get buttonShadow => [
     BoxShadow(
-      color: primary.withOpacity(0.3),
+      color: primary.withValues(alpha: 0.3),
       blurRadius: 8,
       offset: const Offset(0, 4),
       spreadRadius: 0,

@@ -1,6 +1,9 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/settings_card.dart';
+import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/core/widgets/settings_switch_row.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -17,7 +20,8 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
   bool _autoSyncEnabled = false;
   String _syncInterval = '5 phút';
   bool _isSyncing = false;
-  DateTime? _lastSyncTime;
+  // ignore: unused_field
+  DateTime? _lastSyncTime; // Reserved for future use
   
   final Map<String, bool> _healthDataTypes = {
     'heart_rate': true,
@@ -212,7 +216,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
               decoration: BoxDecoration(
                 color: AppColors.errorLight,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
               ),
               child: Row(
                 children: [
@@ -238,11 +242,11 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
           const SizedBox(height: AppSize.spacing24),
           
           // Auto Sync Card
-          _buildCard(
+          SettingsCard(
             icon: Icons.settings_outlined,
             title: 'Cài đặt đồng bộ tự động',
             children: [
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Đồng bộ tự động',
                 description: 'Tự động đồng bộ dữ liệu theo chu kỳ',
                 value: _autoSyncEnabled,
@@ -255,7 +259,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
               ),
               if (_autoSyncEnabled && _hasPermissions) ...[
                 const Divider(height: 24),
-                _buildDropdown(
+                SettingsDropdown(
                   label: 'Chu kỳ đồng bộ',
                   value: _syncInterval,
                   items: const ['1 phút', '5 phút', '10 phút', '30 phút', '1 giờ'],
@@ -272,7 +276,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
           const SizedBox(height: AppSize.spacing24),
           
           // Health Data Types Card
-          _buildCard(
+          SettingsCard(
             icon: Icons.favorite,
             title: 'Dữ liệu sức khỏe',
             children: [
@@ -312,128 +316,8 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     );
   }
 
-  Widget _buildCard({
-    IconData? icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppColors.cardShadowList,
-        border: Border.all(color: AppColors.cardBorder, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
-    );
-  }
+  // Removed _buildCard and _buildSwitchRow - now using SettingsCard and SettingsSwitchRow widgets
 
-  Widget _buildSwitchRow({
-    required String title,
-    required String description,
-    required bool value,
-    bool enabled = true,
-    required Function(bool) onChanged,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.labelLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textGrey,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Material(
-          color: Colors.transparent,
-          child: Switch(
-            value: value,
-            onChanged: enabled ? onChanged : null,
-            activeColor: AppColors.primary,
-            activeTrackColor: AppColors.primary,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            splashRadius: 0,
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return Colors.white;
-              }
-              return Colors.grey[300];
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: AppColors.inputBackground,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      items: items.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: onChanged,
-    );
-  }
 
   Widget _buildHealthDataTypeRow({
     required String name,
@@ -454,7 +338,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
         color: AppColors.inputBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: enabled ? AppColors.primary.withOpacity(0.3) : AppColors.cardBorder,
+          color: enabled ? AppColors.primary.withValues(alpha:0.3) : AppColors.cardBorder,
         ),
       ),
       child: Row(
@@ -524,7 +408,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                       });
                     }
                   : null,
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               activeTrackColor: AppColors.primary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               splashRadius: 0,

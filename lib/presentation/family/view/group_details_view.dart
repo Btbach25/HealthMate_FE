@@ -1,6 +1,7 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
 import 'package:fe/data/enums/group_member_role.dart';
@@ -261,31 +262,18 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
   }
 
   void _showLeaveConfirmationDialog(BuildContext context, String groupId) {
-    showDialog(
+    ConfirmationDialog.showConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rời nhóm'),
-        content: const Text('Bạn có chắc chắn muốn rời nhóm này?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog first
-              context.read<FamilyBloc>().add(
-                    LeaveGroup(groupId: groupId),
-                  );
-              // Navigation will be handled by BlocListener
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
-            child: const Text('Xác nhận rời nhóm'),
-          ),
-        ],
-      ),
+      title: 'Rời nhóm',
+      message: 'Bạn có chắc chắn muốn rời nhóm này?',
+      confirmText: 'Xác nhận rời nhóm',
+      confirmColor: Colors.orange,
+      onConfirm: () {
+        context.read<FamilyBloc>().add(
+              LeaveGroup(groupId: groupId),
+            );
+        // Navigation will be handled by BlocListener
+      },
     );
   }
 }

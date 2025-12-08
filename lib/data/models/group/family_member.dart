@@ -35,25 +35,25 @@ class FamilyMember extends Equatable {
 
   factory FamilyMember.fromJson(Map<String, dynamic> json) {
     return FamilyMember(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      groupId: json['group_id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String?,
-      age: json['age'] as int?,
-      relationship: json['relationship'] as String?,
-      avatar: json['avatar'] as String?,
-      healthStatus: HealthStatus.fromValue(json['health_status'] as String?),
-      lastUpdated: cvToDate(json['last_updated'] as String?),
-      healthConditions: (json['health_conditions'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      sharedMetrics: (json['shared_metrics'] as List<dynamic>?)
-              ?.map((e) => MetricType.fromValue(e as String))
-              .toList() ??
-          [],
-      createdAt: cvToDateRequired(json['created_at'] as String),
+      id: cvToString(json['id']),
+      userId: cvToString(json['user_id']),
+      groupId: cvToString(json['group_id']),
+      name: cvToString(json['name']),
+      email: cvToStringOrNull(json['email']),
+      age: cvToIntOrNull(json['age']),
+      relationship: cvToStringOrNull(json['relationship']),
+      avatar: cvToStringOrNull(json['avatar']),
+      healthStatus: HealthStatus.fromValue(cvToStringOrNull(json['health_status'])),
+      lastUpdated: cvToDateOrNull(json['last_updated']),
+      healthConditions: cvToList(
+        json['health_conditions'],
+        (e) => cvToString(e),
+      ),
+      sharedMetrics: cvToList(
+        json['shared_metrics'],
+        (e) => MetricType.fromValue(cvToString(e)),
+      ),
+      createdAt: cvToDateRequired(json['created_at']),
     );
   }
 
@@ -73,6 +73,17 @@ class FamilyMember extends Equatable {
       'shared_metrics': sharedMetrics.map((e) => e.value).toList(),
       'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  /// Converts FamilyMember to JSON string
+  String toJsonString() {
+    return cvJsonToString(toJson());
+  }
+
+  /// Creates FamilyMember from JSON string
+  factory FamilyMember.fromJsonString(String source) {
+    final json = cvStringToJson(source);
+    return FamilyMember.fromJson(json);
   }
 
   FamilyMember copyWith({

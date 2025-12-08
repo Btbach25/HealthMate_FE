@@ -173,7 +173,7 @@ class _CreateGroupCard extends StatelessWidget {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha:0.5),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: bloc,
@@ -195,13 +195,13 @@ class _CreateGroupCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha:0.3),
             style: BorderStyle.solid,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha:0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

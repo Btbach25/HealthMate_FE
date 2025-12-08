@@ -1,9 +1,13 @@
-import 'dart:async';
-
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_icons.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/mixins/inline_message_mixin.dart';
+import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/form_validation_helper.dart';
+import 'package:fe/core/utils/metric_helper.dart';
+import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/loading_button.dart';
+import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
@@ -68,58 +72,17 @@ class CreateGroupForm extends StatefulWidget {
   State<CreateGroupForm> createState() => _CreateGroupFormState();
 }
 
-class _CreateGroupFormState extends State<CreateGroupForm> {
+class _CreateGroupFormState extends State<CreateGroupForm>
+    with InlineMessageMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final Set<MetricOption> _selectedMetrics = {};
+  final Set<MetricType> _selectedMetrics = {};
   String? _metricsError;
-  String? _inlineMessage;
-  Color? _inlineMessageColor;
-  Timer? _messageTimer;
   bool _isLoading = false;
-
-  final List<MetricOption> _availableMetrics = [
-    MetricOption(
-      type: MetricType.heartRate,
-      label: 'Nhịp tim',
-      icon: AppIcons.heart,
-    ),
-    MetricOption(
-      type: MetricType.stepsCount,
-      label: 'Số bước chân',
-      icon: AppIcons.steps,
-    ),
-    MetricOption(
-      type: MetricType.caloriesBurnt,
-      label: 'Lượng calo',
-      icon: Icons.local_fire_department_outlined,
-    ),
-    MetricOption(
-      type: MetricType.bloodPressure,
-      label: 'Huyết áp',
-      icon: AppIcons.bloodPressure,
-    ),
-    MetricOption(
-      type: MetricType.weight,
-      label: 'Cân nặng',
-      icon: AppIcons.weight,
-    ),
-    MetricOption(
-      type: MetricType.sleep,
-      label: 'Giấc ngủ',
-      icon: AppIcons.sleep,
-    ),
-    MetricOption(
-      type: MetricType.temperature,
-      label: 'Nhiệt độ cơ thể',
-      icon: AppIcons.temperature,
-    ),
-  ];
 
   @override
   void dispose() {
     _nameController.dispose();
-    _messageTimer?.cancel();
     super.dispose();
   }
 
@@ -127,15 +90,21 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
     if (_isLoading) return;
     
     if (!_formKey.currentState!.validate()) {
-      _showInlineMessage('Vui lòng điền đầy đủ thông tin');
+      showInlineMessage(
+        'Vui lòng điền đầy đủ thông tin',
+        backgroundColor: AppColors.error,
+      );
       return;
     }
 
-    if (_selectedMetrics.isEmpty) {
+    if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
       setState(() {
-        _metricsError = 'Vui lòng chọn ít nhất một chỉ số để chia sẻ';
+        _metricsError = MetricSelectionHelper.getValidationErrorMessage();
       });
-      _showInlineMessage('Vui lòng chọn ít nhất một chỉ số để chia sẻ');
+      showInlineMessage(
+        MetricSelectionHelper.getValidationErrorMessage(),
+        backgroundColor: AppColors.error,
+      );
       return;
     }
 
@@ -153,29 +122,9 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
     context.read<FamilyBloc>().add(
           CreateGroup(
             name: _nameController.text.trim(),
-            sharedMetrics: _selectedMetrics.map((m) => m.type.value).toList(),
+            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
           ),
         );
-  }
-
-  void _showInlineMessage(
-    String message, {
-    Color? backgroundColor,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    _messageTimer?.cancel();
-    setState(() {
-      _inlineMessage = message;
-      _inlineMessageColor =
-          backgroundColor ?? Colors.black.withOpacity(0.85);
-    });
-    _messageTimer = Timer(duration, () {
-      if (mounted) {
-        setState(() {
-          _inlineMessage = null;
-        });
-      }
-    });
   }
 
   void _resetForm() {
@@ -190,20 +139,13 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
       listener: (context, state) {
-        if (state.status == FamilyStatus.error) {
-          _showInlineMessage(
-            state.errorMessage ?? 'Có lỗi xảy ra',
-            backgroundColor: AppColors.error,
-          );
-        }
-
         if (state.status == FamilyStatus.groupCreated &&
             state.createdGroupName != null) {
           setState(() {
             _isLoading = false;
           });
           final groupName = state.createdGroupName!;
-          _showInlineMessage(
+          showInlineMessage(
             'Tạo nhóm "$groupName" thành công',
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 4),
@@ -215,6 +157,10 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
           setState(() {
             _isLoading = false;
           });
+          showInlineMessage(
+            ErrorMessageParser.parse(state.errorMessage),
+            backgroundColor: AppColors.error,
+          );
         }
       },
       child: BlocBuilder<FamilyBloc, FamilyState>(
@@ -246,12 +192,10 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
                     decoration: const InputDecoration(
                       hintText: 'Nhập tên nhóm',
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Vui lòng nhập tên nhóm';
-                      }
-                      return null;
-                    },
+                    validator: (value) => FormValidationHelper.validateRequired(
+                      value,
+                      fieldName: 'tên nhóm',
+                    ),
                   ),
                   const SizedBox(height: AppSize.spacing24),
                   const Text(
@@ -282,22 +226,21 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
                       return Wrap(
                         spacing: AppSize.spacing12,
                         runSpacing: AppSize.spacing12,
-                        children: _availableMetrics
+                        children: MetricHelper.availableMetrics
                             .map(
                               (metric) => SizedBox(
                                 width: itemWidth,
-                                child: _MetricCheckbox(
+                                child: MetricCheckbox(
                                   metric: metric,
-                                  isSelected: _selectedMetrics
-                                      .any((m) => m.type == metric.type),
+                                  isSelected: _selectedMetrics.contains(metric.type),
+                                  showCheckbox: false,
+                                  showCheckIcon: true,
                                   onChanged: (selected) {
                                     setState(() {
                                       if (selected) {
-                                        _selectedMetrics.add(metric);
+                                        _selectedMetrics.add(metric.type);
                                       } else {
-                                        _selectedMetrics.removeWhere(
-                                          (m) => m.type == metric.type,
-                                        );
+                                        _selectedMetrics.remove(metric.type);
                                       }
 
                                       if (_selectedMetrics.isNotEmpty &&
@@ -314,27 +257,8 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
                     },
                   ),
                   const SizedBox(height: AppSize.spacing24),
-                  if (_inlineMessage != null) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSize.p16,
-                        vertical: AppSize.p12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _inlineMessageColor ?? Colors.black87,
-                        borderRadius: BorderRadius.circular(AppSize.r12),
-                      ),
-                      child: Text(
-                        _inlineMessage!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                  if (buildInlineMessage() != null) ...[
+                    buildInlineMessage()!,
                     const SizedBox(height: AppSize.spacing16),
                   ],
                   Container(
@@ -344,33 +268,14 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
                       borderRadius: BorderRadius.circular(AppSize.r12),
                       boxShadow: AppColors.buttonShadow,
                     ),
-                    child: ElevatedButton(
-                      onPressed: isSubmitting ? null : _handleCreateGroup,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: AppSize.p16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSize.r12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Tạo nhóm',
-                              style: AppTextStyles.buttonLarge,
-                            ),
+                    child: LoadingButton(
+                      text: 'Tạo nhóm',
+                      onPressed: _handleCreateGroup,
+                      isLoading: isSubmitting,
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: AppSize.p16),
+                      borderRadius: BorderRadius.circular(AppSize.r12),
                     ),
                   ),
                   if (widget.bottomSpacing > 0)
@@ -385,97 +290,4 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
   }
 }
 
-class MetricOption {
-  final MetricType type;
-  final String label;
-  final IconData icon;
-
-  MetricOption({
-    required this.type,
-    required this.label,
-    required this.icon,
-  });
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is MetricOption &&
-          runtimeType == other.runtimeType &&
-          type == other.type;
-
-  @override
-  int get hashCode => type.hashCode;
-}
-
-class _MetricCheckbox extends StatelessWidget {
-  final MetricOption metric;
-  final bool isSelected;
-  final ValueChanged<bool> onChanged;
-
-  const _MetricCheckbox({
-    required this.metric,
-    required this.isSelected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!isSelected),
-      child: Container(
-        padding: const EdgeInsets.all(AppSize.p16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryContainer
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSize.r12),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.cardBorder,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? AppColors.cardShadowList : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.inputBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                metric.icon,
-                color: isSelected
-                    ? Colors.white
-                    : AppColors.textGrey,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                metric.label,
-                style: isSelected
-                    ? AppTextStyles.labelLarge
-                    : AppTextStyles.bodyMedium,
-              ),
-            ),
-            Icon(
-              isSelected
-                  ? Icons.check_circle
-                  : Icons.radio_button_unchecked,
-              color: isSelected
-                  ? AppColors.primary
-                  : AppColors.textGrey,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 

@@ -1,12 +1,16 @@
 import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/group_member_status.dart';
+import 'package:fe/data/enums/login_provider.dart';
 import 'package:fe/data/enums/metric_type.dart';
+import 'package:fe/data/enums/user_role.dart';
+import 'package:fe/data/enums/user_status.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/family_service.dart';
 
 // Helper class to store accepted group info
@@ -114,7 +118,7 @@ class MockFamilyService implements FamilyService {
       final invitation = acceptedInfo.invitation;
       return FamilyGroup(
         id: invitation.groupId,
-        name: invitation.groupName,
+        name: invitation.group?.name ?? invitation.groupName,
         memberCount: invitation.memberCount + 1, // +1 for current user
         userRole: GroupMemberRole.member,
         createdAt: invitation.sentAt,
@@ -122,7 +126,7 @@ class MockFamilyService implements FamilyService {
         lastActivity: now,
         pendingInvitations: 0,
         sharedMetrics: acceptedInfo.userSelectedMetrics, // Use user-selected metrics
-        ownerId: 'other-owner-id', // The inviter is the owner
+        ownerId: invitation.inviter?.id ?? 'other-owner-id', // The inviter is the owner
       );
     }).toList();
 
@@ -223,15 +227,24 @@ class MockFamilyService implements FamilyService {
     final status = _inviteeStatuses[email] ?? GroupMemberStatus.pending;
     
     // Create new outgoing invitation
+    final now = DateTime.now();
     final newInvitation = OutgoingInvitation(
-      id: 'out-${DateTime.now().millisecondsSinceEpoch}',
+      id: 'out-${now.millisecondsSinceEpoch}',
       groupId: groupId,
-      groupName: group.name,
-      inviteeEmail: email,
-      inviteeName: name,
+      group: group,
+      invitee: User(
+        id: 'user-${now.millisecondsSinceEpoch}',
+        email: email,
+        name: name,
+        role: UserRole.user,
+        status: UserStatus.verified,
+        provider: LoginProvider.email,
+        createdAt: now,
+        updatedAt: now,
+      ),
       relationship: relationship,
       status: status,
-      sentAt: DateTime.now(),
+      sentAt: now,
       sharedMetrics: metrics,
     );
     
@@ -545,9 +558,30 @@ class MockFamilyService implements FamilyService {
       IncomingInvitation(
         id: 'inv-1',
         groupId: 'group-inv-1',
-        groupName: 'Gia đình bạn Lan',
-        inviterName: 'Nguyễn Thị Lan',
-        inviterEmail: 'lan@example.com',
+        group: FamilyGroup(
+          id: 'group-inv-1',
+          name: 'Gia đình bạn Lan',
+          memberCount: 4,
+          userRole: GroupMemberRole.member,
+          createdAt: now.subtract(const Duration(days: 2)),
+          updatedAt: now.subtract(const Duration(days: 2)),
+          sharedMetrics: [
+            MetricType.heartRate,
+            MetricType.stepsCount,
+            MetricType.weight,
+          ],
+          ownerId: 'user-lan',
+        ),
+        inviter: User(
+          id: 'user-lan',
+          email: 'lan@example.com',
+          name: 'Nguyễn Thị Lan',
+          role: UserRole.user,
+          status: UserStatus.verified,
+          provider: LoginProvider.email,
+          createdAt: now.subtract(const Duration(days: 2)),
+          updatedAt: now.subtract(const Duration(days: 2)),
+        ),
         sentAt: now.subtract(const Duration(days: 2)),
         sharedMetrics: [
           MetricType.heartRate,
@@ -559,9 +593,29 @@ class MockFamilyService implements FamilyService {
       IncomingInvitation(
         id: 'inv-2',
         groupId: 'group-inv-2',
-        groupName: 'Nhóm bạn bè',
-        inviterName: 'Trần Văn Minh',
-        inviterEmail: 'minh@example.com',
+        group: FamilyGroup(
+          id: 'group-inv-2',
+          name: 'Nhóm bạn bè',
+          memberCount: 6,
+          userRole: GroupMemberRole.member,
+          createdAt: now.subtract(const Duration(hours: 5)),
+          updatedAt: now.subtract(const Duration(hours: 5)),
+          sharedMetrics: [
+            MetricType.heartRate,
+            MetricType.caloriesBurnt,
+          ],
+          ownerId: 'user-minh',
+        ),
+        inviter: User(
+          id: 'user-minh',
+          email: 'minh@example.com',
+          name: 'Trần Văn Minh',
+          role: UserRole.user,
+          status: UserStatus.verified,
+          provider: LoginProvider.email,
+          createdAt: now.subtract(const Duration(hours: 5)),
+          updatedAt: now.subtract(const Duration(hours: 5)),
+        ),
         sentAt: now.subtract(const Duration(hours: 5)),
         sharedMetrics: [
           MetricType.heartRate,
@@ -598,13 +652,12 @@ class MockFamilyService implements FamilyService {
     // Update all pending outgoing invitations with this email
     for (int i = 0; i < _outgoingInvitations.length; i++) {
       final inv = _outgoingInvitations[i];
-      if (inv.inviteeEmail == inviteeEmail && inv.status == GroupMemberStatus.pending) {
+      if (inv.invitee?.email == inviteeEmail && inv.status == GroupMemberStatus.pending) {
         _outgoingInvitations[i] = OutgoingInvitation(
           id: inv.id,
           groupId: inv.groupId,
-          groupName: inv.groupName,
-          inviteeEmail: inv.inviteeEmail,
-          inviteeName: inv.inviteeName,
+          group: inv.group,
+          invitee: inv.invitee,
           relationship: inv.relationship,
           status: newStatus,
           sentAt: inv.sentAt,
@@ -651,9 +704,30 @@ class MockFamilyService implements FamilyService {
       OutgoingInvitation(
         id: 'out-1',
         groupId: '1',
-        groupName: 'Gia đình chính',
-        inviteeEmail: 'newmember@example.com',
-        inviteeName: 'Nguyễn Văn Mới',
+        group: FamilyGroup(
+          id: '1',
+          name: 'Gia đình chính',
+          memberCount: 3,
+          userRole: GroupMemberRole.admin,
+          createdAt: DateTime(2024, 12, 1),
+          updatedAt: now,
+          sharedMetrics: [
+            MetricType.heartRate,
+            MetricType.stepsCount,
+            MetricType.caloriesBurnt,
+          ],
+          ownerId: 'current-user-id',
+        ),
+        invitee: User(
+          id: 'user-newmember',
+          email: 'newmember@example.com',
+          name: 'Nguyễn Văn Mới',
+          role: UserRole.user,
+          status: UserStatus.verified,
+          provider: LoginProvider.email,
+          createdAt: now.subtract(const Duration(hours: 1)),
+          updatedAt: now.subtract(const Duration(hours: 1)),
+        ),
         relationship: 'Anh',
         status: GroupMemberStatus.pending,
         sentAt: now.subtract(const Duration(hours: 1)),
@@ -665,9 +739,30 @@ class MockFamilyService implements FamilyService {
       OutgoingInvitation(
         id: 'out-2',
         groupId: '1',
-        groupName: 'Gia đình chính',
-        inviteeEmail: 'accepted@example.com',
-        inviteeName: 'Trần Thị Đã Chấp Nhận',
+        group: FamilyGroup(
+          id: '1',
+          name: 'Gia đình chính',
+          memberCount: 3,
+          userRole: GroupMemberRole.admin,
+          createdAt: DateTime(2024, 12, 1),
+          updatedAt: now,
+          sharedMetrics: [
+            MetricType.heartRate,
+            MetricType.stepsCount,
+            MetricType.caloriesBurnt,
+          ],
+          ownerId: 'current-user-id',
+        ),
+        invitee: User(
+          id: 'user-accepted',
+          email: 'accepted@example.com',
+          name: 'Trần Thị Đã Chấp Nhận',
+          role: UserRole.user,
+          status: UserStatus.verified,
+          provider: LoginProvider.email,
+          createdAt: now.subtract(const Duration(days: 1)),
+          updatedAt: now.subtract(const Duration(days: 1)),
+        ),
         relationship: 'Chị',
         status: GroupMemberStatus.accepted,
         sentAt: now.subtract(const Duration(days: 1)),
@@ -680,9 +775,30 @@ class MockFamilyService implements FamilyService {
       OutgoingInvitation(
         id: 'out-3',
         groupId: '3',
-        groupName: 'Anh chị em',
-        inviteeEmail: 'declined@example.com',
-        inviteeName: 'Lê Văn Từ Chối',
+        group: FamilyGroup(
+          id: '3',
+          name: 'Anh chị em',
+          memberCount: 2,
+          userRole: GroupMemberRole.member,
+          createdAt: DateTime(2024, 11, 15),
+          updatedAt: now,
+          sharedMetrics: [
+            MetricType.stepsCount,
+            MetricType.caloriesBurnt,
+            MetricType.heartRate,
+          ],
+          ownerId: 'another-user-id',
+        ),
+        invitee: User(
+          id: 'user-declined',
+          email: 'declined@example.com',
+          name: 'Lê Văn Từ Chối',
+          role: UserRole.user,
+          status: UserStatus.verified,
+          provider: LoginProvider.email,
+          createdAt: now.subtract(const Duration(days: 3)),
+          updatedAt: now.subtract(const Duration(days: 3)),
+        ),
         relationship: 'Em trai',
         status: GroupMemberStatus.declined,
         sentAt: now.subtract(const Duration(days: 3)),

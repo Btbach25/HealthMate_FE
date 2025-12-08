@@ -1,8 +1,10 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/data/enums/metric_type.dart';
+import 'package:fe/core/utils/string_helper.dart';
+import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/models/group/family_member.dart';
+import 'package:fe/data/models/group/health_status_extension.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -20,71 +22,14 @@ class FamilyMemberCard extends StatelessWidget {
     required this.groupId,
   });
 
-  String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
-    }
-    return name.substring(0, name.length > 2 ? 2 : name.length).toUpperCase();
-  }
 
-  String _getMetricLabel(MetricType metric) {
-    switch (metric) {
-      case MetricType.heartRate:
-        return 'Nhịp tim';
-      case MetricType.stepsCount:
-        return 'Bước chân';
-      case MetricType.caloriesBurnt:
-        return 'Calo';
-      case MetricType.bloodPressure:
-        return 'Huyết áp';
-      case MetricType.weight:
-        return 'Cân nặng';
-      case MetricType.sleep:
-        return 'Giấc ngủ';
-      case MetricType.temperature:
-        return 'Nhiệt độ';
-    }
-  }
 
-  Color _getStatusColor(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.good:
-        return AppColors.primary;
-      case HealthStatus.needsAttention:
-        return Colors.orange;
-      case HealthStatus.healthy:
-        return AppColors.primary;
-    }
-  }
-
-  Color _getStatusBgColor(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.good:
-        return AppColors.tagImportantBg;
-      case HealthStatus.needsAttention:
-        return AppColors.tagWarningBg;
-      case HealthStatus.healthy:
-        return AppColors.tagImportantBg;
-    }
-  }
-
-  String _getStatusLabel(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.good:
-        return 'Tốt';
-      case HealthStatus.needsAttention:
-        return 'Cần chú ý';
-      case HealthStatus.healthy:
-        return 'Khỏe mạnh';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
-    final statusColor = _getStatusColor(member.healthStatus);
-    final statusBgColor = _getStatusBgColor(member.healthStatus);
+    final statusColor = member.healthStatus.color;
+    final statusBgColor = member.healthStatus.backgroundColor;
 
     return Container(
       padding: const EdgeInsets.all(AppSize.p20),
@@ -108,7 +53,7 @@ class FamilyMemberCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    _getInitials(member.name),
+                    StringHelper.getInitials(member.name),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -144,7 +89,7 @@ class FamilyMemberCard extends StatelessWidget {
                       '${member.relationship ?? ''}${member.relationship != null && member.age != null ? ' • ' : ''}${member.age != null ? '${member.age} tuổi' : ''}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textGrey.withOpacity(0.8),
+                        color: AppColors.textGrey.withValues(alpha:0.8),
                       ),
                     ),
                   ],
@@ -165,7 +110,7 @@ class FamilyMemberCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  _getStatusLabel(member.healthStatus),
+                  member.healthStatus.displayLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -187,7 +132,7 @@ class FamilyMemberCard extends StatelessWidget {
                   'Chia sẻ ${member.sharedMetrics.length} chỉ số',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textGrey.withOpacity(0.8),
+                    color: AppColors.textGrey.withValues(alpha:0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -201,14 +146,14 @@ class FamilyMemberCard extends StatelessWidget {
                 Icon(
                   Icons.favorite,
                   size: 14,
-                  color: AppColors.textGrey.withOpacity(0.6),
+                  color: AppColors.textGrey.withValues(alpha:0.6),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Cập nhật: ${dateFormat.format(member.lastUpdated!)}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textGrey.withOpacity(0.8),
+                    color: AppColors.textGrey.withValues(alpha:0.8),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -240,7 +185,7 @@ class FamilyMemberCard extends StatelessWidget {
                       condition,
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textGrey.withOpacity(0.8),
+                        color: AppColors.textGrey.withValues(alpha:0.8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -291,36 +236,18 @@ class FamilyMemberCard extends StatelessWidget {
   }
 
   void _showDeleteMemberDialog(BuildContext context) {
-    showDialog<void>(
+    ConfirmationDialog.showErrorConfirmation(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Xác nhận xóa thành viên'),
-          content: Text(
-            'Bạn có chắc chắn muốn xóa "${member.name}" khỏi nhóm không?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Hủy'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                context.read<FamilyBloc>().add(
-                      RemoveMember(
-                        groupId: groupId,
-                        memberId: member.id,
-                      ),
-                    );
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
+      title: 'Xác nhận xóa thành viên',
+      message: 'Bạn có chắc chắn muốn xóa "${member.name}" khỏi nhóm không?',
+      confirmText: 'Xóa',
+      onConfirm: () {
+        context.read<FamilyBloc>().add(
+              RemoveMember(
+                groupId: groupId,
+                memberId: member.id,
               ),
-              child: const Text('Xóa'),
-            ),
-          ],
-        );
+            );
       },
     );
   }

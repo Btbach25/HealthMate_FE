@@ -2,10 +2,14 @@ import 'dart:async';
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/utils/string_helper.dart';
+import 'package:fe/core/widgets/profile_date_field.dart';
+import 'package:fe/core/widgets/profile_text_field.dart';
+import 'package:fe/core/widgets/settings_card.dart';
+import 'package:fe/core/widgets/settings_dropdown.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 class ProfileSettingsTab extends StatefulWidget {
   const ProfileSettingsTab({super.key});
@@ -226,19 +230,6 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     }
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty || name.trim().isEmpty) return 'U';
-    final trimmedName = name.trim();
-    final parts = trimmedName.split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.length >= 2) {
-      final first = parts[0][0];
-      final last = parts[parts.length - 1][0];
-      return '$first$last'.toUpperCase();
-    }
-    final length = trimmedName.length > 2 ? 2 : trimmedName.length;
-    return trimmedName.substring(0, length).toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthBloc>().state.user;
@@ -273,7 +264,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                     ),
                     child: Center(
                       child: Text(
-                        _getInitials(userName),
+                        StringHelper.getInitials(userName),
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -322,10 +313,10 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
             ),
             
             // Basic Information Card
-            _buildCard(
+            SettingsCard(
               title: 'Thông tin cơ bản',
               children: [
-                _buildTextField(
+                ProfileTextField(
                   controller: _nameController,
                   label: 'Họ tên',
                   icon: Icons.person_outline,
@@ -338,7 +329,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   },
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildTextField(
+                ProfileTextField(
                   controller: _emailController,
                   label: 'Email',
                   icon: Icons.mail_outline,
@@ -356,7 +347,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   },
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildTextField(
+                ProfileTextField(
                   controller: _phoneController,
                   label: 'Số điện thoại',
                   icon: Icons.phone_outlined,
@@ -364,7 +355,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildDropdown(
+                SettingsDropdown(
                   label: 'Giới tính',
                   value: _selectedGender,
                   items: const ['Nam', 'Nữ', 'Khác'],
@@ -376,14 +367,20 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   },
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildDateField(
+                ProfileDateField(
                   label: 'Ngày sinh',
                   value: _selectedBirthday,
                   enabled: _isEditing,
+                  hintText: 'Chọn ngày sinh',
                   onTap: _selectBirthday,
+                  onClear: _isEditing ? () {
+                    setState(() {
+                      _selectedBirthday = null;
+                    });
+                  } : null,
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildTextField(
+                ProfileTextField(
                   controller: _addressController,
                   label: 'Địa chỉ',
                   icon: Icons.location_on_outlined,
@@ -396,14 +393,14 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
             const SizedBox(height: AppSize.spacing24),
             
             // Health Information Card
-            _buildCard(
+            SettingsCard(
               icon: Icons.favorite_outline,
               title: 'Thông tin sức khỏe',
               children: [
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(
+                      child: ProfileTextField(
                         controller: _weightController,
                         label: 'Cân nặng',
                         icon: Icons.monitor_weight_outlined,
@@ -428,7 +425,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                     ),
                     const SizedBox(width: AppSize.spacing16),
                     Expanded(
-                      child: _buildTextField(
+                      child: ProfileTextField(
                         controller: _heightController,
                         label: 'Chiều cao',
                         icon: Icons.straighten_outlined,
@@ -454,7 +451,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   ],
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                _buildDropdown(
+                SettingsDropdown(
                   label: 'Nhóm máu',
                   value: _selectedBloodGroup,
                   items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
@@ -472,7 +469,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
             const SizedBox(height: AppSize.spacing24),
             
             // Allergies Card
-            _buildCard(
+            SettingsCard(
               icon: Icons.warning_amber_outlined,
               title: 'Quản lý dị ứng',
               children: [
@@ -727,171 +724,5 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     );
   }
 
-  Widget _buildCard({
-    IconData? icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppColors.cardShadowList,
-        border: Border.all(color: AppColors.cardBorder, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  color: AppColors.textBlack,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    IconData? icon,
-    bool enabled = true,
-    TextInputType? keyboardType,
-    String? suffixText,
-    String? hintText,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: keyboardType,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hintText,
-        prefixIcon: icon != null 
-            ? Icon(icon, color: AppColors.primary.withOpacity(0.7))
-            : null,
-        suffixText: suffixText,
-        filled: true,
-        fillColor: enabled ? AppColors.inputBackground : AppColors.surfaceVariant,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      validator: validator,
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required bool enabled,
-    IconData? icon,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: icon != null 
-            ? Icon(icon, color: AppColors.primary.withOpacity(0.7))
-            : null,
-        filled: true,
-        fillColor: enabled ? AppColors.inputBackground : AppColors.surfaceVariant,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      items: items.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: enabled ? onChanged : null,
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required DateTime? value,
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.calendar_today_outlined),
-          border: const OutlineInputBorder(),
-          suffixIcon: value != null && enabled
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    setState(() {
-                      _selectedBirthday = null;
-                    });
-                  },
-                )
-              : null,
-        ),
-        child: Text(
-          value != null
-              ? DateFormat('dd/MM/yyyy').format(value)
-              : 'Chọn ngày sinh',
-          style: TextStyle(
-            color: value != null ? AppColors.textBlack : AppColors.textGrey,
-          ),
-        ),
-      ),
-    );
-  }
 }
 

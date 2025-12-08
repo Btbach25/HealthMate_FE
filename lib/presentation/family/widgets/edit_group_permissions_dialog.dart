@@ -1,26 +1,17 @@
-import 'dart:async';
-
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_icons.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/mixins/inline_message_mixin.dart';
+import 'package:fe/core/utils/family_bloc_listener_helper.dart';
+import 'package:fe/core/utils/metric_helper.dart';
+import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/loading_button.dart';
+import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-class MetricOption {
-  final MetricType type;
-  final String label;
-  final IconData icon;
-
-  MetricOption({
-    required this.type,
-    required this.label,
-    required this.icon,
-  });
-}
 
 class EditGroupPermissionsDialog extends StatefulWidget {
   final FamilyGroup group;
@@ -36,54 +27,13 @@ class EditGroupPermissionsDialog extends StatefulWidget {
 }
 
 class _EditGroupPermissionsDialogState
-    extends State<EditGroupPermissionsDialog> {
+    extends State<EditGroupPermissionsDialog> with InlineMessageMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final Set<MetricOption> _selectedMetrics = {};
-  String? _inlineMessage;
-  Color? _inlineMessageColor;
-  Timer? _messageTimer;
+  final Set<MetricType> _selectedMetrics = {};
   bool _isLoading = false;
   
   static const int _maxGroupNameLength = 50;
-
-  final List<MetricOption> _availableMetrics = [
-    MetricOption(
-      type: MetricType.heartRate,
-      label: 'Nhịp tim',
-      icon: AppIcons.heart,
-    ),
-    MetricOption(
-      type: MetricType.stepsCount,
-      label: 'Số bước chân',
-      icon: AppIcons.steps,
-    ),
-    MetricOption(
-      type: MetricType.caloriesBurnt,
-      label: 'Lượng calo',
-      icon: Icons.local_fire_department_outlined,
-    ),
-    MetricOption(
-      type: MetricType.bloodPressure,
-      label: 'Huyết áp',
-      icon: AppIcons.bloodPressure,
-    ),
-    MetricOption(
-      type: MetricType.weight,
-      label: 'Cân nặng',
-      icon: AppIcons.weight,
-    ),
-    MetricOption(
-      type: MetricType.sleep,
-      label: 'Giấc ngủ',
-      icon: AppIcons.sleep,
-    ),
-    MetricOption(
-      type: MetricType.temperature,
-      label: 'Nhiệt độ cơ thể',
-      icon: AppIcons.temperature,
-    ),
-  ];
 
   @override
   void initState() {
@@ -91,19 +41,12 @@ class _EditGroupPermissionsDialogState
     // Set current group name
     _nameController.text = widget.group.name;
     // Pre-select current group metrics
-    for (final metric in widget.group.sharedMetrics) {
-      final option = _availableMetrics.firstWhere(
-        (m) => m.type == metric,
-        orElse: () => _availableMetrics.first,
-      );
-      _selectedMetrics.add(option);
-    }
+    _selectedMetrics.addAll(widget.group.sharedMetrics);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _messageTimer?.cancel();
     super.dispose();
   }
 
@@ -112,16 +55,16 @@ class _EditGroupPermissionsDialogState
 
     // Validate form
     if (!_formKey.currentState!.validate()) {
-      _showInlineMessage(
+      showInlineMessage(
         'Vui lòng kiểm tra lại thông tin',
         backgroundColor: AppColors.error,
       );
       return;
     }
 
-    if (_selectedMetrics.isEmpty) {
-      _showInlineMessage(
-        'Vui lòng chọn ít nhất một chỉ số để chia sẻ',
+    if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
+      showInlineMessage(
+        MetricSelectionHelper.getValidationErrorMessage(),
         backgroundColor: AppColors.error,
       );
       return;
@@ -133,7 +76,10 @@ class _EditGroupPermissionsDialogState
 
     final newName = _nameController.text.trim();
     final nameChanged = newName != widget.group.name;
-    final metricsChanged = !_areMetricsEqual(_selectedMetrics, widget.group.sharedMetrics);
+    final metricsChanged = MetricSelectionHelper.hasMetricsChanged(
+      _selectedMetrics,
+      widget.group.sharedMetrics,
+    );
 
     // Only update if something changed
     if (nameChanged || metricsChanged) {
@@ -142,7 +88,7 @@ class _EditGroupPermissionsDialogState
               groupId: widget.group.id,
               name: nameChanged ? newName : null,
               sharedMetrics: metricsChanged
-                  ? _selectedMetrics.map((m) => m.type.value).toList()
+                  ? MetricSelectionHelper.toApiFormat(_selectedMetrics)
                   : null,
             ),
           );
@@ -155,59 +101,15 @@ class _EditGroupPermissionsDialogState
     }
   }
 
-  bool _areMetricsEqual(Set<MetricOption> selected, List<MetricType> groupMetrics) {
-    if (selected.length != groupMetrics.length) return false;
-    final selectedTypes = selected.map((m) => m.type).toSet();
-    return selectedTypes.length == groupMetrics.length &&
-        selectedTypes.every((type) => groupMetrics.contains(type));
-  }
-
-  void _showInlineMessage(
-    String message, {
-    Color? backgroundColor,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    _messageTimer?.cancel();
-    setState(() {
-      _inlineMessage = message;
-      _inlineMessageColor = backgroundColor ?? Colors.black.withOpacity(0.85);
-    });
-    _messageTimer = Timer(duration, () {
-      if (mounted) {
-        setState(() {
-          _inlineMessage = null;
-        });
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
-      listener: (context, state) {
-        if (state.status == FamilyStatus.groupUpdated) {
-          setState(() {
-            _isLoading = false;
-          });
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã cập nhật thông tin nhóm thành công'),
-              backgroundColor: AppColors.primary,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-        if (state.status == FamilyStatus.error) {
-          setState(() {
-            _isLoading = false;
-          });
-          _showInlineMessage(
-            state.errorMessage ?? 'Có lỗi xảy ra',
-            backgroundColor: AppColors.error,
-          );
-        }
-      },
+      listener: FamilyBlocListenerHelper.createDialogListener(
+        setLoading: () => setState(() => _isLoading = false),
+        showInlineMessage: showInlineMessage,
+        successStatus: FamilyStatus.groupUpdated,
+        successMessage: 'Đã cập nhật thông tin nhóm thành công',
+      ),
       child: Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSize.r16),
@@ -273,102 +175,28 @@ class _EditGroupPermissionsDialogState
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _availableMetrics.map((metric) {
-                    final isSelected = _selectedMetrics.contains(metric);
-                    return GestureDetector(
-                      onTap: () {
+                  children: MetricHelper.availableMetrics.map((metric) {
+                    final isSelected = _selectedMetrics.contains(metric.type);
+                    return MetricCheckbox(
+                      metric: metric,
+                      isSelected: isSelected,
+                      showCheckbox: false,
+                      showCheckIcon: true,
+                      onChanged: (selected) {
                         setState(() {
-                          if (isSelected) {
-                            _selectedMetrics.remove(metric);
+                          if (selected) {
+                            _selectedMetrics.add(metric.type);
                           } else {
-                            _selectedMetrics.add(metric);
+                            _selectedMetrics.remove(metric.type);
                           }
                         });
                       },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withOpacity(0.1)
-                              : AppColors.inputBackground,
-                          borderRadius: BorderRadius.circular(AppSize.r12),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.cardBorder,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              metric.icon,
-                              size: 20,
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.textGrey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              metric.label,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textBlack,
-                              ),
-                            ),
-                            if (isSelected) ...[
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.check_circle,
-                                size: 18,
-                                color: AppColors.primary,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
                     );
                   }).toList(),
                 ),
-                if (_inlineMessage != null) ...[
+                if (buildInlineMessage() != null) ...[
                   const SizedBox(height: AppSize.spacing16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _inlineMessageColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _inlineMessageColor == AppColors.error
-                              ? Icons.error_outline
-                              : Icons.check_circle_outline,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _inlineMessage!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  buildInlineMessage()!,
                 ],
                 const SizedBox(height: AppSize.spacing24),
                 Row(
@@ -379,33 +207,15 @@ class _EditGroupPermissionsDialogState
                       child: const Text('Hủy'),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSave,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
+                    LoadingButton(
+                      text: 'Lưu thay đổi',
+                      onPressed: _handleSave,
+                      isLoading: _isLoading,
+                      width: null,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              'Lưu thay đổi',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                     ),
                   ],
                 ),

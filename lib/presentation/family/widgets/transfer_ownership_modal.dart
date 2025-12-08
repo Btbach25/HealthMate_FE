@@ -1,5 +1,6 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/string_helper.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
@@ -22,13 +23,6 @@ class TransferOwnershipModal extends StatefulWidget {
 class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
   String? _selectedMemberId;
 
-  String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
-    }
-    return name.substring(0, name.length > 2 ? 2 : name.length).toUpperCase();
-  }
 
   void _handleTransfer() {
     if (_selectedMemberId == null) {
@@ -162,10 +156,10 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.orange.withOpacity(0.3),
+                    color: Colors.orange.withValues(alpha:0.3),
                   ),
                 ),
                 child: Row(
@@ -213,7 +207,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                       padding: const EdgeInsets.all(AppSize.p16),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary.withOpacity(0.1)
+                            ? AppColors.primary.withValues(alpha:0.1)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
@@ -234,7 +228,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                             ),
                             child: Center(
                               child: Text(
-                                _getInitials(member.name),
+                                StringHelper.getInitials(member.name),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -261,7 +255,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                                     member.relationship!,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.textGrey.withOpacity(0.8),
+                                      color: AppColors.textGrey.withValues(alpha:0.8),
                                     ),
                                   ),
                               ],
@@ -276,7 +270,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                           else
                             Icon(
                               Icons.radio_button_unchecked,
-                              color: AppColors.textGrey.withOpacity(0.5),
+                              color: AppColors.textGrey.withValues(alpha:0.5),
                               size: 24,
                             ),
                         ],

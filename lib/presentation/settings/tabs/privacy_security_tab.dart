@@ -1,6 +1,10 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/utils/settings_management_helper.dart';
+import 'package:fe/core/widgets/settings_card.dart';
+import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/core/widgets/settings_switch_row.dart';
+import 'package:fe/data/models/settings/privacy_security_settings.dart';
+import 'package:fe/data/services/settings_service.dart';
 import 'package:flutter/material.dart';
 
 class PrivacySecurityTab extends StatefulWidget {
@@ -11,77 +15,95 @@ class PrivacySecurityTab extends StatefulWidget {
 }
 
 class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
-  bool _dataSharing = true;
-  bool _anonymousAnalytics = false;
-  bool _locationTracking = false;
-  bool _biometricAuth = false;
-  bool _autoLock = true;
-  String _lockTimeout = '5 phút';
+  final SettingsService _settingsService = SettingsService();
+  PrivacySecuritySettings _settings = const PrivacySecuritySettings();
+  bool _isLoading = true;
 
-  void _updateSetting(String key, dynamic value) {
-    setState(() {
-      switch (key) {
-        case 'dataSharing':
-          _dataSharing = value;
-          break;
-        case 'anonymousAnalytics':
-          _anonymousAnalytics = value;
-          break;
-        case 'locationTracking':
-          _locationTracking = value;
-          break;
-        case 'biometricAuth':
-          _biometricAuth = value;
-          break;
-        case 'autoLock':
-          _autoLock = value;
-          break;
-        case 'lockTimeout':
-          _lockTimeout = value;
-          break;
-      }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật cài đặt'),
-        backgroundColor: AppColors.primary,
-        duration: Duration(seconds: 2),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    await SettingsManagementHelper.loadSettingsWithErrorHandling(
+      context: context,
+      loadFunction: () => _settingsService.loadPrivacySecuritySettings(),
+      onSuccess: (settings) {
+        setState(() {
+          _settings = settings;
+          _isLoading = false;
+        });
+      },
+      onError: () {
+        setState(() {
+          _isLoading = false;
+        });
+      },
+    );
+  }
+
+  Future<void> _updateSetting<T>(T Function(PrivacySecuritySettings) update) async {
+    await SettingsManagementHelper.updateSettingWithErrorHandling<PrivacySecuritySettings>(
+      context: context,
+      currentSettings: _settings,
+      update: update as PrivacySecuritySettings Function(PrivacySecuritySettings),
+      saveFunction: (settings) => _settingsService.savePrivacySecuritySettings(settings),
+      onUpdate: (settings) {
+        setState(() {
+          _settings = settings;
+        });
+      },
+      onRevert: (settings) {
+        setState(() {
+          _settings = settings;
+        });
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return SettingsManagementHelper.buildLoadingIndicator();
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSize.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Privacy Settings Card
-          _buildCard(
+          SettingsCard(
             icon: Icons.shield_outlined,
             title: 'Quyền riêng tư',
             children: [
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Chia sẻ dữ liệu',
                 description: 'Cho phép chia sẻ dữ liệu với nhóm',
                 icon: Icons.shield_outlined,
-                value: _dataSharing,
-                onChanged: (value) => _updateSetting('dataSharing', value),
+                value: _settings.dataSharing,
+                onChanged: (value) => _updateSetting(
+                  (settings) => settings.copyWith(dataSharing: value),
+                ),
               ),
               const Divider(height: 24),
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Phân tích ẩn danh',
                 description: 'Gửi dữ liệu ẩn danh để cải thiện ứng dụng',
-                value: _anonymousAnalytics,
-                onChanged: (value) => _updateSetting('anonymousAnalytics', value),
+                value: _settings.anonymousAnalytics,
+                onChanged: (value) => _updateSetting(
+                  (settings) => settings.copyWith(anonymousAnalytics: value),
+                ),
               ),
               const Divider(height: 24),
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Theo dõi vị trí',
                 description: 'Cho phép ứng dụng truy cập vị trí',
-                value: _locationTracking,
-                onChanged: (value) => _updateSetting('locationTracking', value),
+                value: _settings.locationTracking,
+                onChanged: (value) => _updateSetting(
+                  (settings) => settings.copyWith(locationTracking: value),
+                ),
               ),
             ],
           ),
@@ -89,17 +111,20 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
           const SizedBox(height: AppSize.spacing24),
           
           // Security Settings Card
-          _buildCard(
+          SettingsCard(
             icon: Icons.lock_outlined,
             title: 'Bảo mật ứng dụng',
             children: [
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Xác thực sinh trắc học',
                 description: 'Sử dụng vân tay hoặc Face ID',
                 icon: Icons.lock_outlined,
-                value: _biometricAuth,
+                value: _settings.biometricAuth,
                 onChanged: (value) {
                   // TODO: Implement biometric auth
+                  _updateSetting(
+                    (settings) => settings.copyWith(biometricAuth: value),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Tính năng đang phát triển'),
@@ -108,19 +133,27 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                 },
               ),
               const Divider(height: 24),
-              _buildSwitchRow(
+              SettingsSwitchRow(
                 title: 'Tự động khóa',
                 description: 'Khóa ứng dụng khi không sử dụng',
-                value: _autoLock,
-                onChanged: (value) => _updateSetting('autoLock', value),
+                value: _settings.autoLock,
+                onChanged: (value) => _updateSetting(
+                  (settings) => settings.copyWith(autoLock: value),
+                ),
               ),
-              if (_autoLock) ...[
+              if (_settings.autoLock) ...[
                 const Divider(height: 24),
-                _buildDropdown(
+                SettingsDropdown(
                   label: 'Thời gian tự động khóa',
-                  value: _lockTimeout,
+                  value: _settings.lockTimeout,
                   items: const ['1 phút', '5 phút', '10 phút', '30 phút'],
-                  onChanged: (value) => _updateSetting('lockTimeout', value),
+                  onChanged: (value) {
+                    if (value != null) {
+                      _updateSetting(
+                        (settings) => settings.copyWith(lockTimeout: value),
+                      );
+                    }
+                  },
                 ),
               ],
             ],
@@ -132,131 +165,6 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
     );
   }
 
-  Widget _buildCard({
-    IconData? icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppColors.cardShadowList,
-        border: Border.all(color: AppColors.cardBorder, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
-    );
-  }
 
-  Widget _buildSwitchRow({
-    required String title,
-    required String description,
-    IconData? icon,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return Row(
-      children: [
-        if (icon != null) ...[
-          Icon(icon, color: AppColors.textGrey),
-          const SizedBox(width: 12),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.labelLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textGrey,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Material(
-          color: Colors.transparent,
-          child: Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.primary,
-            activeTrackColor: AppColors.primary,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            splashRadius: 0,
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return Colors.white;
-              }
-              return Colors.grey[300];
-            }),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: AppColors.inputBackground,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      items: items.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: onChanged,
-    );
-  }
 }
 

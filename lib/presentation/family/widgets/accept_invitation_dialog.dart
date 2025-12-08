@@ -1,7 +1,11 @@
-import 'dart:async';
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/core/mixins/inline_message_mixin.dart';
+import 'package:fe/core/utils/family_bloc_listener_helper.dart';
+import 'package:fe/core/utils/metric_helper.dart';
+import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/loading_button.dart';
+import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -20,50 +24,10 @@ class AcceptInvitationDialog extends StatefulWidget {
   State<AcceptInvitationDialog> createState() => _AcceptInvitationDialogState();
 }
 
-class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
+class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
+    with InlineMessageMixin {
   final Set<MetricType> _selectedMetrics = {};
-  String? _inlineMessage;
-  Color? _inlineMessageColor;
-  Timer? _messageTimer;
   bool _isLoading = false;
-
-  final List<MetricOption> _availableMetrics = [
-    MetricOption(
-      type: MetricType.heartRate,
-      label: 'Nhịp tim',
-      icon: AppIcons.heart,
-    ),
-    MetricOption(
-      type: MetricType.bloodPressure,
-      label: 'Huyết áp',
-      icon: AppIcons.bloodPressure,
-    ),
-    MetricOption(
-      type: MetricType.weight,
-      label: 'Cân nặng',
-      icon: AppIcons.weight,
-    ),
-    MetricOption(
-      type: MetricType.temperature,
-      label: 'Nhiệt độ',
-      icon: AppIcons.temperature,
-    ),
-    MetricOption(
-      type: MetricType.sleep,
-      label: 'Giấc ngủ',
-      icon: AppIcons.sleep,
-    ),
-    MetricOption(
-      type: MetricType.stepsCount,
-      label: 'Số bước chân',
-      icon: AppIcons.steps,
-    ),
-    MetricOption(
-      type: MetricType.caloriesBurnt,
-      label: 'Lượng calo',
-      icon: Icons.local_fire_department_outlined,
-    ),
-  ];
 
   @override
   void initState() {
@@ -72,34 +36,14 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
     _selectedMetrics.addAll(widget.invitation.sharedMetrics);
   }
 
-  @override
-  void dispose() {
-    _messageTimer?.cancel();
-    super.dispose();
-  }
-
-  void _showInlineMessage(
-    String message, {
-    Color? backgroundColor,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    _messageTimer?.cancel();
-    setState(() {
-      _inlineMessage = message;
-      _inlineMessageColor = backgroundColor ?? Colors.black.withOpacity(0.85);
-    });
-    _messageTimer = Timer(duration, () {
-      if (mounted) {
-        setState(() => _inlineMessage = null);
-      }
-    });
-  }
-
   void _handleAccept() {
     if (_isLoading) return;
     
     if (_selectedMetrics.isEmpty) {
-      _showInlineMessage('Vui lòng chọn ít nhất một loại chỉ số để chia sẻ');
+      showInlineMessage(
+        'Vui lòng chọn ít nhất một loại chỉ số để chia sẻ',
+        backgroundColor: AppColors.error,
+      );
       return;
     }
 
@@ -110,7 +54,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
     context.read<FamilyBloc>().add(
           AcceptInvitation(
             invitationId: widget.invitation.id,
-            sharedMetrics: _selectedMetrics.map((m) => m.value).toList(),
+            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
           ),
         );
   }
@@ -118,23 +62,12 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
-      listener: (context, state) {
-        if (state.status == FamilyStatus.invitationAccepted) {
-          setState(() {
-            _isLoading = false;
-          });
-          Navigator.pop(context);
-        }
-        if (state.status == FamilyStatus.error) {
-          setState(() {
-            _isLoading = false;
-          });
-          _showInlineMessage(
-            state.errorMessage ?? 'Có lỗi xảy ra',
-            backgroundColor: AppColors.error,
-          );
-        }
-      },
+      listener: FamilyBlocListenerHelper.createDialogListener(
+        setLoading: () => setState(() => _isLoading = false),
+        showInlineMessage: showInlineMessage,
+        successStatus: FamilyStatus.invitationAccepted,
+        shouldPop: true,
+      ),
       child: Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -173,7 +106,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
                                 'Chọn các chỉ số sức khỏe bạn muốn chia sẻ với nhóm "${widget.invitation.groupName}"',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppColors.textGrey.withOpacity(0.8),
+                                  color: AppColors.textGrey.withValues(alpha:0.8),
                                 ),
                               ),
                             ],
@@ -189,81 +122,34 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
-                      children: _availableMetrics.map((metric) {
+                      children: MetricHelper.availableMetrics.map((metric) {
                         final isSelected = _selectedMetrics.contains(metric.type);
-                        return SizedBox(
+                        return MetricCheckbox(
+                          metric: metric,
+                          isSelected: isSelected,
                           width: 180,
-                          child: _MetricCheckbox(
-                            metric: metric,
-                            isSelected: isSelected,
-                            onChanged: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _selectedMetrics.add(metric.type);
-                                } else {
-                                  _selectedMetrics.remove(metric.type);
-                                }
-                              });
-                            },
-                          ),
+                          onChanged: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedMetrics.add(metric.type);
+                              } else {
+                                _selectedMetrics.remove(metric.type);
+                              }
+                            });
+                          },
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 20),
-                    if (_inlineMessage != null) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSize.p16,
-                          vertical: AppSize.p12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _inlineMessageColor ?? Colors.black87,
-                          borderRadius: BorderRadius.circular(AppSize.r12),
-                        ),
-                        child: Text(
-                          _inlineMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
+                    if (buildInlineMessage() != null) ...[
+                      buildInlineMessage()!,
                       const SizedBox(height: 12),
                     ],
                     const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleAccept,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text(
-                                'Chấp nhận và tham gia',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                    LoadingButton(
+                      text: 'Chấp nhận và tham gia',
+                      onPressed: _handleAccept,
+                      isLoading: _isLoading,
                     ),
                   ],
                 ),
@@ -276,88 +162,4 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog> {
   }
 }
 
-class MetricOption {
-  final MetricType type;
-  final String label;
-  final IconData icon;
-
-  MetricOption({
-    required this.type,
-    required this.label,
-    required this.icon,
-  });
-}
-
-class _MetricCheckbox extends StatelessWidget {
-  final MetricOption metric;
-  final bool isSelected;
-  final ValueChanged<bool> onChanged;
-
-  const _MetricCheckbox({
-    required this.metric,
-    required this.isSelected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!isSelected),
-      child: Container(
-        padding: const EdgeInsets.all(AppSize.p16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(AppSize.r12),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.cardBorder,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Checkbox(
-              value: isSelected,
-              onChanged: (value) => onChanged(value ?? false),
-              activeColor: AppColors.primary,
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.inputBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                metric.icon,
-                color: isSelected
-                    ? Colors.white
-                    : AppColors.textGrey,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                metric.label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                  color: AppColors.textBlack,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 

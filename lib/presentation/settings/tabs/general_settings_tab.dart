@@ -1,6 +1,12 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/confirmation_dialog.dart';
+import 'package:fe/core/widgets/settings_card.dart';
+import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/data/models/settings/general_settings.dart';
+import 'package:fe/data/services/settings_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,67 +19,66 @@ class GeneralSettingsTab extends StatefulWidget {
 }
 
 class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
-  bool _darkMode = false;
-  String _language = 'vi';
-  String _dateFormat = 'dd/mm/yyyy';
-  String _timeFormat = '24h';
+  final SettingsService _settingsService = SettingsService();
+  GeneralSettings _settings = const GeneralSettings();
+  bool _isLoading = true;
 
-  void _updateSetting(String key, dynamic value) {
-    setState(() {
-      switch (key) {
-        case 'darkMode':
-          _darkMode = value;
-          break;
-        case 'language':
-          _language = value;
-          break;
-        case 'dateFormat':
-          _dateFormat = value;
-          break;
-        case 'timeFormat':
-          _timeFormat = value;
-          break;
-      }
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật cài đặt'),
-        backgroundColor: AppColors.primary,
-        duration: Duration(seconds: 2),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    await SettingsManagementHelper.loadSettingsWithErrorHandling(
+      context: context,
+      loadFunction: () => _settingsService.loadGeneralSettings(),
+      onSuccess: (settings) {
+        setState(() {
+          _settings = settings;
+          _isLoading = false;
+        });
+      },
+      onError: () {
+        setState(() {
+          _isLoading = false;
+        });
+      },
+    );
+  }
+
+  Future<void> _updateSetting<T>(T Function(GeneralSettings) update) async {
+    await SettingsManagementHelper.updateSettingWithErrorHandling<GeneralSettings>(
+      context: context,
+      currentSettings: _settings,
+      update: update as GeneralSettings Function(GeneralSettings),
+      saveFunction: (settings) => _settingsService.saveGeneralSettings(settings),
+      onUpdate: (settings) {
+        setState(() {
+          _settings = settings;
+        });
+      },
+      onRevert: (settings) {
+        setState(() {
+          _settings = settings;
+        });
+      },
     );
   }
 
   void _handleLogout() {
-    showDialog(
+    ConfirmationDialog.showErrorConfirmation(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Xác nhận đăng xuất'),
-          content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                context.read<AuthBloc>().add(AuthLogoutRequested());
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đăng xuất thành công'),
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Đăng xuất'),
-            ),
-          ],
+      title: 'Xác nhận đăng xuất',
+      message: 'Bạn có chắc chắn muốn đăng xuất?',
+      confirmText: 'Đăng xuất',
+      onConfirm: () {
+        context.read<AuthBloc>().add(AuthLogoutRequested());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đăng xuất thành công'),
+            backgroundColor: AppColors.primary,
+          ),
         );
       },
     );
@@ -81,13 +86,17 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return SettingsManagementHelper.buildLoadingIndicator();
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSize.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Appearance Settings Card
-          _buildCard(
+          SettingsCard(
             icon: Icons.palette_outlined,
             title: 'Giao diện',
             children: [
@@ -110,9 +119,12 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                       Material(
                         color: Colors.transparent,
                         child: Switch(
-                          value: _darkMode,
+                          value: _settings.darkMode,
                           onChanged: (value) {
                             // TODO: Implement dark mode
+                            _updateSetting(
+                              (settings) => settings.copyWith(darkMode: value),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Tính năng đang phát triển'),
@@ -136,42 +148,49 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                 ],
               ),
               const Divider(height: 24),
-              _buildDropdown(
+              SettingsDropdown(
                 label: 'Ngôn ngữ',
-                value: _language,
-                items: const [
-                  DropdownMenuItem(value: 'vi', child: Text('Tiếng Việt')),
-                  DropdownMenuItem(value: 'en', child: Text('English')),
-                ],
+                value: _settings.language,
+                items: const ['vi', 'en'],
                 onChanged: (value) {
-                  // TODO: Implement language switching
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tính năng đang phát triển'),
-                    ),
-                  );
+                  if (value != null) {
+                    _updateSetting(
+                      (settings) => settings.copyWith(language: value),
+                    );
+                    // TODO: Implement language switching
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tính năng đang phát triển'),
+                      ),
+                    );
+                  }
                 },
               ),
               const Divider(height: 24),
-              _buildDropdown(
+              SettingsDropdown(
                 label: 'Định dạng ngày',
-                value: _dateFormat,
-                items: const [
-                  DropdownMenuItem(value: 'dd/mm/yyyy', child: Text('DD/MM/YYYY')),
-                  DropdownMenuItem(value: 'mm/dd/yyyy', child: Text('MM/DD/YYYY')),
-                  DropdownMenuItem(value: 'yyyy-mm-dd', child: Text('YYYY-MM-DD')),
-                ],
-                onChanged: (value) => _updateSetting('dateFormat', value),
+                value: _settings.dateFormat,
+                items: const ['dd/mm/yyyy', 'mm/dd/yyyy', 'yyyy-mm-dd'],
+                onChanged: (value) {
+                  if (value != null) {
+                    _updateSetting(
+                      (settings) => settings.copyWith(dateFormat: value),
+                    );
+                  }
+                },
               ),
               const Divider(height: 24),
-              _buildDropdown(
+              SettingsDropdown(
                 label: 'Định dạng giờ',
-                value: _timeFormat,
-                items: const [
-                  DropdownMenuItem(value: '24h', child: Text('24 giờ')),
-                  DropdownMenuItem(value: '12h', child: Text('12 giờ (AM/PM)')),
-                ],
-                onChanged: (value) => _updateSetting('timeFormat', value),
+                value: _settings.timeFormat,
+                items: const ['24h', '12h'],
+                onChanged: (value) {
+                  if (value != null) {
+                    _updateSetting(
+                      (settings) => settings.copyWith(timeFormat: value),
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -198,7 +217,7 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.error.withOpacity(0.3),
+                        color: AppColors.error.withValues(alpha:0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -235,74 +254,6 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
     );
   }
 
-  Widget _buildCard({
-    IconData? icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppColors.cardShadowList,
-        border: Border.all(color: AppColors.cardBorder, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: AppTextStyles.h4.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
-    );
-  }
 
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<DropdownMenuItem<String>> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: AppColors.inputBackground,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-      items: items,
-      onChanged: onChanged,
-    );
-  }
 }
 

@@ -30,19 +30,19 @@ class FamilyGroup extends Equatable {
 
   factory FamilyGroup.fromJson(Map<String, dynamic> json) {
     return FamilyGroup(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      memberCount: json['member_count'] as int? ?? 0,
-      userRole: GroupMemberRole.fromValue(json['user_role'] as String?),
-      createdAt: cvToDateRequired(json['created_at'] as String),
-      updatedAt: cvToDateRequired(json['updated_at'] as String),
-      lastActivity: cvToDate(json['last_activity'] as String?),
-      pendingInvitations: json['pending_invitations'] as int? ?? 0,
-      sharedMetrics: (json['shared_metrics'] as List<dynamic>?)
-              ?.map((e) => MetricType.fromValue(e as String))
-              .toList() ??
-          [],
-      ownerId: json['owner_id'] as String,
+      id: cvToString(json['id']),
+      name: cvToString(json['name']),
+      memberCount: cvToInt(json['member_count']),
+      userRole: GroupMemberRole.fromValue(cvToStringOrNull(json['user_role'])),
+      createdAt: cvToDateRequired(json['created_at']),
+      updatedAt: cvToDateRequired(json['updated_at']),
+      lastActivity: cvToDateOrNull(json['last_activity']),
+      pendingInvitations: cvToInt(json['pending_invitations']),
+      sharedMetrics: cvToList(
+        json['shared_metrics'],
+        (e) => MetricType.fromValue(cvToString(e)),
+      ),
+      ownerId: cvToString(json['owner_id']),
     );
   }
 
@@ -59,6 +59,17 @@ class FamilyGroup extends Equatable {
       'shared_metrics': sharedMetrics.map((e) => e.value).toList(),
       'owner_id': ownerId,
     };
+  }
+
+  /// Converts FamilyGroup to JSON string
+  String toJsonString() {
+    return cvJsonToString(toJson());
+  }
+
+  /// Creates FamilyGroup from JSON string
+  factory FamilyGroup.fromJsonString(String source) {
+    final json = cvStringToJson(source);
+    return FamilyGroup.fromJson(json);
   }
 
   FamilyGroup copyWith({

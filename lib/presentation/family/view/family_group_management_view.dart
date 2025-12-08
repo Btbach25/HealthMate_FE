@@ -1,8 +1,11 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/family_state_helper.dart';
+import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/group_member_status.dart';
-import 'package:fe/data/enums/metric_type.dart';
+import 'package:fe/data/enums/metric_type_extension.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
@@ -61,23 +64,27 @@ class _FamilyGroupManagementViewState
   }
 
   void _onTabChanged() {
-    if (!_tabController.indexIsChanging && mounted) {
-      final bloc = context.read<FamilyBloc>();
-      final state = bloc.state;
-      
-      // Only fetch if tab hasn't been loaded yet or data is empty
-      // This ensures smooth tab switching without unnecessary loading
-      if (_tabController.index == 1) {
+    if (_tabController.indexIsChanging || !mounted) return;
+
+    final bloc = context.read<FamilyBloc>();
+    final state = bloc.state;
+    final tabIndex = _tabController.index;
+    
+    // Only fetch if tab hasn't been loaded yet or data is empty
+    // This ensures smooth tab switching without unnecessary loading
+    switch (tabIndex) {
+      case 1:
         if (!_loadedTabs.contains(1) && state.incomingInvitations.isEmpty) {
           bloc.add(const FetchIncomingInvitations());
           _loadedTabs.add(1);
         }
-      } else if (_tabController.index == 2) {
+        break;
+      case 2:
         if (!_loadedTabs.contains(2) && state.outgoingInvitations.isEmpty) {
           bloc.add(const FetchOutgoingInvitations());
           _loadedTabs.add(2);
         }
-      }
+        break;
     }
   }
 
@@ -116,39 +123,21 @@ class _FamilyGroupManagementViewState
         child: BlocBuilder<FamilyBloc, FamilyState>(
         builder: (context, state) {
           // Only show loading on initial load, not when switching tabs
-          if (state.status == FamilyStatus.initial) {
+          if (FamilyStateHelper.shouldShowLoading(state)) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state.status == FamilyStatus.error && 
-              state.summary.groups.isEmpty &&
-              state.incomingInvitations.isEmpty &&
-              state.outgoingInvitations.isEmpty) {
+          if (FamilyStateHelper.shouldShowErrorScreen(state)) {
             return Center(
               child: Text(
-                state.errorMessage ?? 'Có lỗi xảy ra',
+                ErrorMessageParser.parse(state.errorMessage),
                 style: const TextStyle(color: AppColors.error),
               ),
             );
           }
 
           // Always show content if we have any data, even if loading in background
-          if (state.status == FamilyStatus.loaded ||
-              state.status == FamilyStatus.creatingGroup ||
-              state.status == FamilyStatus.groupCreated ||
-              state.status == FamilyStatus.groupDetailsLoaded ||
-              state.status == FamilyStatus.memberInvited ||
-              state.status == FamilyStatus.memberRemoved ||
-              state.status == FamilyStatus.groupUpdated ||
-              state.status == FamilyStatus.ownershipTransferred ||
-              state.status == FamilyStatus.groupLeft ||
-              state.status == FamilyStatus.invitationsLoaded ||
-              state.status == FamilyStatus.invitationAccepted ||
-              state.status == FamilyStatus.invitationDeclined ||
-              state.status == FamilyStatus.loading || // Show content even when loading
-              state.summary.groups.isNotEmpty ||
-              state.incomingInvitations.isNotEmpty ||
-              state.outgoingInvitations.isNotEmpty) {
+          if (FamilyStateHelper.shouldShowContent(state)) {
             return Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
@@ -218,7 +207,7 @@ class _FamilyGroupManagementViewState
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha:0.5),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: bloc,
@@ -318,7 +307,7 @@ class _MyGroupsTab extends StatelessWidget {
                           Icon(
                             Icons.group_outlined,
                             size: 64,
-                            color: AppColors.textGrey.withOpacity(0.5),
+                            color: AppColors.textGrey.withValues(alpha:0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -334,7 +323,7 @@ class _MyGroupsTab extends StatelessWidget {
                             'Kéo xuống để làm mới',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppColors.textGrey.withOpacity(0.7),
+                              color: AppColors.textGrey.withValues(alpha:0.7),
                             ),
                           ),
                         ],
@@ -360,24 +349,6 @@ class _MyGroupsTab extends StatelessWidget {
     );
   }
 
-  String _getMetricLabel(MetricType metric) {
-    switch (metric) {
-      case MetricType.heartRate:
-        return 'Nhịp tim';
-      case MetricType.stepsCount:
-        return 'Số bước chân';
-      case MetricType.caloriesBurnt:
-        return 'Lượng calo';
-      case MetricType.bloodPressure:
-        return 'Huyết áp';
-      case MetricType.weight:
-        return 'Cân nặng';
-      case MetricType.sleep:
-        return 'Giấc ngủ';
-      case MetricType.temperature:
-        return 'Nhiệt độ';
-    }
-  }
 
   Widget _buildGroupCard(BuildContext context, FamilyGroup group) {
     final isOwner = group.userRole == GroupMemberRole.admin;
@@ -517,7 +488,7 @@ class _MyGroupsTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        _getMetricLabel(metric),
+                        metric.displayLabel,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textBlack,
@@ -571,7 +542,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
                       Icon(
                         Icons.mail_outline,
                         size: 64,
-                        color: AppColors.textGrey.withOpacity(0.5),
+                        color: AppColors.textGrey.withValues(alpha:0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -587,7 +558,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
                         'Kéo xuống để làm mới',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textGrey.withOpacity(0.7),
+                          color: AppColors.textGrey.withValues(alpha:0.7),
                         ),
                       ),
                     ],
@@ -686,7 +657,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    _getMetricLabel(metric),
+                    metric.displayLabel,
                     style: const TextStyle(fontSize: 12, color: AppColors.textBlack),
                   ),
                 );
@@ -717,7 +688,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
                     showDialog<void>(
                       context: context,
                       barrierDismissible: false,
-                      barrierColor: Colors.black.withOpacity(0.5),
+                      barrierColor: Colors.black.withValues(alpha:0.5),
                       builder: (dialogContext) {
                         return BlocProvider.value(
                           value: bloc,
@@ -742,55 +713,19 @@ class _IncomingInvitationsTab extends StatelessWidget {
   }
 
   void _showDeclineConfirmationDialog(BuildContext context, IncomingInvitation invitation) {
-    showDialog<void>(
+    ConfirmationDialog.showErrorConfirmation(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Xác nhận từ chối'),
-          content: Text(
-            'Bạn có chắc chắn muốn từ chối lời mời tham gia nhóm "${invitation.groupName}"?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Hủy'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                context.read<FamilyBloc>().add(
-                      DeclineInvitation(invitationId: invitation.id),
-                    );
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
-              ),
-              child: const Text('Từ chối'),
-            ),
-          ],
-        );
+      title: 'Xác nhận từ chối',
+      message: 'Bạn có chắc chắn muốn từ chối lời mời tham gia nhóm "${invitation.groupName}"?',
+      confirmText: 'Từ chối',
+      onConfirm: () {
+        context.read<FamilyBloc>().add(
+              DeclineInvitation(invitationId: invitation.id),
+            );
       },
     );
   }
 
-  String _getMetricLabel(MetricType metric) {
-    switch (metric) {
-      case MetricType.heartRate:
-        return 'Nhịp tim';
-      case MetricType.stepsCount:
-        return 'Số bước chân';
-      case MetricType.caloriesBurnt:
-        return 'Lượng calo';
-      case MetricType.bloodPressure:
-        return 'Huyết áp';
-      case MetricType.weight:
-        return 'Cân nặng';
-      case MetricType.sleep:
-        return 'Giấc ngủ';
-      case MetricType.temperature:
-        return 'Nhiệt độ';
-    }
-  }
 }
 
 class _OutgoingInvitationsTab extends StatelessWidget {
@@ -819,7 +754,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                       Icon(
                         Icons.send_outlined,
                         size: 64,
-                        color: AppColors.textGrey.withOpacity(0.5),
+                        color: AppColors.textGrey.withValues(alpha:0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -835,7 +770,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                         'Kéo xuống để làm mới',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textGrey.withOpacity(0.7),
+                          color: AppColors.textGrey.withValues(alpha:0.7),
                         ),
                       ),
                     ],
@@ -957,7 +892,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: statusColor),
                 ),
@@ -992,7 +927,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    _getMetricLabel(metric),
+                    metric.displayLabel,
                     style: const TextStyle(fontSize: 12, color: AppColors.textBlack),
                   ),
                 );
@@ -1004,23 +939,5 @@ class _OutgoingInvitationsTab extends StatelessWidget {
     );
   }
 
-  String _getMetricLabel(MetricType metric) {
-    switch (metric) {
-      case MetricType.heartRate:
-        return 'Nhịp tim';
-      case MetricType.stepsCount:
-        return 'Số bước chân';
-      case MetricType.caloriesBurnt:
-        return 'Lượng calo';
-      case MetricType.bloodPressure:
-        return 'Huyết áp';
-      case MetricType.weight:
-        return 'Cân nặng';
-      case MetricType.sleep:
-        return 'Giấc ngủ';
-      case MetricType.temperature:
-        return 'Nhiệt độ';
-    }
-  }
 }
 

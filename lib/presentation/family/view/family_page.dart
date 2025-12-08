@@ -1,3 +1,4 @@
+import 'package:fe/core/utils/bloc_refresh_helper.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/view/family_view.dart';
 import 'package:flutter/material.dart';
@@ -13,21 +14,46 @@ class FamilyPage extends StatefulWidget {
 class _FamilyPageState extends State<FamilyPage> {
   bool _hasInitialized = false;
 
+  // Reusable refresh helper for family groups
+  static final _refreshHelper = BlocRefreshHelper<FamilyBloc, FamilyState>(
+    refreshTriggerStates: {
+      FamilyStatus.groupDetailsLoaded,
+      FamilyStatus.memberInvited,
+      FamilyStatus.memberRemoved,
+      FamilyStatus.groupUpdated,
+      FamilyStatus.ownershipTransferred,
+      FamilyStatus.groupLeft,
+      FamilyStatus.invitationAccepted,
+      FamilyStatus.invitationDeclined,
+    },
+    onRefresh: (context, bloc) => bloc.add(const FetchFamilyGroups()),
+    initialState: FamilyStatus.initial,
+    statusExtractor: (state) => state.status,
+  );
+
   @override
   void initState() {
     super.initState();
-    // Fetch groups when page is initialized - only once
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_hasInitialized && mounted) {
-        final bloc = context.read<FamilyBloc>();
-        final state = bloc.state;
-        // Only fetch if initial state or if we need to refresh after certain actions
-        if (state.status == FamilyStatus.initial) {
-          bloc.add(const FetchFamilyGroups());
-          _hasInitialized = true;
-        }
+        final wasFetched = _refreshHelper.fetchInitialDataIfNeeded(
+          context,
+          context.read<FamilyBloc>().state,
+        );
+        if (wasFetched) _hasInitialized = true;
       }
     });
+  }
+
+  void _handleStateChange(FamilyState state) {
+    if (!mounted) return;
+    
+    final wasRefreshed = _refreshHelper.handleStateChange(
+      context,
+      state,
+      _hasInitialized,
+    );
+    if (wasRefreshed) _hasInitialized = true;
   }
 
   @override
@@ -35,22 +61,7 @@ class _FamilyPageState extends State<FamilyPage> {
     return BlocProvider.value(
       value: context.read<FamilyBloc>(),
       child: BlocListener<FamilyBloc, FamilyState>(
-        listener: (context, state) {
-          // Refresh when returning from certain actions
-          if (!_hasInitialized && mounted) {
-            if (state.status == FamilyStatus.groupDetailsLoaded ||
-                state.status == FamilyStatus.memberInvited ||
-                state.status == FamilyStatus.memberRemoved ||
-                state.status == FamilyStatus.groupUpdated ||
-                state.status == FamilyStatus.ownershipTransferred ||
-                state.status == FamilyStatus.groupLeft ||
-                state.status == FamilyStatus.invitationAccepted ||
-                state.status == FamilyStatus.invitationDeclined) {
-              context.read<FamilyBloc>().add(const FetchFamilyGroups());
-              _hasInitialized = true;
-            }
-          }
-        },
+        listener: (context, state) => _handleStateChange(state),
         child: const FamilyView(),
       ),
     );

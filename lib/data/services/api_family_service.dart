@@ -76,7 +76,7 @@ class ApiFamilyService implements FamilyService {
       await _apiClient.put<void>(
         '/api/family/groups/$groupId',
         body: body,
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -93,7 +93,7 @@ class ApiFamilyService implements FamilyService {
     try {
       await _apiClient.delete<void>(
         '/api/family/groups/$groupId',
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -110,7 +110,7 @@ class ApiFamilyService implements FamilyService {
     try {
       await _apiClient.post<void>(
         '/api/family/groups/$groupId/leave',
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -143,7 +143,7 @@ class ApiFamilyService implements FamilyService {
       await _apiClient.post<void>(
         '/api/family/groups/$groupId/invitations',
         body: body,
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -181,7 +181,7 @@ class ApiFamilyService implements FamilyService {
       await _apiClient.post<void>(
         '/api/family/groups/$groupId/transfer-ownership',
         body: {'newOwnerId': newOwnerId},
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -202,7 +202,7 @@ class ApiFamilyService implements FamilyService {
       await _apiClient.post<void>(
         '/api/family/invitations/$invitationId/accept',
         body: {'sharedMetrics': sharedMetrics},
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -219,7 +219,7 @@ class ApiFamilyService implements FamilyService {
     try {
       await _apiClient.post<void>(
         '/api/family/invitations/$invitationId/decline',
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;
@@ -287,7 +287,7 @@ class ApiFamilyService implements FamilyService {
     try {
       await _apiClient.delete<void>(
         '/api/family/groups/$groupId/members/$memberId',
-        parser: (_) => null,
+        parser: (_) {},
       );
     } on ApiException {
       rethrow;

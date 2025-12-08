@@ -3,7 +3,8 @@ import 'package:fe/data/services/local_storage_service.dart';
 
 /// Implementation of ApiClient with token management
 class ApiClientImpl extends ApiClient {
-  final LocalStorageService _localStorageService;
+  // ignore: unused_field
+  final LocalStorageService _localStorageService; // Reserved for future token retrieval
   final String _baseUrl;
 
   ApiClientImpl({
@@ -19,7 +20,7 @@ class ApiClientImpl extends ApiClient {
   Future<String?> getAuthToken() async {
     // Get token from local storage or wherever it's stored
     // This is a placeholder - implement based on your auth flow
-    final user = await _localStorageService.getUser();
+    // _localStorageService is available for future token retrieval
     // In real implementation, you might store token separately
     // For now, return null or implement token storage
     return null;

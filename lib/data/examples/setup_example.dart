@@ -9,33 +9,38 @@ import 'package:fe/data/repositories/stats_repository.dart';
 import 'package:fe/data/services/api_family_service.dart';
 import 'package:fe/data/services/auth_service.dart';
 import 'package:fe/data/services/family_service.dart';
-import 'package:fe/data/services/home_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
-import 'package:fe/data/services/mock_auth_service.dart';
+// import 'package:fe/data/services/mock_auth_service.dart'; // MockAuthService not implemented yet
 import 'package:fe/data/services/mock_family_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
-import 'package:fe/data/services/stats_service.dart';
 
 /// Example: Setup with Mock Services (Current setup)
 void setupWithMockServices() {
   // Services
-  final authService = MockAuthService();
   final localStorageService = LocalStorageService();
+  // Note: MockAuthService is not implemented yet, using AuthApiService instead
+  final authService = AuthApiService(localStorageService);
   final homeService = MockHomeService();
   final statsService = MockStatsService();
   final familyService = MockFamilyService();
 
   // Repositories
-  final authRepository = AuthRepository(
+  // Note: These are example variables - in real app, you would use them
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _authRepository = AuthRepository(
     authService: authService,
     localStorageService: localStorageService,
   );
-  final homeRepository = HomeRepository(homeService: homeService);
-  final statsRepository = StatsRepository(statsService: statsService);
-  final familyRepository = FamilyRepository(familyService: familyService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _homeRepository = HomeRepository(homeService: homeService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _statsRepository = StatsRepository(statsService: statsService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _familyRepository = FamilyRepository(familyService: familyService);
 
   // Use these repositories in your app
+  // Example: final user = await _authRepository.login(...);
 }
 
 /// Example: Setup with API Services (For production)
@@ -60,20 +65,27 @@ void setupWithApiServices() {
   // final statsService = ApiStatsService(apiClient: apiClient);
 
   // For now, use mock for services that don't have API implementation yet
-  final authService = MockAuthService();
+  // Note: MockAuthService is not implemented yet, using AuthApiService instead
+  final authService = AuthApiService(localStorageService);
   final homeService = MockHomeService();
   final statsService = MockStatsService();
 
   // Repositories (same interface, different implementations)
-  final authRepository = AuthRepository(
+  // Note: These are example variables - in real app, you would use them
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _authRepository = AuthRepository(
     authService: authService,
     localStorageService: localStorageService,
   );
-  final homeRepository = HomeRepository(homeService: homeService);
-  final statsRepository = StatsRepository(statsService: statsService);
-  final familyRepository = FamilyRepository(familyService: familyService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _homeRepository = HomeRepository(homeService: homeService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _statsRepository = StatsRepository(statsService: statsService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _familyRepository = FamilyRepository(familyService: familyService);
 
   // Use these repositories in your app
+  // Example: final user = await _authRepository.login(...);
 }
 
 /// Example: Setup with conditional logic (Mock for dev, API for prod)
@@ -93,19 +105,26 @@ void setupWithConditionalServices({required bool useMock}) {
   }
 
   // Other services...
-  final authService = MockAuthService();
+  // Note: MockAuthService is not implemented yet, using AuthApiService instead
+  final authService = AuthApiService(localStorageService);
   final homeService = MockHomeService();
   final statsService = MockStatsService();
 
   // Repositories
-  final authRepository = AuthRepository(
+  // Note: These are example variables - in real app, you would use them
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _authRepository = AuthRepository(
     authService: authService,
     localStorageService: localStorageService,
   );
-  final homeRepository = HomeRepository(homeService: homeService);
-  final statsRepository = StatsRepository(statsService: statsService);
-  final familyRepository = FamilyRepository(familyService: familyService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _homeRepository = HomeRepository(homeService: homeService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _statsRepository = StatsRepository(statsService: statsService);
+  // ignore: unused_local_variable, no_leading_underscores_for_local_identifiers
+  final _familyRepository = FamilyRepository(familyService: familyService);
 
   // Use these repositories in your app
+  // Example: final user = await _authRepository.login(...);
 }
 
