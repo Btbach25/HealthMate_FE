@@ -1,9 +1,8 @@
-// ignore_for_file: avoid_print
-
+import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/home_data.dart';
-
 import 'package:fe/data/services/home_service.dart';
 
+/// Repository for home data operations
 class HomeRepository {
   final HomeService _homeService;
 
@@ -12,11 +11,16 @@ class HomeRepository {
 
   Future<HomeData> getHomeData() async {
     try {
-      final homeData = await _homeService.getHomeData();
-      return homeData;
-    } catch (e) {
-      print('Error in HomeRepository.getHomeData: $e');
+      return await _homeService.getHomeData();
+    } on ApiException {
+      // Re-throw ApiException as-is (already has proper error messages)
       rethrow;
+    } catch (e) {
+      // Wrap unexpected errors
+      throw UnknownException(
+        message: 'Lỗi khi tải dữ liệu trang chủ.',
+        originalError: e,
+      );
     }
   }
 }
