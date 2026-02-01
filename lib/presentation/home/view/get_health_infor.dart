@@ -138,6 +138,11 @@ class _MyAppState extends State<MyApp> {
         _healthDataList.sort((a, b) => b.dateFrom.compareTo(a.dateFrom));
       });
       print('Đã đọc được ${_healthDataList.length} điểm dữ liệu.');
+      for (final d in _healthDataList.take(25)) {
+        final from = d.dateFrom.toLocal().toIso8601String();
+        final to = d.dateTo.toLocal().toIso8601String();
+        print('[Health] ${d.type.name} ${d.unit.name} value=${d.value} source=${d.sourceName} from=$from to=$to');
+      }
       _fetchTotalSteps();
 
     } catch (e) {
@@ -161,7 +166,7 @@ class _MyAppState extends State<MyApp> {
         _totalSteps = steps;
       });
 
-      print('Tổng số bước chân trong ngày hôm nay: $_totalSteps');
+      print('Tổng số bước chân trong ngày hôm nay: ${_totalSteps ?? 'N/A'}');
 
     } catch (e) {
       print("Lỗi khi lấy tổng số bước chân: $e");
@@ -371,7 +376,7 @@ class _MyAppState extends State<MyApp> {
                           itemBuilder: (context, index) {
                             HealthDataPoint data = _healthDataList[index];
                             return Card(
-                              child: ListTile( // Sử dụng ListTile để đẹp hơn
+                              child: ListTile( 
                                 leading: CircleAvatar(
                                   backgroundColor: Colors.indigoAccent,
                                   child: Icon(

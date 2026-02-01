@@ -29,7 +29,7 @@ class _HomeViewState extends State<HomeView> {
     if (kIsWeb) return; // skip device health polling on web
     context.read<DeviceHealthCubit>().poll();
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+    _pollTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       context.read<DeviceHealthCubit>().poll();
     });
   }
