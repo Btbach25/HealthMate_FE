@@ -10,8 +10,13 @@ import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
 
+enum OtpFlow { login, signup, forgot }
+
 class OtpPage extends StatelessWidget {
-  const OtpPage({super.key});
+  final String email;
+  final OtpFlow flow;
+
+  const OtpPage({super.key, required this.email, required this.flow});
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +24,17 @@ class OtpPage extends StatelessWidget {
       body: BlocProvider(
         create: (context) => AuthFormBloc(
           authRepository: RepositoryProvider.of<AuthRepository>(context),
-        ),
-        child: const OtpView(),
+        )..add(AuthFormInitialized(email: email)), 
+        
+        child: OtpView(flow: flow),
       ),
     );
   }
 }
 
 class OtpView extends StatelessWidget {
-  const OtpView({super.key});
+  final OtpFlow flow;
+  const OtpView({super.key, required this.flow});
 
   @override
   Widget build(BuildContext context) {
@@ -37,8 +44,13 @@ class OtpView extends StatelessWidget {
           ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
         }
         if (state.status == FormStatus.success) {
-          ToastUtils.showCustomToast(context, 'Xác thực thành công. Vui lòng đăng nhập.', ToastType.success);
-          context.go('/reset-password');
+          ToastUtils.showCustomToast(context, 'Xác thực thành công!', ToastType.success);
+          if (flow == OtpFlow.forgot) {
+            context.go('/reset-password');
+          } else {
+            // For login/signup verification, tokens may have been saved → go home
+            context.go('/');
+          }
         }
       },
       child: SafeArea(
@@ -62,7 +74,7 @@ class OtpView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSize.r12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 5,
                         blurRadius: 20,
                       ),
@@ -87,7 +99,7 @@ class OtpForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(Icons.lock_open_outlined, size: 48, color: AppColors.primary.withOpacity(0.5)),
+        Icon(Icons.lock_open_outlined, size: 48, color: AppColors.primary.withValues(alpha: 0.5)),
         const SizedBox(height: AppSize.p16),
         const Text('Xác thực OTP', style: AppStyles.h1, textAlign: TextAlign.center),
         const SizedBox(height: AppSize.p8),
@@ -115,6 +127,7 @@ class OtpForm extends StatelessWidget {
 
         const SizedBox(height: AppSize.p24),
         _SubmitButton(),
+        _ResendButton(),
         const SizedBox(height: AppSize.p16),
         _ChangeEmailButton(),
         const SizedBox(height: AppSize.p8),
@@ -223,6 +236,19 @@ class _BackToLoginLink extends StatelessWidget {
           Text('Quay lại đăng nhập'),
         ],
       ),
+    );
+  }
+}
+
+class _ResendButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () {
+        context.read<AuthFormBloc>().add(OtpResendRequested());
+        ToastUtils.showCustomToast(context, "Đang gửi lại mã...", ToastType.info);
+      },
+      child: const Text('Chưa nhận được mã? Gửi lại'),
     );
   }
 }

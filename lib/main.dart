@@ -1,38 +1,99 @@
 // lib/main.dart
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/data/repositories/family_repository.dart';
+import 'package:fe/data/repositories/home_repository.dart';
+import 'package:fe/data/repositories/stats_repository.dart';
+import 'package:fe/data/repositories/health_repository.dart';
+import 'package:fe/data/services/health_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+import 'package:fe/data/services/mock_family_service.dart';
+import 'package:fe/data/services/mock_home_service.dart';
+import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/routing/app_router.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_service.dart';
 
-void main() {
-  // Khởi tạo các repository và service
-  final authService = MockAuthService();
-  final localStorageService = LocalStorageService();
-  final authRepository = AuthRepository(authService: authService , localStorageService: localStorageService,);
-  
-  runApp(MyApp(authRepository: authRepository));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('vi_VN', null);
+
+  // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
+  const env = String.fromEnvironment('ENV', defaultValue: 'dev');
+  await dotenv.load(fileName: '.env.$env');
+
+  final localStorage = LocalStorageService();
+
+  final authService = AuthApiService(localStorage);
+  final authRepository = AuthRepository(
+    authService: authService,
+    localStorageService: localStorage,
+  );
+
+  final homeService = MockHomeService();
+  final homeRepository = HomeRepository(homeService: homeService);
+  final statsService = MockStatsService();
+  final statsRepository = StatsRepository(statsService: statsService);
+  final familyService = MockFamilyService();
+  final familyRepository = FamilyRepository(familyService: familyService);
+  final healthService = HealthService(localStorage);
+  final healthRepository = HealthRepository(service: healthService);
+
+  runApp(MyApp(
+    authRepository: authRepository,
+    homeRepository: homeRepository,
+    statsRepository: statsRepository,
+    familyRepository: familyRepository,
+    healthRepository: healthRepository,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final AuthRepository _authRepository;
+  final HomeRepository _homeRepository;
+  final StatsRepository _statsRepository;
+  final FamilyRepository _familyRepository;
+  final HealthRepository _healthRepository;
 
-  const MyApp({super.key, required AuthRepository authRepository})
-      : _authRepository = authRepository;
+  const MyApp({
+    super.key,
+    required AuthRepository authRepository,
+    required HomeRepository homeRepository,
+    required StatsRepository statsRepository,
+    required FamilyRepository familyRepository,
+    required HealthRepository healthRepository,
+  }) : _authRepository = authRepository,
+       _homeRepository = homeRepository,
+       _statsRepository = statsRepository,
+       _familyRepository = familyRepository,
+       _healthRepository = healthRepository;
 
   @override
   Widget build(BuildContext context) {
-    // Cung cấp Repository cho toàn bộ ứng dụng
-    return RepositoryProvider.value(
-      value: _authRepository,
-      // Cung cấp BLoC toàn cục cho toàn bộ ứng dụng
-      child: BlocProvider(
-        create: (_) => AuthBloc(authRepository: _authRepository),
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: _authRepository),
+        RepositoryProvider.value(value: _homeRepository),
+        RepositoryProvider.value(value: _statsRepository),
+        RepositoryProvider.value(value: _familyRepository),
+        RepositoryProvider.value(value: _healthRepository),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => AuthBloc(authRepository: _authRepository),
+          ),
+          BlocProvider(
+            create: (_) => FamilyBloc(familyRepository: _familyRepository),
+          ),
+        ],
         child: const AppView(),
       ),
     );
@@ -44,7 +105,6 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy authBloc để truyền vào router
     final authBloc = context.read<AuthBloc>();
     final router = AppRouter(authBloc: authBloc).router;
 
@@ -54,9 +114,7 @@ class AppView extends StatelessWidget {
         primaryColor: AppColors.primary,
         fontFamily: 'Inter',
         scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-        ),
+        colorScheme: const ColorScheme.light(primary: AppColors.primary),
         inputDecorationTheme: const InputDecorationTheme(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
@@ -66,9 +124,7 @@ class AppView extends StatelessWidget {
           fillColor: AppColors.inputBackground,
         ),
         textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
-          ),
+          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
         ),
       ),
       routerConfig: router,

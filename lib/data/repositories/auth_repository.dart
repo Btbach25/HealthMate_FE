@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:fe/data/models/user.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 
 import '../services/auth_service.dart';
@@ -19,7 +19,7 @@ class AuthRepository {
       _localStorageService = localStorageService;
 
   Stream<AuthStatus> get status async* {
-    await Future<void>.delayed(const Duration(seconds: 1)); // Giả lập kiểm tra
+    await Future<void>.delayed(const Duration(seconds: 1));
 
     final user = await _localStorageService.getUser();
     if (user != null) {
@@ -44,16 +44,27 @@ class AuthRepository {
     }
   }
 
-  Future<void> register({required String name, required String email, required String password}) async {
-    await _authService.register(name: name, email: email, password: password);
+  Future<User?> register({required String name, required String email, required String password}) async {
+    return await _authService.register(name: name, email: email, password: password);
   }
 
   Future<void> sendPasswordResetEmail({required String email}) async {
     await _authService.sendPasswordResetEmail(email: email);
   }
 
-  Future<bool> verifyOtp({required String otp}) async {
-    return await _authService.verifyOtp(otp: otp);
+  Future<bool> verifyOtp({required String email, required String otp}) async {
+    final success = await _authService.verifyOtp(email: email, otp: otp);
+    if (success) {
+      final user = await _localStorageService.getUser();
+      if (user != null) {
+        _controller.add(AuthStatus.authenticated);
+      }
+    }
+    return success;
+  }
+  
+  Future<void> resendOtp({required String email}) async {
+    await _authService.resendOtp(email: email);
   }
 
   Future<void> resetPassword({required String newPassword}) async {
@@ -62,7 +73,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     await _authService.logout();
-    await _localStorageService.clearUser();
+    await _localStorageService.clearAll();
     _controller.add(AuthStatus.unauthenticated);
   }
 

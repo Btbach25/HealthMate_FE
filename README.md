@@ -1,109 +1,176 @@
 # HealthMate - Frontend
 
-Ứng dụng theo dõi sức khỏe cá nhân và gia đình, xây dựng bằng Flutter. Hỗ trợ theo dõi các chỉ số sức khỏe (nhịp tim, bước chân, calo), quản lý nhóm gia đình, nhắc nhở uống thuốc và xem thống kê sức khỏe.
+Ứng dụng Flutter đa nền tảng (Android, iOS, Web, Desktop) theo dõi sức khỏe cá nhân và gia đình. Hỗ trợ theo dõi các chỉ số sức khỏe (nhịp tim, bước chân, calo, huyết áp, nhiệt độ, cân nặng), quản lý nhóm gia đình, nhắc nhở uống thuốc và xem thống kê sức khỏe.
 
-## Yêu cầu hệ thống
+---
 
-- **Flutter SDK**: 3.24.0 trở lên
-- **Dart SDK**: 3.8.1 trở lên
-- **IDE**: Android Studio, Visual Studio Code (khuyên dùng với extension Flutter)
-- **Hệ điều hành**: Windows, macOS, hoặc Linux
-- Để build iOS: Xcode 15+ và CocoaPods
+## Nội dung
+
+- [Kiến trúc dự án](#kiến-trúc-dự-án)
+- [Cài đặt & chạy dự án](#cài-đặt--chạy-dự-án)
+- [Quản lý môi trường (.env)](#quản-lý-môi-trường-env)
+- [Build & phát hành](#build--phát-hành)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
+- [Hướng dẫn phát triển](#hướng-dẫn-phát-triển)
+- [Ghi chú / Troubleshooting](#ghi-chú--troubleshooting)
+
+---
+
+## Kiến trúc dự án
+
+Ứng dụng áp dụng **Clean Architecture** với 3 lớp chính, sử dụng BLoC pattern cho state management:
+
+- `core/`: thành phần dùng chung (theme, routing, helpers, widgets tái sử dụng)
+- `data/`: làm việc với dữ liệu
+  - `models/`: các cấu trúc dữ liệu / domain models
+  - `services/`: gọi API, lưu trữ local
+  - `repositories/`: điều phối nguồn dữ liệu (service + cache) cho UI
+- `presentation/`: UI + State (Flutter + flutter_bloc)
+  - `bloc/`: BLoC/Cubit quản lý luồng dữ liệu UI
+  - `view/` + `widgets/`: màn hình và widget
+
+Dòng chảy dữ liệu:
+
+```
+UI (Widget) ⇄ Bloc ⇄ Repository ⇄ Service ⇄ API
+```
+
+---
+
+## Cài đặt & chạy dự án
+
+**Yêu cầu hệ thống:**
+
+- Flutter SDK 3.24.0 trở lên
+- Dart SDK 3.8.1 trở lên
+- Android Studio hoặc Visual Studio Code (với extension Flutter)
+- Để build iOS: macOS + Xcode 15+ + CocoaPods
 - Để build Android: Android SDK (API 21+)
+- Trình duyệt Chrome để chạy Web
 
-## Cài đặt
+**1) Clone và cài dependencies**
 
-1. **Clone repository**:
-   ```bash
-   git clone <URL của repository>
-   cd HealthMate_FE
-   ```
+```bash
+git clone https://github.com/<owner>/HealthMate_FE.git
+cd HealthMate_FE
+flutter doctor
+flutter pub get
+```
 
-2. **Cài đặt dependencies**:
-   ```bash
-   flutter pub get
-   ```
+**2) Tạo file môi trường**
 
-3. **Cấu hình môi trường**:
+Các file `.env` đã được khai báo trong `pubspec.yaml` (assets). Tạo tại thư mục gốc nếu chưa có:
 
-   Tạo file `.env` ở thư mục gốc (có thể copy từ `.env.dev`):
-   ```bash
-   cp .env.dev .env
-   ```
+```
+# .env.dev
+BASE_URL=http://localhost:8080
 
-   Chỉnh sửa `BASE_URL` trong `.env` cho phù hợp với backend của bạn:
-   ```env
-   BASE_URL=http://localhost:8080
-   ```
+# .env.prod
+BASE_URL=https://api.yourdomain.com
+```
 
-4. **Kiểm tra cài đặt**:
-   ```bash
-   flutter doctor
-   ```
+**3) Chạy dự án**
 
-## Chạy ứng dụng
+```bash
+# Development (Android/iOS/Desktop)
+flutter run --dart-define=ENV=dev
 
-- **Chạy trên emulator/thiết bị thật**:
-  ```bash
-  flutter run
-  ```
+# Development (Web)
+flutter run -d chrome --dart-define=ENV=dev
 
-- **Chạy với môi trường cụ thể**:
-  ```bash
-  # Development
-  flutter run --dart-define-from-file=.env.dev
+# Chạy với file env cụ thể
+flutter run --dart-define-from-file=.env.dev
+```
 
-  # Production
-  flutter run --dart-define-from-file=.env.prod
-  ```
+> Nếu vừa thêm package hoặc BLoC provider mới mà hot-reload lỗi, hãy thực hiện **hot-restart** (`R` trong terminal).
 
-- **Build APK cho Android**:
-  ```bash
-  flutter build apk --dart-define-from-file=.env.prod
-  ```
+---
 
-- **Build IPA cho iOS**:
-  ```bash
-  flutter build ios --dart-define-from-file=.env.prod
-  ```
+## Quản lý môi trường (.env)
+
+Ứng dụng dùng `flutter_dotenv` để load biến môi trường dưới dạng asset (hỗ trợ Web).
+
+- `main.dart` đọc biến `ENV` từ `--dart-define` để load đúng file `.env.dev` hoặc `.env.prod`.
+- Biến bắt buộc: `BASE_URL` — URL gốc API (không có trailing slash).
+
+Ví dụ sử dụng trong service:
+
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseUrl = dotenv.env['BASE_URL'];
+```
+
+---
+
+## Build & phát hành
+
+```bash
+# Android APK
+flutter build apk --dart-define=ENV=prod
+
+# Android App Bundle
+flutter build appbundle --dart-define=ENV=prod
+
+# iOS (yêu cầu macOS + Xcode)
+flutter build ios --dart-define=ENV=prod
+
+# Web
+flutter build web --dart-define=ENV=prod
+```
+
+---
 
 ## Cấu trúc thư mục
 
-Dự án áp dụng **Clean Architecture** với 3 lớp chính:
-
 ```
 lib/
-├── core/                        # Thành phần dùng chung toàn app
+├── core/
 │   ├── constants/               # Hằng số (kích thước, style, icon path)
 │   ├── extensions/              # Extension cho Dart/Flutter
+│   ├── mixins/                  # Mixin tái sử dụng
 │   ├── routing/                 # Cấu hình điều hướng (GoRouter)
-│   ├── theme/                   # Theme, màu sắc, font chữ
-│   └── utils/                   # Hàm tiện ích (converter, toast)
+│   ├── theme/                   # Theme, màu sắc, font chữ, text styles
+│   ├── utils/                   # Hàm tiện ích (converter, toast, helpers)
+│   └── widgets/                 # Widget dùng chung toàn app
 │
-├── data/                        # Lớp dữ liệu
-│   ├── constant/                # Hằng số liên quan đến data (API paths, ...)
-│   ├── enums/                   # Enum dùng trong domain (MetricType, UserRole, ...)
-│   ├── models/                  # Data model (User, Group, HealthMetrics, ...)
-│   ├── repositories/            # Repository - trung gian giữa service và UI
-│   └── services/                # Service kết nối API, local storage
+├── data/
+│   ├── core/                    # API client (interface + implementation)
+│   ├── enums/                   # Enum domain (MetricType, UserRole, ...)
+│   ├── exceptions/              # Custom exceptions (ApiException, ...)
+│   ├── models/
+│   │   ├── group/               # FamilyGroup, GroupMember, Invitation, ...
+│   │   ├── health/              # HeartRate, StepsCount, BloodPressure, ...
+│   │   ├── home_page/           # HomeData
+│   │   ├── settings/            # GeneralSettings, NotificationSettings, ...
+│   │   └── user/                # User, AuthResponse
+│   ├── repositories/            # AuthRepository, FamilyRepository, ...
+│   └── services/                # AuthService, HomeService, FamilyService, ...
 │
-├── presentation/                # Lớp giao diện
-│   ├── auth/                    # Luồng xác thực (đăng nhập, đăng ký, OTP, đổi mật khẩu)
-│   │   ├── bloc/                # AuthBloc, AuthFormBloc
-│   │   ├── view/                # Các màn hình auth
-│   │   └── widgets/             # Widget dùng trong auth
-│   ├── home/                    # Màn hình tổng quan sức khỏe
+├── presentation/
+│   ├── auth/                    # Đăng nhập, đăng ký, OTP, đổi mật khẩu
+│   │   ├── bloc/
 │   │   ├── view/
 │   │   └── widgets/
+│   ├── home/                    # Tổng quan sức khỏe hôm nay
+│   │   ├── bloc/
+│   │   ├── view/
+│   │   └── widgets/
+│   ├── family/                  # Quản lý nhóm gia đình
+│   ├── details/                 # Thống kê chi tiết theo chỉ số
+│   ├── settings/                # Cài đặt tài khoản, thông báo, bảo mật
 │   └── main_tabs/               # Shell điều hướng chính (bottom nav)
-│       └── tabs/                # Family, Stats, Medications, Settings
 │
-└── main.dart                    # Entry point của ứng dụng
+└── main.dart                    # Entry point
+
+assets/
+├── fonts/                       # Lato (Regular, Bold, Italic)
+├── icons/
+└── images/
 ```
 
-## Điều hướng
-
-Ứng dụng sử dụng **GoRouter** với 5 tab chính sau khi đăng nhập:
+### Điều hướng (GoRouter)
 
 | Tab | Route | Mô tả |
 |-----|-------|--------|
@@ -115,46 +182,55 @@ lib/
 
 Router tự động redirect về màn hình đăng nhập nếu chưa xác thực.
 
+---
+
 ## Công nghệ sử dụng
 
 | Package | Phiên bản | Mục đích |
 |---------|-----------|----------|
 | `flutter_bloc` | ^8.1.5 | State management (BLoC pattern) |
 | `go_router` | ^16.2.5 | Điều hướng khai báo |
+| `flutter_dotenv` | ^5.0.2 | Biến môi trường từ file .env |
+| `http` | ^1.6.0 | HTTP client gọi REST API |
 | `shared_preferences` | ^2.5.3 | Lưu trữ local (token, session) |
 | `get_it` | ^7.6.7 | Service locator / Dependency injection |
 | `equatable` | ^2.0.5 | So sánh object theo giá trị |
 | `json_annotation` | ^4.9.0 | Serialization JSON |
 | `permission_handler` | ^12.0.1 | Xin quyền truy cập thiết bị |
 | `pinput` | ^5.0.2 | Widget nhập mã OTP |
+| `fl_chart` | ^1.1.1 | Biểu đồ sức khỏe |
+| `intl` | ^0.20.2 | Định dạng ngày giờ, số |
 | `health` | ^13.2.0 | Đọc dữ liệu sức khỏe từ thiết bị |
+
+---
 
 ## Hướng dẫn phát triển
 
-### Thêm màn hình mới
+### Thêm feature mới
 
 1. Tạo thư mục trong `presentation/<feature>/` với cấu trúc:
    ```
    <feature>/
-   ├── bloc/        # Event, State, Bloc
-   ├── view/        # Page widget
+   ├── bloc/        # Event, State, Bloc/Cubit
+   ├── view/        # Page + View widget
    └── widgets/     # Widget nhỏ dùng trong feature này
    ```
-2. Khai báo route trong `lib/core/routing/app_router.dart`.
-3. Nếu cần dữ liệu từ API, tạo service trong `data/services/` và repository trong `data/repositories/`.
+2. Tạo model trong `data/models/<feature>/` nếu cần.
+3. Tạo service trong `data/services/` và repository trong `data/repositories/`.
+4. Khai báo route trong [lib/core/routing/app_router.dart](lib/core/routing/app_router.dart).
 
 ### Thêm chỉ số sức khỏe mới
 
-1. Thêm giá trị vào enum `MetricType` trong `data/enums/`.
-2. Tạo model tương ứng trong `data/models/health_metrics.dart`.
-3. Cập nhật service đọc dữ liệu thiết bị.
+1. Thêm giá trị vào `MetricType` trong `data/enums/metric_type.dart`.
+2. Tạo model trong `data/models/health/`.
+3. Cập nhật service đọc dữ liệu thiết bị (`device_health_service.dart`).
 
 ### Quy ước code
 
 - Mỗi BLoC chỉ xử lý một domain logic cụ thể.
 - Không gọi API trực tiếp từ UI — luôn thông qua Repository.
 - Dùng `Equatable` cho tất cả BLoC Event/State và Model.
-- Chạy `flutter analyze` trước khi commit để đảm bảo code style.
+- Chạy `flutter analyze` trước khi tạo PR.
 
 ### Tài khoản mock (development)
 
@@ -165,9 +241,23 @@ Khi chưa kết nối backend, ứng dụng dùng `MockAuthService`:
 ### Kiểm thử
 
 ```bash
-# Chạy toàn bộ unit test
-flutter test
-
-# Kiểm tra code style
-flutter analyze
+flutter test          # Chạy unit test
+flutter analyze       # Kiểm tra code style
 ```
+
+---
+
+## Ghi chú / Troubleshooting
+
+- **Hot-reload lỗi sau khi thêm BLoC provider**: thực hiện hot-restart (`R`).
+- **404 khi tải `.env` trên Web**: đảm bảo đã khai báo `.env.*` trong `pubspec.yaml` assets → `flutter pub get` → chạy lại.
+- **Sai API prefix**: đảm bảo `BASE_URL` trong `.env` không có trailing slash và đúng prefix backend yêu cầu.
+- **OTP flow**: sau đăng ký / quên mật khẩu, app tự điều hướng sang màn hình OTP, xác thực xong sẽ redirect phù hợp.
+
+---
+
+## Đóng góp
+
+- Tạo branch từ `dev`, đặt tên theo convention: `feat/<tên-feature>` hoặc `fix/<tên-bug>`.
+- Chạy `flutter analyze` và `flutter test` trước khi tạo PR.
+- PR phải target branch `dev`, không push thẳng vào `master`.

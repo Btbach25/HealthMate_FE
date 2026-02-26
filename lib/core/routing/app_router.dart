@@ -2,9 +2,13 @@
 import 'dart:async';
 
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/details/view/stats_page.dart';
 import 'package:fe/presentation/main_tabs/shell/view/app_shell.dart';
 
-import 'package:fe/presentation/main_tabs/family_page.dart';
+import 'package:fe/presentation/family/view/family_page.dart';
+import 'package:fe/presentation/family/view/family_group_management_page.dart';
+import 'package:fe/presentation/family/view/create_group_page.dart';
+import 'package:fe/presentation/family/view/group_details_page.dart';
 import 'package:fe/presentation/main_tabs/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +43,32 @@ class AppRouter {
       ),
       GoRoute(
         path: '/otp',
-        builder: (BuildContext context, GoRouterState state) => const OtpPage(),
+        builder: (context, state) {
+          // Expect extra as Map: { email: String, flow: OtpFlow }
+          final extra = state.extra;
+          String email = '';
+          OtpFlow flow = OtpFlow.login;
+          if (extra is Map<String, Object?>) {
+            email = (extra['email'] as String?) ?? '';
+            final f = extra['flow'];
+            if (f is OtpFlow) flow = f;
+            if (f is String) {
+              switch (f) {
+                case 'signup':
+                  flow = OtpFlow.signup;
+                  break;
+                case 'forgot':
+                  flow = OtpFlow.forgot;
+                  break;
+                default:
+                  flow = OtpFlow.login;
+              }
+            }
+          } else if (extra is String) {
+            email = extra;
+          }
+          return OtpPage(email: email, flow: flow);
+        },
       ),
       GoRoute(
         path: '/reset-password',
@@ -67,6 +96,23 @@ class AppRouter {
               GoRoute(
                 path: '/family',
                 builder: (context, state) => const FamilyPage(),
+                routes: [
+                  GoRoute(
+                    path: 'manage',
+                    builder: (context, state) => const FamilyGroupManagementPage(),
+                  ),
+                  GoRoute(
+                    path: 'create',
+                    builder: (context, state) => const CreateGroupPage(),
+                  ),
+                  GoRoute(
+                    path: 'group/:groupId',
+                    builder: (context, state) {
+                      final groupId = state.pathParameters['groupId']!;
+                      return GroupDetailsPage(groupId: groupId);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -76,7 +122,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/stats',
-                builder: (context, state) => const Scaffold(body: Center(child: Text('Chỉ số'))),
+                builder: (context, state) => const StatsPage(),
               ),
             ],
           ),

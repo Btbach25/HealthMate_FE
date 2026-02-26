@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:fe/data/models/user.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/repositories/auth_repository.dart';
 
 part 'auth_event.dart';
@@ -17,7 +17,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthStatusChanged>(_onAuthStatusChanged);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
 
-    // Lắng nghe sự thay đổi trạng thái từ repository
     _authStatusSubscription = _authRepository.status.listen(
       (status) => add(AuthStatusChanged(status)),
     );
