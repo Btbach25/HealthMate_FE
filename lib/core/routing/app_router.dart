@@ -10,6 +10,7 @@ import 'package:fe/presentation/family/view/family_group_management_page.dart';
 import 'package:fe/presentation/family/view/create_group_page.dart';
 import 'package:fe/presentation/family/view/group_details_page.dart';
 import 'package:fe/presentation/main_tabs/settings_page.dart';
+import 'package:fe/presentation/medications/view/medication_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -132,7 +133,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/meds',
-                builder: (context, state) => const Scaffold(body: Center(child: Text('Thuốc'))),
+                builder: (context, state) => const MedicationPage(),
               ),
             ],
           ),
