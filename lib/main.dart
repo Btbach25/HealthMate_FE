@@ -12,7 +12,9 @@ import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:fe/data/services/mock_medication_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -102,6 +104,11 @@ class MyApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) => FamilyBloc(familyRepository: _familyRepository),
+          ),
+          // Tạo sớm ở app level để native plugin có thể đăng ký
+          // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
+          BlocProvider(
+            create: (_) => DeviceHealthCubit(DeviceHealthService()),
           ),
         ],
         child: const AppView(),
