@@ -2,7 +2,6 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/utils/string_helper.dart';
-import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:flutter/material.dart';
@@ -10,14 +9,31 @@ import 'package:go_router/go_router.dart';
 
 class FamilyGroupCard extends StatelessWidget {
   final FamilyGroup group;
+  /// Khi bạn là chủ nhóm mà API trả memberCount = 0, vẫn hiển thị ít nhất 1 thành viên (bạn).
+  final String? currentUserId;
 
-  const FamilyGroupCard({super.key, required this.group});
+  const FamilyGroupCard({
+    super.key,
+    required this.group,
+    this.currentUserId,
+  });
 
-
+  /// Chủ nhóm luôn là ít nhất 1 thành viên; nếu API trả 0 thì hiển thị 1.
+  int _effectiveMemberCount() {
+    if (currentUserId != null &&
+        currentUserId!.isNotEmpty &&
+        group.ownerId == currentUserId &&
+        group.memberCount < 1) {
+      return 1;
+    }
+    return group.memberCount;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isOwner = group.userRole == GroupMemberRole.admin;
+    final uid = currentUserId ?? '';
+    final isOwner = uid.isNotEmpty && group.ownerId == uid;
+    final displayMemberCount = _effectiveMemberCount();
     final remainingMetrics = group.sharedMetrics.length > 3
         ? group.sharedMetrics.length - 3
         : 0;
@@ -80,7 +96,7 @@ class FamilyGroupCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${group.memberCount} thành viên',
+                              '$displayMemberCount thành viên',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AppColors.textGrey.withValues(alpha:0.8),

@@ -85,64 +85,11 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sync Header Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: AppColors.cardShadowList,
-              border: Border.all(color: AppColors.cardBorder, width: 0.5),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sync,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Đồng bộ dữ liệu sức khỏe',
-                            style: AppTextStyles.h4.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (!_hasPermissions) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Chưa cấp quyền',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (!_hasPermissions && _isHealthConnectAvailable)
-                  Container(
+          SettingsCard(
+            icon: Icons.sync,
+            title: 'Đồng bộ dữ liệu sức khỏe',
+            trailing: (!_hasPermissions && _isHealthConnectAvailable)
+                ? Container(
                     decoration: BoxDecoration(
                       gradient: AppColors.primaryGradient,
                       borderRadius: BorderRadius.circular(8),
@@ -168,45 +115,66 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                       ),
                     ),
                   )
-                else if (_hasPermissions)
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: AppColors.buttonShadow,
+                : (_hasPermissions)
+                    ? Container(
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: AppColors.buttonShadow,
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: _isSyncing ? null : _performSync,
+                          icon: _isSyncing
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.sync, size: 18),
+                          label: Text(
+                            _isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
+            children: [
+              if (!_hasPermissions)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                      size: 18,
                     ),
-                    child: ElevatedButton.icon(
-                      onPressed: _isSyncing ? null : _performSync,
-                      icon: _isSyncing
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.sync, size: 18),
-                      label: Text(
-                        _isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Chưa cấp quyền',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.orange,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                      ),
                     ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+            ],
           ),
           
           if (!_hasPermissions) ...[

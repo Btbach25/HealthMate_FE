@@ -59,6 +59,8 @@ class _AddMemberModalState extends State<AddMemberModal>
       return;
     }
 
+    final email = _emailController.text.trim();
+
     setState(() {
       _isLoading = true;
     });
@@ -66,11 +68,12 @@ class _AddMemberModalState extends State<AddMemberModal>
     context.read<FamilyBloc>().add(
           InviteMember(
             groupId: widget.groupId,
-            email: _emailController.text.trim(),
+            email: email,
             name: _nameController.text.trim(),
             relationship: _selectedRelationship?.value,
             age: null,
             sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+            userId: null,
           ),
         );
   }
@@ -153,10 +156,15 @@ class _AddMemberModalState extends State<AddMemberModal>
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    hintText: 'Nhập email để gửi lời mời',
+                    hintText: 'Nhập email đã đăng ký để gửi lời mời',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
-                  validator: FormValidationHelper.validateEmail,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Vui lòng nhập email';
+                    }
+                    return FormValidationHelper.validateEmail(value);
+                  },
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -202,27 +210,38 @@ class _AddMemberModalState extends State<AddMemberModal>
                     color: AppColors.textGrey.withValues(alpha:0.8),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: MetricHelper.availableMetrics.map((metric) {
-                    final isSelected = _selectedMetrics.contains(metric.type);
-                    return MetricCheckbox(
-                      metric: metric,
-                      isSelected: isSelected,
-                      width: 180,
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedMetrics.add(metric.type);
-                          } else {
-                            _selectedMetrics.remove(metric.type);
-                          }
-                        });
-                      },
+                const SizedBox(height: AppSize.spacing12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final itemWidth =
+                        (constraints.maxWidth - AppSize.spacing12) / 2;
+                    return Wrap(
+                      spacing: AppSize.spacing12,
+                      runSpacing: AppSize.spacing12,
+                      children: MetricHelper.availableMetrics
+                          .map(
+                            (metric) => SizedBox(
+                              width: itemWidth,
+                              child: MetricCheckbox(
+                                metric: metric,
+                                isSelected: _selectedMetrics.contains(metric.type),
+                                showCheckbox: false,
+                                showCheckIcon: true,
+                                onChanged: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedMetrics.add(metric.type);
+                                    } else {
+                                      _selectedMetrics.remove(metric.type);
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                          )
+                          .toList(),
                     );
-                  }).toList(),
+                  },
                 ),
                 const SizedBox(height: 20),
               ],

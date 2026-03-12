@@ -53,7 +53,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
 
     context.read<FamilyBloc>().add(
           AcceptInvitation(
-            invitationId: widget.invitation.id,
+            groupId: widget.invitation.groupId,
             sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
           ),
         );

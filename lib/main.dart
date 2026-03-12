@@ -7,11 +7,15 @@ import 'package:fe/data/repositories/stats_repository.dart';
 import 'package:fe/data/repositories/health_repository.dart';
 import 'package:fe/data/services/health_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
-import 'package:fe/data/services/mock_family_service.dart';
+import 'package:fe/data/core/api_client_impl.dart';
+import 'package:fe/data/services/api_family_service.dart';
+import 'package:fe/data/services/api_user_service.dart';
+import 'package:fe/data/services/user_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -27,7 +31,12 @@ Future<void> main() async {
 
   // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
-  await dotenv.load(fileName: '.env.$env');
+  try {
+    await dotenv.load(fileName: '.env.$env');
+  } catch (e) {
+    // File .env không tồn tại, sử dụng giá trị mặc định từ code
+    debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');
+  }
 
   final localStorage = LocalStorageService();
 
@@ -41,8 +50,13 @@ Future<void> main() async {
   final homeRepository = HomeRepository(homeService: homeService);
   final statsService = MockStatsService();
   final statsRepository = StatsRepository(statsService: statsService);
-  final familyService = MockFamilyService();
+  final apiClient = ApiClientImpl(
+    localStorageService: localStorage,
+    onRefreshToken: () => authService.refreshAccessToken(),
+  );
+  final familyService = ApiFamilyService(apiClient: apiClient);
   final familyRepository = FamilyRepository(familyService: familyService);
+  final userService = ApiUserService(apiClient: apiClient);
   final healthService = HealthService(localStorage);
   final healthRepository = HealthRepository(service: healthService);
 
@@ -52,6 +66,7 @@ Future<void> main() async {
     statsRepository: statsRepository,
     familyRepository: familyRepository,
     healthRepository: healthRepository,
+    userService: userService,
   ));
 }
 
@@ -61,6 +76,7 @@ class MyApp extends StatelessWidget {
   final StatsRepository _statsRepository;
   final FamilyRepository _familyRepository;
   final HealthRepository _healthRepository;
+  final ApiUserService _userService;
 
   const MyApp({
     super.key,
@@ -69,11 +85,13 @@ class MyApp extends StatelessWidget {
     required StatsRepository statsRepository,
     required FamilyRepository familyRepository,
     required HealthRepository healthRepository,
+    required ApiUserService userService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
        _familyRepository = familyRepository,
-       _healthRepository = healthRepository;
+       _healthRepository = healthRepository,
+       _userService = userService;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +102,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _statsRepository),
         RepositoryProvider.value(value: _familyRepository),
         RepositoryProvider.value(value: _healthRepository),
+        RepositoryProvider<UserService>.value(value: _userService),
       ],
       child: MultiBlocProvider(
         providers: [

@@ -10,6 +10,12 @@ part 'auth_form_state.dart';
 class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
   final AuthRepository _authRepository;
 
+  /// Loại bỏ tiền tố "Exception: " khi hiển thị lỗi cho người dùng.
+  static String _cleanErrorMessage(dynamic e) {
+    final s = e.toString();
+    return s.startsWith('Exception: ') ? s.substring(11) : s;
+  }
+
   AuthFormBloc({required AuthRepository authRepository})
     : _authRepository = authRepository,
       super(const AuthFormState()) {
@@ -84,7 +90,9 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       emit(state.copyWith(status: FormStatus.success));
     } catch (e) {
       final msg = e.toString().toLowerCase();
-      if (msg.contains('account not verified') || msg.contains('not verified')) {
+      if (msg.contains('account not verified') ||
+          msg.contains('not verified') ||
+          msg.contains('chưa xác thực')) {
         // Auto resend OTP then guide user to verification
         try {
           await _authRepository.resendOtp(email: state.email);
@@ -96,7 +104,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
           verificationEmail: state.email,
         ));
       } else {
-        emit(state.copyWith(status: FormStatus.failure, errorMessage: e.toString()));
+        emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
       }
     }
   }
@@ -142,7 +150,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       }
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: e.toString()),
+        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
       );
     }
   }
@@ -162,21 +170,34 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       );
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: e.toString()),
+        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
       );
     }
   }
 
   Future<void> _onOtpSubmitted(OtpSubmitted event, Emitter<AuthFormState> emit) async {
-    if (state.otp.length < 6) return;
+    final otp = state.otp.trim().replaceAll(RegExp(r'\s+'), '');
+    if (otp.length != 6) {
+      emit(state.copyWith(
+        status: FormStatus.failure,
+        errorMessage: 'Mã OTP phải đủ 6 chữ số.',
+      ));
+      return;
+    }
+    if (state.email.trim().isEmpty) {
+      emit(state.copyWith(
+        status: FormStatus.failure,
+        errorMessage: 'Thiếu email. Vui lòng quay lại và thử đăng nhập lại.',
+      ));
+      return;
+    }
 
     emit(state.copyWith(status: FormStatus.inProgress));
     try {
-      await _authRepository.verifyOtp(email: state.email, otp: state.otp);
-      
+      await _authRepository.verifyOtp(email: state.email.trim(), otp: otp);
       emit(state.copyWith(status: FormStatus.success, successMessage: 'Xác thực thành công!'));
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
     }
   }
 
@@ -184,7 +205,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     try {
       await _authRepository.resendOtp(email: state.email);
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
     }
   }
 
@@ -222,7 +243,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       );
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: e.toString()),
+        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
       );
     }
   }

@@ -29,11 +29,11 @@ class AuthFormState extends Equatable{
 
   bool get isValidLogin => email.contains('@') && password.length >= 6;
 
-  bool get isValidSignUp => 
-      isValidLogin && 
-      name.isNotEmpty && 
+  bool get isValidSignUp =>
+      isValidLogin &&
+      name.isNotEmpty &&
       password == confirmPassword;
-      
+
   bool get isValidResetPassword => password.length >= 6 && password == confirmPassword;
 
   bool get isValidOtp => otp.length == 6;

@@ -29,6 +29,17 @@ class MetricSelectionHelper {
     return selectedMetrics.map((m) => m.value).toList();
   }
 
+  /// Backend auth-service chỉ chấp nhận: heart_rate, steps_count, calories_burned.
+  /// Lọc bỏ các loại khác và chuẩn hóa calories_burnt -> calories_burned trước khi gửi API.
+  static List<String> filterMetricTypesForBackend(List<String> metricTypes) {
+    const allowed = {'heart_rate', 'steps_count', 'calories_burned'};
+    return metricTypes
+        .map((m) => m == 'calories_burnt' ? 'calories_burned' : m)
+        .where(allowed.contains)
+        .toSet()
+        .toList();
+  }
+
   /// Gets all available metrics
   static List<MetricOption> getAvailableMetrics() {
     return MetricHelper.availableMetrics;
