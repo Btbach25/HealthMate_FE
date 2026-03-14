@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user/auth_response.dart';
 import '../models/user/user.dart';
@@ -12,6 +13,7 @@ import 'package:fe/core/utils/converter.dart';
 
 abstract class AuthService {
   Future<User?> login({required String email, required String password});
+  Future<User?> loginWithGoogle({String? idToken});
   Future<void> logout();
   Future<User?> register({
     required String name,
@@ -26,6 +28,12 @@ abstract class AuthService {
 
 class AuthApiService implements AuthService {
   final LocalStorageService _localStorage;
+  static const _googleClientId = '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
+  final _googleSignIn = GoogleSignIn(
+    // Web dùng clientId, Android/iOS dùng serverClientId để lấy idToken cho BE
+    clientId: kIsWeb ? _googleClientId : null,
+    serverClientId: kIsWeb ? null : _googleClientId,
+  );
 
   AuthApiService(this._localStorage);
   String get baseUrl {
@@ -82,7 +90,47 @@ class AuthApiService implements AuthService {
   }
 
   @override
+  Future<User?> loginWithGoogle({String? idToken}) async {
+    try {
+      // Web: idToken được truyền trực tiếp từ GIS credential callback
+      // Native: signIn() dùng serverClientId để nhận idToken
+      if (!kIsWeb) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return null;
+        final googleAuth = await googleUser.authentication;
+        idToken = googleAuth.idToken;
+      }
+      if (idToken == null) throw Exception('Không lấy được Google ID token. Vui lòng thử lại.');
+
+      final url = Uri.parse('$baseUrl/auth/google');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_token': idToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final authResponse = AuthResponse.fromJson(body);
+        await _localStorage.saveTokens(
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+        );
+        await _localStorage.saveUser(authResponse.user);
+        return authResponse.user;
+      } else {
+        throw Exception(body['error'] ?? 'Đăng nhập Google thất bại');
+      }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  @override
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _localStorage.clearAll();
   }
 

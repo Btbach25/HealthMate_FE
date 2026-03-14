@@ -52,6 +52,12 @@ class AuthFormInitialized extends AuthFormEvent {
 class OtpResendRequested extends AuthFormEvent {}
 // Events nhấn nút submit
 class LoginSubmitted extends AuthFormEvent {}
+class GoogleLoginSubmitted extends AuthFormEvent {
+  final String? idToken;
+  const GoogleLoginSubmitted({this.idToken});
+  @override
+  List<Object> get props => [if (idToken != null) idToken!];
+}
 class SignUpSubmitted extends AuthFormEvent {}
 class ForgotPasswordSubmitted extends AuthFormEvent {}
 class OtpSubmitted extends AuthFormEvent {}

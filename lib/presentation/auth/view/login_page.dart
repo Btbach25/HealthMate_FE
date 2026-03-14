@@ -1,5 +1,8 @@
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'google_web_button_stub.dart'
+    if (dart.library.html) 'google_web_button_impl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -238,6 +241,9 @@ class _OrDivider extends StatelessWidget {
 class _GoogleLoginButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Web: dùng renderButton để kích hoạt GIS credential flow → có id_token
+    if (kIsWeb) return const Center(child: GoogleWebButton());
+
     return OutlinedButton.icon(
       icon: Image.asset('assets/icons/google_logo.png', height: 20),
       style: OutlinedButton.styleFrom(
@@ -245,9 +251,7 @@ class _GoogleLoginButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(color: Colors.grey.shade300),
       ),
-      onPressed: () {
-        /*Handle Google Login */
-      },
+      onPressed: () => context.read<AuthFormBloc>().add(GoogleLoginSubmitted()),
       label: const Text(
         'Đăng nhập với Google',
         style: TextStyle(fontSize: 16, color: Colors.black87),

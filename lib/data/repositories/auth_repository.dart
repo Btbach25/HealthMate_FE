@@ -30,6 +30,13 @@ class AuthRepository {
     yield* _controller.stream;
   }
 
+  Future<void> loginWithGoogle({String? idToken}) async {
+    final user = await _authService.loginWithGoogle(idToken: idToken);
+    if (user != null) {
+      _controller.add(AuthStatus.authenticated);
+    }
+  }
+
   Future<void> login({required String email, required String password}) async {
     try {
       final user = await _authService.login(email: email, password: password);
