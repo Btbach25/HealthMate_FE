@@ -1,0 +1,100 @@
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+import 'dart:ui_web' as ui_web;
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:web/web.dart' as web;
+
+extension type _CredentialResponse(JSObject _) implements JSObject {
+  external String get credential;
+}
+
+@JS('Object')
+external JSObject _newObject();
+
+@JS('google.accounts.id.initialize')
+external void _gisInitialize(JSObject config);
+
+@JS('google.accounts.id.renderButton')
+external void _gisRenderButton(web.Element element, JSObject config);
+
+const _googleClientId =
+    '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
+const _viewType = 'google-gsi-btn';
+bool _factoryRegistered = false;
+
+void _ensureFactory() {
+  if (_factoryRegistered) return;
+  _factoryRegistered = true;
+  ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
+    final div = web.document.createElement('div') as web.HTMLDivElement;
+    div.id = 'gsi-div-$viewId';
+    return div;
+  });
+}
+
+class GoogleWebButton extends StatefulWidget {
+  const GoogleWebButton({super.key});
+
+  @override
+  State<GoogleWebButton> createState() => _GoogleWebButtonState();
+}
+
+class _GoogleWebButtonState extends State<GoogleWebButton> {
+  int? _viewId;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureFactory();
+  }
+
+  void _onViewCreated(int id) {
+    _viewId = id;
+    _trySetup();
+  }
+
+  void _trySetup() {
+    if (!mounted || _viewId == null) return;
+    final el = web.document.getElementById('gsi-div-$_viewId');
+    if (el == null) {
+      Future.delayed(const Duration(milliseconds: 100), _trySetup);
+      return;
+    }
+    try {
+      final callback = ((JSObject resp) {
+        final idToken = _CredentialResponse(resp).credential;
+        if (mounted) {
+          context
+              .read<AuthFormBloc>()
+              .add(GoogleLoginSubmitted(idToken: idToken));
+        }
+      }).toJS;
+
+      final initCfg = _newObject();
+      initCfg['client_id'] = _googleClientId.toJS;
+      initCfg['callback'] = callback;
+      _gisInitialize(initCfg);
+
+      final btnCfg = _newObject();
+      btnCfg['type'] = 'standard'.toJS;
+      btnCfg['theme'] = 'outline'.toJS;
+      btnCfg['size'] = 'large'.toJS;
+      _gisRenderButton(el, btnCfg);
+    } catch (_) {
+      Future.delayed(const Duration(milliseconds: 200), _trySetup);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: HtmlElementView(
+        viewType: _viewType,
+        onPlatformViewCreated: _onViewCreated,
+      ),
+    );
+  }
+}

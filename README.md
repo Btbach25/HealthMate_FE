@@ -76,8 +76,8 @@ BASE_URL=https://api.yourdomain.com
 # Development (Android/iOS/Desktop)
 flutter run --dart-define=ENV=dev
 
-# Development (Web)
-flutter run -d chrome --dart-define=ENV=dev
+# Development (Web) — dùng port cố định để Google OAuth hoạt động
+flutter run -d chrome --web-port=5000 --dart-define=ENV=dev
 
 # Chạy với file env cụ thể
 flutter run --dart-define-from-file=.env.dev
@@ -253,6 +253,19 @@ flutter analyze       # Kiểm tra code style
 - **404 khi tải `.env` trên Web**: đảm bảo đã khai báo `.env.*` trong `pubspec.yaml` assets → `flutter pub get` → chạy lại.
 - **Sai API prefix**: đảm bảo `BASE_URL` trong `.env` không có trailing slash và đúng prefix backend yêu cầu.
 - **OTP flow**: sau đăng ký / quên mật khẩu, app tự điều hướng sang màn hình OTP, xác thực xong sẽ redirect phù hợp.
+
+### Google Sign-In (Web)
+
+Đăng nhập Google trên Web dùng GIS credential flow (`renderButton`), yêu cầu đăng ký origin trong [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → OAuth 2.0 Web client → **Authorized JavaScript origins**.
+
+| Môi trường | Origin cần đăng ký |
+|------------|---------------------|
+| Development | `http://localhost:5000` |
+| Production | `https://your-domain.com` |
+
+> Khi release production: thêm domain thật vào authorized origins trước khi deploy.
+>
+> Lỗi `Error 400: origin_mismatch` = origin chưa được đăng ký hoặc chạy web không dùng `--web-port=5000`.
 
 ---
 

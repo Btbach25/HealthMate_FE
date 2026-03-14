@@ -408,13 +408,17 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                       });
                     }
                   : null,
-              activeThumbColor: AppColors.primary,
-              activeTrackColor: AppColors.primary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               splashRadius: 0,
               thumbColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
+                }
+                return Colors.grey[300];
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primary;
                 }
                 return Colors.grey[300];
               }),
