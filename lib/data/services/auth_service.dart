@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -54,7 +55,7 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final body = jsonDecode(response.body);
 
@@ -62,10 +63,10 @@ class AuthApiService implements AuthService {
         final authResponse = AuthResponse.fromJson(body);
 
         await _localStorage.saveTokens(
-          accessToken: authResponse.accessToken, 
+          accessToken: authResponse.accessToken,
           refreshToken: authResponse.refreshToken
         );
-        
+
         await _localStorage.saveUser(authResponse.user);
 
         return authResponse.user;
@@ -73,6 +74,8 @@ class AuthApiService implements AuthService {
         final errorMessage = body['error'] ?? 'Đã có lỗi xảy ra';
         throw Exception(errorMessage);
       }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -99,7 +102,7 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password, 'name': name}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final body = jsonDecode(response.body);
 
@@ -125,6 +128,8 @@ class AuthApiService implements AuthService {
 
         throw Exception(errorMessage);
       }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -144,7 +149,7 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'otp': otp}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final body = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -166,6 +171,8 @@ class AuthApiService implements AuthService {
       } else {
         throw Exception(body['error'] ?? 'OTP không chính xác');
       }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -179,12 +186,14 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
         final body = jsonDecode(response.body);
         throw Exception(body['error'] ?? 'Không thể gửi lại OTP');
       }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }

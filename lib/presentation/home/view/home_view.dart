@@ -13,7 +13,6 @@ import '../bloc/health_overview_bloc.dart';
 import '../widgets/health_overview_section.dart';
 import '../widgets/welcome_message.dart';
 import '../bloc/device_health_cubit.dart';
-import '../../../data/services/device_health_service.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -107,21 +106,14 @@ class _HomeViewState extends State<HomeView> {
                         WelcomeMessage(name: user.name),
                         const SizedBox(height: 24),
 
-                        // Provide both HealthOverviewBloc & DeviceHealthCubit
-                        MultiBlocProvider(
-                          providers: [
-                            BlocProvider<HealthOverviewBloc>(
-                              create: (context) => HealthOverviewBloc(
-                                repository: RepositoryProvider.of(context),
-                              ),
-                            ),
-                            BlocProvider<DeviceHealthCubit>(
-                              create: (context) => DeviceHealthCubit(DeviceHealthService()),
-                            ),
-                          ],
+                        // Provide HealthOverviewBloc; DeviceHealthCubit comes from app-level provider
+                        BlocProvider<HealthOverviewBloc>(
+                          create: (context) => HealthOverviewBloc(
+                            repository: RepositoryProvider.of(context),
+                          ),
                           child: Builder(
                             builder: (innerContext) {
-                              // Start polling after first frame to ensure provider ready
+                              // Start polling after first frame
                               WidgetsBinding.instance.addPostFrameCallback((_) => _startPolling(innerContext));
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

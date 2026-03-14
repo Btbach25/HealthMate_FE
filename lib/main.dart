@@ -9,8 +9,12 @@ import 'package:fe/data/services/health_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/mock_family_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
+import 'package:fe/data/repositories/medication_repository.dart';
+import 'package:fe/data/services/mock_medication_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,6 +49,9 @@ Future<void> main() async {
   final familyRepository = FamilyRepository(familyService: familyService);
   final healthService = HealthService(localStorage);
   final healthRepository = HealthRepository(service: healthService);
+  final medicationService = MockMedicationService();
+  final medicationRepository =
+      MedicationRepository(service: medicationService);
 
   runApp(MyApp(
     authRepository: authRepository,
@@ -52,6 +59,7 @@ Future<void> main() async {
     statsRepository: statsRepository,
     familyRepository: familyRepository,
     healthRepository: healthRepository,
+    medicationRepository: medicationRepository,
   ));
 }
 
@@ -61,6 +69,7 @@ class MyApp extends StatelessWidget {
   final StatsRepository _statsRepository;
   final FamilyRepository _familyRepository;
   final HealthRepository _healthRepository;
+  final MedicationRepository _medicationRepository;
 
   const MyApp({
     super.key,
@@ -69,11 +78,13 @@ class MyApp extends StatelessWidget {
     required StatsRepository statsRepository,
     required FamilyRepository familyRepository,
     required HealthRepository healthRepository,
+    required MedicationRepository medicationRepository,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
        _familyRepository = familyRepository,
-       _healthRepository = healthRepository;
+       _healthRepository = healthRepository,
+       _medicationRepository = medicationRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +95,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _statsRepository),
         RepositoryProvider.value(value: _familyRepository),
         RepositoryProvider.value(value: _healthRepository),
+        RepositoryProvider.value(value: _medicationRepository),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -92,6 +104,11 @@ class MyApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) => FamilyBloc(familyRepository: _familyRepository),
+          ),
+          // Tạo sớm ở app level để native plugin có thể đăng ký
+          // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
+          BlocProvider(
+            create: (_) => DeviceHealthCubit(DeviceHealthService()),
           ),
         ],
         child: const AppView(),
