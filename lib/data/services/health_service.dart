@@ -21,8 +21,12 @@ class HealthService {
   }
 
   /// Gọi GET /health/latest. Nếu BE trả 404 hoặc lỗi (endpoint chưa có / lỗi mạng) → trả [HealthOverview.empty()] để app không crash.
+  /// Đặt HEALTH_LATEST_ENABLED=false trong .env để tắt gọi API (tránh 404 khi BE chưa có endpoint).
   Future<HealthOverview> getHealthOverview() async {
     try {
+      final enabled = dotenv.env['HEALTH_LATEST_ENABLED'];
+      if (enabled == 'false' || enabled == '0') return HealthOverview.empty();
+
       final token = await _localStorage.getAccessToken();
       if (token == null) return HealthOverview.empty();
 

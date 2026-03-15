@@ -107,6 +107,39 @@ class GroupApiMapper {
     );
   }
 
+  /// BE SentInvitationResponse (GET /groups/:id/invitations): user_id, user_email, user_name, created_at, status.
+  static OutgoingInvitation sentInvitationToOutgoing({
+    required Map<String, dynamic> json,
+    required FamilyGroup group,
+  }) {
+    final sentAt = _parseDate(json['created_at']);
+    final inviteeId = _str(json['user_id']);
+    final inviteeEmail = _str(json['user_email'] ?? json['email']);
+    final inviteeName = _str(json['user_name'] ?? json['name']);
+    final invitee = (inviteeId.isNotEmpty || inviteeEmail.isNotEmpty || inviteeName.isNotEmpty)
+        ? User(
+            id: inviteeId,
+            email: inviteeEmail,
+            name: inviteeName,
+            role: UserRole.user,
+            status: UserStatus.verified,
+            provider: LoginProvider.email,
+            createdAt: sentAt,
+            updatedAt: sentAt,
+          )
+        : null;
+    return OutgoingInvitation(
+      id: inviteeId,
+      groupId: group.id,
+      group: group,
+      invitee: invitee,
+      relationship: null,
+      status: GroupMemberStatus.fromValue(_str(json['status']).isEmpty ? null : _str(json['status'])),
+      sentAt: sentAt,
+      sharedMetrics: const [],
+    );
+  }
+
   /// Một member JSON (status pending) + group -> OutgoingInvitation
   static OutgoingInvitation toOutgoingInvitation({
     required Map<String, dynamic> memberJson,

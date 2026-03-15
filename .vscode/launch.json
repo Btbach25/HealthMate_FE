@@ -1,0 +1,72 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ──────────────────────────────────────────────
+    // DEVELOPMENT (debug)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Dev – Debug (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=dev",
+        "--dart-define-from-file=.env.dev"
+      ]
+    },
+    {
+      "name": "Dev – Debug (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "flutterMode": "debug",
+      "args": [
+        "--web-port=7000",
+        "--dart-define=ENV=dev",
+        "--dart-define-from-file=.env.dev"
+      ]
+    },
+    {
+      "name": "Dev – Debug (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "windows",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=dev",
+        "--dart-define-from-file=.env.dev"
+      ]
+    },
+    // ──────────────────────────────────────────────
+    // PRODUCTION (release / profile)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Prod – Release (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--dart-define=ENV=prod",
+        "--dart-define-from-file=.env.prod"
+      ]
+    },
+    {
+      "name": "Prod – Profile (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define=ENV=prod",
+        "--dart-define-from-file=.env.prod"
+      ]
+    },
+    // ──────────────────────────────────────────────
+    // ATTACH (attach to running app)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Attach",
+      "request": "attach",
+      "type": "dart"
+    }
+  ]
+}

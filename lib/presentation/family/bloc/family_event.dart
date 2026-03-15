@@ -122,14 +122,18 @@ class FetchOutgoingInvitations extends FamilyEvent {
 class AcceptInvitation extends FamilyEvent {
   final String groupId;
   final List<String> sharedMetrics;
+  /// Số thành viên hiện tại trong nhóm (không tính người đang nhận lời mời).
+  /// Dùng để cập nhật optimistic UI ngay sau khi chấp nhận.
+  final int? currentMemberCount;
 
   const AcceptInvitation({
     required this.groupId,
     required this.sharedMetrics,
+    this.currentMemberCount,
   });
 
   @override
-  List<Object?> get props => [groupId, sharedMetrics];
+  List<Object?> get props => [groupId, sharedMetrics, currentMemberCount];
 }
 
 /// BE dùng group ID trong path: POST /groups/:id/reject.

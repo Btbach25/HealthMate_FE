@@ -12,8 +12,13 @@ import 'package:fe/data/services/api_family_service.dart';
 import 'package:fe/data/services/api_user_service.dart';
 import 'package:fe/data/services/user_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
+import 'package:fe/data/repositories/medication_repository.dart';
+import 'package:fe/data/services/mock_medication_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/services/device_health_service.dart';
+import 'package:fe/data/services/health_ws_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +64,11 @@ Future<void> main() async {
   final userService = ApiUserService(apiClient: apiClient);
   final healthService = HealthService(localStorage);
   final healthRepository = HealthRepository(service: healthService);
+  final medicationService = MockMedicationService();
+  final medicationRepository =
+      MedicationRepository(service: medicationService);
+
+  final healthWsService = HealthWsService(localStorage);
 
   runApp(MyApp(
     authRepository: authRepository,
@@ -67,6 +77,8 @@ Future<void> main() async {
     familyRepository: familyRepository,
     healthRepository: healthRepository,
     userService: userService,
+    medicationRepository: medicationRepository,
+    healthWsService: healthWsService,
   ));
 }
 
@@ -77,6 +89,8 @@ class MyApp extends StatelessWidget {
   final FamilyRepository _familyRepository;
   final HealthRepository _healthRepository;
   final ApiUserService _userService;
+  final MedicationRepository _medicationRepository;
+  final HealthWsService _healthWsService;
 
   const MyApp({
     super.key,
@@ -86,12 +100,16 @@ class MyApp extends StatelessWidget {
     required FamilyRepository familyRepository,
     required HealthRepository healthRepository,
     required ApiUserService userService,
+    required MedicationRepository medicationRepository,
+    required HealthWsService healthWsService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
        _familyRepository = familyRepository,
        _healthRepository = healthRepository,
-       _userService = userService;
+       _userService = userService,
+       _medicationRepository = medicationRepository,
+       _healthWsService = healthWsService;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +121,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _familyRepository),
         RepositoryProvider.value(value: _healthRepository),
         RepositoryProvider<UserService>.value(value: _userService),
+        RepositoryProvider.value(value: _medicationRepository),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -111,6 +130,11 @@ class MyApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) => FamilyBloc(familyRepository: _familyRepository),
+          ),
+          // Tạo sớm ở app level để native plugin có thể đăng ký
+          // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
+          BlocProvider(
+            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService),
           ),
         ],
         child: const AppView(),
@@ -128,7 +152,8 @@ class AppView extends StatelessWidget {
     final router = AppRouter(authBloc: authBloc).router;
 
     return MaterialApp.router(
-      title: 'HealthMate App',
+      title: 'HealthMate',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppColors.primary,
         fontFamily: 'Inter',

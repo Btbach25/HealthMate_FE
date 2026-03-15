@@ -53,7 +53,7 @@ void setupWithApiServices() {
   
   // API Client
   final apiClient = ApiClientImpl(
-    baseUrl: apiBaseUrl,
+    baseUrlOverride: apiBaseUrl,
     localStorageService: localStorageService,
   );
 
@@ -98,7 +98,7 @@ void setupWithConditionalServices({required bool useMock}) {
     familyService = MockFamilyService();
   } else {
     final apiClient = ApiClientImpl(
-      baseUrl: 'https://api.yourdomain.com',
+      baseUrlOverride: 'https://api.yourdomain.com',
       localStorageService: localStorageService,
     );
     familyService = ApiFamilyService(apiClient: apiClient);

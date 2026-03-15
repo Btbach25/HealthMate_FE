@@ -11,6 +11,7 @@ import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class AcceptInvitationDialog extends StatefulWidget {
   final IncomingInvitation invitation;
@@ -52,11 +53,12 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
     });
 
     context.read<FamilyBloc>().add(
-          AcceptInvitation(
-            groupId: widget.invitation.groupId,
-            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
-          ),
-        );
+      AcceptInvitation(
+        groupId: widget.invitation.groupId,
+        sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+        currentMemberCount: widget.invitation.memberCount,
+      ),
+    );
   }
 
   @override
@@ -67,6 +69,10 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         showInlineMessage: showInlineMessage,
         successStatus: FamilyStatus.invitationAccepted,
         shouldPop: true,
+        onSuccess: () {
+          if (!mounted) return;
+          context.go('/family/group/${widget.invitation.groupId}');
+        },
       ),
       child: Dialog(
         backgroundColor: Colors.transparent,

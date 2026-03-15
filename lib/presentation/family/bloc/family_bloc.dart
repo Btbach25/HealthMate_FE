@@ -281,9 +281,25 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         cachedGroup: cachedGroup,
       );
+
+      // Đồng bộ lại memberCount trong summary theo dữ liệu chi tiết nhóm (members.length)
+      // để danh sách nhóm và màn chi tiết luôn khớp nhau.
+      final groups = [...state.summary.groups];
+      final index = groups.indexWhere((g) => g.id == event.groupId);
+      var updatedSummary = state.summary;
+      if (index != -1) {
+        final group = groups[index];
+        groups[index] = group.copyWith(memberCount: details.members.length);
+        updatedSummary = state.summary.copyWith(
+          groups: groups,
+          groupsJoined: groups.length,
+        );
+      }
+
       emit(state.copyWith(
         status: FamilyStatus.groupDetailsLoaded,
         groupDetails: details,
+        summary: updatedSummary,
         errorMessage: null,
       ));
     } catch (e) {
@@ -422,14 +438,40 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         sharedMetrics: event.sharedMetrics,
       );
+
+      // Cập nhật optimistic số thành viên trong nhóm ngay lập tức,
+      // dùng memberCount từ invitation (nếu có) + 1 cho người vừa tham gia.
+      final groups = [...state.summary.groups];
+      final index = groups.indexWhere((g) => g.id == event.groupId);
+      var updatedSummary = state.summary;
+      if (index != -1) {
+        final group = groups[index];
+        final baseCount = event.currentMemberCount ?? group.memberCount;
+        final newCount = (baseCount > 0 ? baseCount + 1 : 1);
+        groups[index] = group.copyWith(memberCount: newCount);
+        updatedSummary = state.summary.copyWith(
+          groups: groups,
+          groupsJoined: groups.length,
+        );
+      }
+
       emit(state.copyWith(
         status: FamilyStatus.invitationAccepted,
         hiddenGroupIds: _unhideGroupId(event.groupId),
+        summary: updatedSummary,
         errorMessage: null,
       ));
       add(const FetchIncomingInvitations());
       add(const FetchFamilyGroups());
     } catch (e) {
+      if (e is NotFoundException) {
+        emit(state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: 'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
+        ));
+        add(const FetchIncomingInvitations());
+        return;
+      }
       emit(state.copyWith(
         status: FamilyStatus.error,
         errorMessage: _parseError(e),
@@ -450,6 +492,14 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       ));
       add(const FetchIncomingInvitations());
     } catch (e) {
+      if (e is NotFoundException) {
+        emit(state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: 'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
+        ));
+        add(const FetchIncomingInvitations());
+        return;
+      }
       emit(state.copyWith(
         status: FamilyStatus.error,
         errorMessage: _parseError(e),

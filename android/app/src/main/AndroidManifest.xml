@@ -26,7 +26,7 @@
     <uses-permission android:name="android.permission.health.WRITE_STEPS"/>
 
     <application
-        android:label="fe"
+        android:label="HealthMate"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -49,7 +49,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+            <!-- Tách riêng: Health Connect yêu cầu intent-filter độc lập cho rationale -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"/>
             </intent-filter>
         </activity>
         <activity

@@ -353,6 +353,8 @@ class _MyGroupsTab extends StatelessWidget {
   Widget _buildGroupCard(BuildContext context, FamilyGroup group) {
     final authUserId = context.read<AuthBloc>().state.user.id;
     final isOwner = authUserId.isNotEmpty && group.ownerId == authUserId;
+    // BE GET /groups không trả member_count → 0; chủ nhóm luôn là ít nhất 1 thành viên
+    final displayMemberCount = (isOwner && group.memberCount < 1) ? 1 : group.memberCount;
     final dateFormat = DateFormat('yyyy-MM-dd');
 
         return Container(
@@ -467,7 +469,7 @@ class _MyGroupsTab extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '${group.memberCount} thành viên • Tạo ${dateFormat.format(group.createdAt)}',
+                '$displayMemberCount thành viên • Tạo ${dateFormat.format(group.createdAt)}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textGrey,

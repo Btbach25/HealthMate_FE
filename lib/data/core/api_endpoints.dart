@@ -6,9 +6,12 @@ class ApiEndpoints {
   // ---------- Groups (cần Bearer) ----------
   static const String groups = '/groups';
   static const String groupMetricTypes = '/groups/metric-types';
-  static const String groupIncomingInvitations = '/groups/invitations/incoming';
+  /// Danh sách lời mời đang chờ (của tôi). API_DOC: GET /groups/invitations
+  static const String groupIncomingInvitations = '/groups/invitations';
 
   static String groupById(String id) => '/groups/$id';
+  /// Lời mời pending của một nhóm (BE: GET /groups/:id/invitations, SentInvitationResponse).
+  static String groupInvitations(String groupId) => '/groups/$groupId/invitations';
   static String groupMembers(String groupId) => '/groups/$groupId/members';
   /// Cập nhật trạng thái thành viên (accept/reject lời mời): PUT body {"status":"accepted"|"rejected"}.
   static String groupMembersMe(String groupId) => '/groups/$groupId/members/me';

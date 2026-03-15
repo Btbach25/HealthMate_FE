@@ -1,6 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import '../../../data/services/device_health_service.dart';
+import '../../../data/services/health_ws_service.dart';
 
 class DeviceHealthState extends Equatable {
   final bool loading;
@@ -37,15 +39,22 @@ class DeviceHealthState extends Equatable {
 
 class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   final DeviceHealthService _service;
-  DeviceHealthCubit(this._service) : super(const DeviceHealthState());
+  final HealthWsService _wsService;
+
+  DeviceHealthCubit(this._service, this._wsService)
+      : super(const DeviceHealthState());
 
   Future<void> poll() async {
     emit(state.copyWith(loading: true, error: null));
     final result = await _service.fetchAll();
     if (result == null) {
-      emit(state.copyWith(loading: false, error: 'Không lấy được dữ liệu thiết bị'));
+      emit(state.copyWith(
+        loading: false,
+        error: 'Không lấy được dữ liệu thiết bị',
+      ));
       return;
     }
+
     emit(state.copyWith(
       loading: false,
       lastUpdated: result.fetchedAt,
@@ -53,5 +62,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       dataCount: result.dataPoints.length,
       error: null,
     ));
+
+    // Upload lên BE trong background, không block UI
+    _wsService.uploadDataPoints(result.dataPoints).catchError((e) {
+      debugPrint('[DeviceHealthCubit] WS upload failed: $e');
+    });
   }
 }

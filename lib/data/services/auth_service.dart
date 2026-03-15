@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user/auth_response.dart';
 import '../models/user/user.dart';
@@ -11,6 +13,7 @@ import 'package:fe/core/utils/converter.dart';
 
 abstract class AuthService {
   Future<User?> login({required String email, required String password});
+  Future<User?> loginWithGoogle({String? idToken});
   Future<void> logout();
   /// Gọi POST /auth/refresh với refresh_token, lưu access_token mới. Trả về true nếu thành công.
   Future<bool> refreshAccessToken();
@@ -27,6 +30,12 @@ abstract class AuthService {
 
 class AuthApiService implements AuthService {
   final LocalStorageService _localStorage;
+  static const _googleClientId = '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
+  final _googleSignIn = GoogleSignIn(
+    // Web dùng clientId, Android/iOS dùng serverClientId để lấy idToken cho BE
+    clientId: kIsWeb ? _googleClientId : null,
+    serverClientId: kIsWeb ? null : _googleClientId,
+  );
 
   AuthApiService(this._localStorage);
   String get baseUrl {
@@ -56,7 +65,7 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final body = jsonDecode(response.body);
 
@@ -88,6 +97,45 @@ class AuthApiService implements AuthService {
           ? (body['error'] ?? 'Đã có lỗi xảy ra')
           : 'Đã có lỗi xảy ra';
       throw Exception(errorMessage);
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  @override
+  Future<User?> loginWithGoogle({String? idToken}) async {
+    try {
+      if (!kIsWeb) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return null;
+        final googleAuth = await googleUser.authentication;
+        idToken = googleAuth.idToken;
+      }
+      if (idToken == null) throw Exception('Không lấy được Google ID token. Vui lòng thử lại.');
+
+      final url = Uri.parse('$baseUrl/auth/google');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_token': idToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final authResponse = AuthResponse.fromJson(body);
+        await _localStorage.saveTokens(
+          accessToken: authResponse.accessToken,
+          refreshToken: authResponse.refreshToken,
+        );
+        await _localStorage.saveUser(authResponse.user);
+        return authResponse.user;
+      } else {
+        throw Exception(body['error'] ?? 'Đăng nhập Google thất bại');
+      }
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -95,6 +143,7 @@ class AuthApiService implements AuthService {
 
   @override
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _localStorage.clearAll();
   }
 
@@ -149,7 +198,7 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password, 'name': name}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 500) {
         throw Exception(
@@ -187,6 +236,8 @@ class AuthApiService implements AuthService {
       }
 
       throw Exception(errorMessage);
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -215,7 +266,7 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({'email': email.trim(), 'otp': otpToSend}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
@@ -243,6 +294,8 @@ class AuthApiService implements AuthService {
         throw Exception(errorMsg?.toString() ?? 'Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng gửi lại mã.');
       }
       throw Exception(errorMsg?.toString() ?? 'OTP không chính xác');
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -260,7 +313,7 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({'email': e}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) return;
 
@@ -281,6 +334,8 @@ class AuthApiService implements AuthService {
         throw Exception(errMsg?.toString() ?? 'Tài khoản đã xác thực. Hãy đăng nhập.');
       }
       throw Exception(errMsg?.toString() ?? 'Không thể gửi lại OTP');
+    } on TimeoutException {
+      throw Exception('Kết nối quá chậm, vui lòng thử lại.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }

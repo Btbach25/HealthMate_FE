@@ -18,14 +18,10 @@ class FamilyGroupCard extends StatelessWidget {
     this.currentUserId,
   });
 
-  /// Chủ nhóm luôn là ít nhất 1 thành viên; nếu API trả 0 thì hiển thị 1.
+  /// BE GET /groups không trả member_count → 0. Card này chỉ hiện khi user đã ở trong nhóm (owner hoặc member),
+  /// nên nếu API trả 0 thì hiển thị ít nhất 1 (bạn đang trong nhóm).
   int _effectiveMemberCount() {
-    if (currentUserId != null &&
-        currentUserId!.isNotEmpty &&
-        group.ownerId == currentUserId &&
-        group.memberCount < 1) {
-      return 1;
-    }
+    if (group.memberCount < 1) return 1;
     return group.memberCount;
   }
 

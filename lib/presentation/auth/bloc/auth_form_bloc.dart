@@ -71,11 +71,25 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     });
 
     on<LoginSubmitted>(_onLoginSubmitted);
+    on<GoogleLoginSubmitted>(_onGoogleLoginSubmitted);
     on<SignUpSubmitted>(_onSignUpSubmitted);
     on<ForgotPasswordSubmitted>(_onForgotPasswordSubmitted);
     on<OtpSubmitted>(_onOtpSubmitted);
     on<ResetPasswordSubmitted>(_onResetPasswordSubmitted);
     on<OtpResendRequested>(_onOtpResendRequested);
+  }
+
+  Future<void> _onGoogleLoginSubmitted(
+    GoogleLoginSubmitted event,
+    Emitter<AuthFormState> emit,
+  ) async {
+    emit(state.copyWith(status: FormStatus.inProgress));
+    try {
+      await _authRepository.loginWithGoogle(idToken: event.idToken);
+      emit(state.copyWith(status: FormStatus.success));
+    } catch (e) {
+      emit(state.copyWith(status: FormStatus.failure, errorMessage: e.toString()));
+    }
   }
 
   Future<void> _onLoginSubmitted(

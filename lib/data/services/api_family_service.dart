@@ -336,6 +336,7 @@ class ApiFamilyService implements FamilyService {
     }
   }
 
+  /// BE: GET /groups chỉ trả members accepted; lời mời pending lấy từ GET /groups/:id/invitations.
   @override
   Future<List<OutgoingInvitation>> getOutgoingInvitations() async {
     try {
@@ -346,18 +347,15 @@ class ApiFamilyService implements FamilyService {
       final result = <OutgoingInvitation>[];
       for (final g in list) {
         final map = g as Map<String, dynamic>;
-        final groupId = map['id']?.toString() ?? '';
         final group = GroupApiMapper.toFamilyGroup(map);
-        final membersRaw = await _apiClient.get<List<dynamic>>(
-          ApiEndpoints.groupMembers(groupId),
+        final invitationsRaw = await _apiClient.get<List<dynamic>>(
+          ApiEndpoints.groupInvitations(group.id),
           parser: (data) => data is List ? data : [],
         );
-        for (final m in membersRaw) {
-          final member = m as Map<String, dynamic>;
-          if ((member['status']?.toString() ?? '') != 'pending') continue;
-          result.add(GroupApiMapper.toOutgoingInvitation(
-            memberJson: member,
-            groupId: groupId,
+        for (final inv in invitationsRaw) {
+          if (inv is! Map<String, dynamic>) continue;
+          result.add(GroupApiMapper.sentInvitationToOutgoing(
+            json: inv,
             group: group,
           ));
         }
