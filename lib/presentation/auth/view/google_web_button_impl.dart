@@ -23,6 +23,8 @@ const _googleClientId =
     '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
 const _viewType = 'google-gsi-btn';
 bool _factoryRegistered = false;
+bool _gsiInitialized = false;
+void Function(String idToken)? _currentGoogleCallback;
 
 void _ensureFactory() {
   if (_factoryRegistered) return;
@@ -30,8 +32,32 @@ void _ensureFactory() {
   ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
     final div = web.document.createElement('div') as web.HTMLDivElement;
     div.id = 'gsi-div-$viewId';
+    div.style.height = '50px';
+    div.style.width = '100%';
     return div;
   });
+}
+
+void _ensureGsiInitialized() {
+  if (_gsiInitialized) return;
+  try {
+    if ((web.window as dynamic).__healthMateGsiInitDone == true) {
+      _gsiInitialized = true;
+      return;
+    }
+  } catch (_) {}
+  _gsiInitialized = true;
+  final callback = ((JSObject resp) {
+    final idToken = _CredentialResponse(resp).credential;
+    _currentGoogleCallback?.call(idToken);
+  }).toJS;
+  final initCfg = _newObject();
+  initCfg['client_id'] = _googleClientId.toJS;
+  initCfg['callback'] = callback;
+  _gisInitialize(initCfg);
+  try {
+    (web.window as dynamic).__healthMateGsiInitDone = true;
+  } catch (_) {}
 }
 
 class GoogleWebButton extends StatefulWidget {
@@ -63,19 +89,14 @@ class _GoogleWebButtonState extends State<GoogleWebButton> {
       return;
     }
     try {
-      final callback = ((JSObject resp) {
-        final idToken = _CredentialResponse(resp).credential;
+      _ensureGsiInitialized();
+      _currentGoogleCallback = (String idToken) {
         if (mounted) {
           context
               .read<AuthFormBloc>()
               .add(GoogleLoginSubmitted(idToken: idToken));
         }
-      }).toJS;
-
-      final initCfg = _newObject();
-      initCfg['client_id'] = _googleClientId.toJS;
-      initCfg['callback'] = callback;
-      _gisInitialize(initCfg);
+      };
 
       final btnCfg = _newObject();
       btnCfg['type'] = 'standard'.toJS;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/medication_card.dart';
@@ -79,7 +80,9 @@ class _HomeViewState extends State<HomeView> {
 
           if (state.status == HomeStatus.loaded && state.homeData != null) {
             final homeData = state.homeData!;
-            final user = homeData.user;
+            // Dùng user từ AuthBloc (đúng với tài khoản đăng nhập) cho lời chào và app bar
+            final authUser = context.read<AuthBloc>().state.user;
+            final displayUser = authUser.isNotEmpty ? authUser : homeData.user;
             return RefreshIndicator(
               color: AppColors.primary,
               backgroundColor: AppColors.inputBackground,
@@ -100,10 +103,10 @@ class _HomeViewState extends State<HomeView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        HomeAppBar(user: user),
+                        HomeAppBar(user: displayUser),
                         const SizedBox(height: 24),
 
-                        WelcomeMessage(name: user.name),
+                        WelcomeMessage(name: displayUser.name),
                         const SizedBox(height: 24),
 
                         // Provide HealthOverviewBloc; DeviceHealthCubit comes from app-level provider

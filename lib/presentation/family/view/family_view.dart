@@ -3,6 +3,7 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
 import 'package:fe/presentation/family/widgets/family_app_bar.dart';
@@ -33,7 +34,12 @@ class FamilyView extends StatelessWidget {
             return ErrorDisplayWidget(
               message: state.errorMessage ?? 'Đã có lỗi xảy ra',
               onRetry: () {
-                context.read<FamilyBloc>().add(const FetchFamilyGroups());
+                if (state.isSessionExpired) {
+                  context.read<AuthBloc>().add(AuthLogoutRequested());
+                  context.go('/login');
+                } else {
+                  context.read<FamilyBloc>().add(const FetchFamilyGroups());
+                }
               },
             );
           }
@@ -140,10 +146,16 @@ class FamilyView extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: AppSize.spacing20),
-                        ...state.summary.groups.map((group) => Padding(
-                              padding: const EdgeInsets.only(bottom: AppSize.spacing16),
-                              child: FamilyGroupCard(group: group),
-                            )),
+                        ...state.summary.groups.map((group) {
+                              final currentUserId = context.read<AuthBloc>().state.user.id;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: AppSize.spacing16),
+                                child: FamilyGroupCard(
+                                  group: group,
+                                  currentUserId: currentUserId.isEmpty ? null : currentUserId,
+                                ),
+                              );
+                            }),
                         const SizedBox(height: AppSize.spacing8),
                       ],
 

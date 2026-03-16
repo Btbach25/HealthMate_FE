@@ -23,7 +23,6 @@ class TransferOwnershipModal extends StatefulWidget {
 class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
   String? _selectedMemberId;
 
-
   void _handleTransfer() {
     if (_selectedMemberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -35,7 +34,8 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
       return;
     }
 
-    context.read<FamilyBloc>().add(
+    final bloc = context.read<FamilyBloc>();
+    bloc.add(
           TransferOwnership(
             groupId: widget.groupId,
             newOwnerId: _selectedMemberId!,
@@ -43,76 +43,18 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
         );
   }
 
-  void _showLeaveConfirmationAfterTransfer(BuildContext context, String groupId) {
-    showDialog(
-      context: context,
-      builder: (context) => BlocListener<FamilyBloc, FamilyState>(
-        listener: (context, state) {
-          if (state.status == FamilyStatus.groupLeft) {
-            // Navigate back to family page
-            if (context.mounted) {
-              Navigator.pop(context); // Close confirmation dialog
-              // Pop back to family page (group_details_view will also pop)
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã chuyển quyền chủ nhóm và rời nhóm thành công'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                }
-              });
-            }
-          }
-          if (state.status == FamilyStatus.error) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage ?? 'Có lỗi xảy ra'),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
-        child: AlertDialog(
-          title: const Text('Rời nhóm'),
-          content: const Text(
-            'Bạn đã chuyển quyền chủ nhóm thành công. Bạn có chắc chắn muốn rời nhóm này?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog first
-                context.read<FamilyBloc>().add(
-                      LeaveGroup(groupId: groupId),
-                    );
-                // Navigation will be handled by BlocListener
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-              ),
-              child: const Text('Xác nhận rời nhóm'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
       listener: (context, state) {
         if (state.status == FamilyStatus.ownershipTransferred) {
-          // After transferring ownership, show confirmation dialog to leave group
-          if (context.mounted) {
-            Navigator.pop(context); // Close transfer modal first
-            _showLeaveConfirmationAfterTransfer(context, widget.groupId);
-          }
+          if (!context.mounted) return;
+          final bloc = context.read<FamilyBloc>();
+          final rootNav = Navigator.of(context, rootNavigator: true);
+          // Đóng modal chuyển quyền (route trên root navigator)
+          rootNav.pop();
+          // Mở dialog xác nhận rời nhóm bằng root context ổn định
+          _showLeaveConfirmationAfterTransfer(rootNav.context, bloc, widget.groupId);
         }
         if (state.status == FamilyStatus.error) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -156,10 +98,10 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha:0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.orange.withValues(alpha:0.3),
+                    color: Colors.orange.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -207,7 +149,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                       padding: const EdgeInsets.all(AppSize.p16),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary.withValues(alpha:0.1)
+                            ? AppColors.primary.withValues(alpha: 0.1)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
@@ -255,24 +197,21 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                                     member.relationship!,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.textGrey.withValues(alpha:0.8),
+                                      color: AppColors.textGrey.withValues(alpha: 0.8),
                                     ),
                                   ),
                               ],
                             ),
                           ),
-                          if (isSelected)
-                            Icon(
-                              Icons.check_circle,
-                              color: AppColors.primary,
-                              size: 24,
-                            )
-                          else
-                            Icon(
-                              Icons.radio_button_unchecked,
-                              color: AppColors.textGrey.withValues(alpha:0.5),
-                              size: 24,
-                            ),
+                          Icon(
+                            isSelected
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textGrey.withValues(alpha: 0.5),
+                            size: 24,
+                          ),
                         ],
                       ),
                     ),
@@ -320,5 +259,39 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
       ),
     );
   }
-}
 
+  /// Sau khi chuyển quyền xong, hiện dialog xác nhận rời nhóm.
+  /// Navigation khi rời nhóm thành công sẽ do GroupDetailsView BlocListener xử lý.
+  void _showLeaveConfirmationAfterTransfer(
+    BuildContext rootContext,
+    FamilyBloc bloc,
+    String groupId,
+  ) {
+    showDialog(
+      context: rootContext,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Rời nhóm'),
+        content: const Text(
+          'Bạn đã chuyển quyền chủ nhóm thành công. Bạn có muốn rời nhóm này?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Ở lại'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              bloc.add(LeaveGroup(groupId: groupId));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Xác nhận rời nhóm'),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -68,7 +68,7 @@ class MockFamilyService implements FamilyService {
         id: '1',
         name: 'Gia đình chính',
         memberCount: 3,
-        userRole: GroupMemberRole.admin,
+        userRole: GroupMemberRole.owner,
         createdAt: DateTime(2024, 12, 1),
         updatedAt: now,
         lastActivity: twoHoursAgo,
@@ -151,7 +151,7 @@ class MockFamilyService implements FamilyService {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       memberCount: 1,
-      userRole: GroupMemberRole.admin,
+      userRole: GroupMemberRole.owner,
       createdAt: now,
       updatedAt: now,
       lastActivity: now,
@@ -190,6 +190,7 @@ class MockFamilyService implements FamilyService {
     String? relationship,
     int? age,
     required List<String> sharedMetrics,
+    String? userId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     
@@ -253,7 +254,10 @@ class MockFamilyService implements FamilyService {
   }
 
   @override
-  Future<GroupDetails> getGroupDetails({required String groupId}) async {
+  Future<GroupDetails> getGroupDetails({
+    required String groupId,
+    FamilyGroup? cachedGroup,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
     final now = DateTime.now();
@@ -266,7 +270,7 @@ class MockFamilyService implements FamilyService {
           id: '1',
           name: 'Gia đình chính',
           memberCount: 3,
-          userRole: GroupMemberRole.admin,
+          userRole: GroupMemberRole.owner,
           createdAt: DateTime(2024, 12, 1),
           updatedAt: now,
           lastActivity: now.subtract(const Duration(hours: 2)),
@@ -465,7 +469,7 @@ class MockFamilyService implements FamilyService {
           id: groupId,
           name: 'Nhóm gia đình',
           memberCount: 1,
-          userRole: GroupMemberRole.admin,
+          userRole: GroupMemberRole.owner,
           createdAt: now,
           updatedAt: now,
           lastActivity: now,
@@ -526,17 +530,14 @@ class MockFamilyService implements FamilyService {
 
   @override
   Future<void> acceptInvitation({
-    required String invitationId,
+    required String groupId,
     required List<String> sharedMetrics,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    // Mark invitation as accepted
-    _acceptedInvitationIds.add(invitationId);
-    
-    // Find and store the invitation details with user-selected metrics
+    _acceptedInvitationIds.add(groupId);
     final allInvitations = await _getAllIncomingInvitations();
     final invitation = allInvitations.firstWhere(
-      (inv) => inv.id == invitationId,
+      (inv) => inv.groupId == groupId,
       orElse: () => throw Exception('Invitation not found'),
     );
     
@@ -627,15 +628,13 @@ class MockFamilyService implements FamilyService {
   }
 
   @override
-  Future<void> declineInvitation({required String invitationId}) async {
+  Future<void> declineInvitation({required String groupId}) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    // Track declined invitation to filter it out from the list
-    _declinedInvitationIds.add(invitationId);
-    
+    _declinedInvitationIds.add(groupId);
     // Find the invitation to get inviter's email for updating outgoing invitation status
     final allIncoming = await _getAllIncomingInvitations();
     final incomingInv = allIncoming.firstWhere(
-      (inv) => inv.id == invitationId,
+      (inv) => inv.groupId == groupId,
       orElse: () => throw Exception('Không tìm thấy lời mời'),
     );
     
@@ -687,9 +686,9 @@ class MockFamilyService implements FamilyService {
     
     // Filter out accepted and declined invitations
     return allInvitations
-        .where((inv) => 
-            !_acceptedInvitationIds.contains(inv.id) &&
-            !_declinedInvitationIds.contains(inv.id))
+        .where((inv) =>
+            !_acceptedInvitationIds.contains(inv.groupId) &&
+            !_declinedInvitationIds.contains(inv.groupId))
         .toList();
   }
 
@@ -708,7 +707,7 @@ class MockFamilyService implements FamilyService {
           id: '1',
           name: 'Gia đình chính',
           memberCount: 3,
-          userRole: GroupMemberRole.admin,
+          userRole: GroupMemberRole.owner,
           createdAt: DateTime(2024, 12, 1),
           updatedAt: now,
           sharedMetrics: [
@@ -743,7 +742,7 @@ class MockFamilyService implements FamilyService {
           id: '1',
           name: 'Gia đình chính',
           memberCount: 3,
-          userRole: GroupMemberRole.admin,
+          userRole: GroupMemberRole.owner,
           createdAt: DateTime(2024, 12, 1),
           updatedAt: now,
           sharedMetrics: [

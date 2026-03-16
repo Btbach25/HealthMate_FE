@@ -24,21 +24,27 @@ class FamilyState extends Equatable {
   final FamilyStatus status;
   final FamilyGroupSummary summary;
   final String? errorMessage;
+  /// True khi lỗi 401 (phiên hết hạn) → nút "Thử lại" chuyển sang đăng nhập.
+  final bool isSessionExpired;
   final String? createdGroupName;
   final GroupDetails? groupDetails;
   final String? currentGroupId;
   final List<IncomingInvitation> incomingInvitations;
   final List<OutgoingInvitation> outgoingInvitations;
+  /// FE-only: các group đã rời/xóa cục bộ, dùng để filter kết quả fetch trễ.
+  final Set<String> hiddenGroupIds;
 
   const FamilyState({
     required this.status,
     required this.summary,
     this.errorMessage,
+    this.isSessionExpired = false,
     this.createdGroupName,
     this.groupDetails,
     this.currentGroupId,
     this.incomingInvitations = const [],
     this.outgoingInvitations = const [],
+    this.hiddenGroupIds = const <String>{},
   });
 
   factory FamilyState.initial() {
@@ -52,6 +58,7 @@ class FamilyState extends Equatable {
       currentGroupId: null,
       incomingInvitations: [],
       outgoingInvitations: [],
+      hiddenGroupIds: <String>{},
     );
   }
 
@@ -59,11 +66,13 @@ class FamilyState extends Equatable {
     FamilyStatus? status,
     FamilyGroupSummary? summary,
     Object? errorMessage = _familyStateUnset,
+    Object? isSessionExpired = _familyStateUnset,
     Object? createdGroupName = _familyStateUnset,
     Object? groupDetails = _familyStateUnset,
     Object? currentGroupId = _familyStateUnset,
     Object? incomingInvitations = _familyStateUnset,
     Object? outgoingInvitations = _familyStateUnset,
+    Object? hiddenGroupIds = _familyStateUnset,
   }) {
     return FamilyState(
       status: status ?? this.status,
@@ -71,6 +80,9 @@ class FamilyState extends Equatable {
       errorMessage: identical(errorMessage, _familyStateUnset)
           ? this.errorMessage
           : errorMessage as String?,
+      isSessionExpired: identical(isSessionExpired, _familyStateUnset)
+          ? this.isSessionExpired
+          : isSessionExpired as bool,
       createdGroupName: identical(createdGroupName, _familyStateUnset)
           ? this.createdGroupName
           : createdGroupName as String?,
@@ -86,6 +98,9 @@ class FamilyState extends Equatable {
       outgoingInvitations: identical(outgoingInvitations, _familyStateUnset)
           ? this.outgoingInvitations
           : outgoingInvitations as List<OutgoingInvitation>,
+      hiddenGroupIds: identical(hiddenGroupIds, _familyStateUnset)
+          ? this.hiddenGroupIds
+          : hiddenGroupIds as Set<String>,
     );
   }
 
@@ -94,11 +109,13 @@ class FamilyState extends Equatable {
         status,
         summary,
         errorMessage,
+        isSessionExpired,
         createdGroupName,
         groupDetails,
         currentGroupId,
         incomingInvitations,
         outgoingInvitations,
+        hiddenGroupIds,
       ];
 }
 

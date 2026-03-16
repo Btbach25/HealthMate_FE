@@ -13,13 +13,24 @@ import 'package:intl/intl.dart';
 class FamilyMemberCard extends StatelessWidget {
   final FamilyMember member;
   final bool isOwner;
+  final bool isGroupOwner;
   final String groupId;
+  /// True khi đây là thẻ của chính bạn (chủ nhóm) → ẩn nút xóa, dùng "Rời nhóm" thay.
+  final bool isCurrentUser;
+  /// Bấm "Xem chỉ số" (nếu null thì hiện SnackBar "đang phát triển").
+  final VoidCallback? onViewMetrics;
+  /// Bấm "Theo dõi" (nếu null thì hiện SnackBar "đang phát triển").
+  final VoidCallback? onFollow;
 
   const FamilyMemberCard({
     super.key,
     required this.member,
     this.isOwner = false,
+    this.isGroupOwner = false,
     required this.groupId,
+    this.isCurrentUser = false,
+    this.onViewMetrics,
+    this.onFollow,
   });
 
 
@@ -75,7 +86,26 @@ class FamilyMemberCard extends StatelessWidget {
                             style: AppTextStyles.h4,
                           ),
                         ),
-                        if (isOwner && member.userId != 'current-user-id')
+                        if (isGroupOwner)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Chủ nhóm',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        if (isOwner && !isCurrentUser && member.userId != 'current-user-id')
                           IconButton(
                             icon: const Icon(Icons.delete_outline, size: 20),
                             onPressed: () => _showDeleteMemberDialog(context),
@@ -199,7 +229,19 @@ class FamilyMemberCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    if (onViewMetrics != null) {
+                      onViewMetrics!();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Xem chỉ số của ${member.name}: tính năng đang phát triển'),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
                   icon: const Icon(Icons.favorite_border, size: 18),
                   label: const Text('Xem chỉ số'),
                   style: OutlinedButton.styleFrom(
@@ -215,7 +257,19 @@ class FamilyMemberCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    if (onFollow != null) {
+                      onFollow!();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Theo dõi ${member.name}: tính năng đang phát triển'),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
                   icon: const Icon(Icons.favorite_outline, size: 18),
                   label: const Text('Theo dõi'),
                   style: OutlinedButton.styleFrom(

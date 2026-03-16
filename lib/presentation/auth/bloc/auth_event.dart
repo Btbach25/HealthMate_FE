@@ -19,3 +19,13 @@ class AuthStatusChanged extends AuthEvent {
 
 // Event được gửi khi người dùng yêu cầu đăng xuất
 class AuthLogoutRequested extends AuthEvent {}
+
+/// Cập nhật user trong state (sau khi sửa hồ sơ từ màn Cài đặt)
+class AuthUserUpdated extends AuthEvent {
+  final User user;
+
+  const AuthUserUpdated(this.user);
+
+  @override
+  List<Object> get props => [user];
+}
