@@ -18,12 +18,6 @@ class ApiClientImpl extends ApiClient {
 
   @override
   Future<String?> getAuthToken() async {
-    // Get token from local storage or wherever it's stored
-    // This is a placeholder - implement based on your auth flow
-    // _localStorageService is available for future token retrieval
-    // In real implementation, you might store token separately
-    // For now, return null or implement token storage
     return null;
   }
 }
-

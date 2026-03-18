@@ -14,6 +14,7 @@ import 'package:fe/data/services/mock_medication_service.dart';
 import 'package:fe/data/services/mock_stats_service.dart';
 import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
+import 'package:fe/data/services/readiness_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -55,6 +56,7 @@ Future<void> main() async {
       MedicationRepository(service: medicationService);
 
   final healthWsService = HealthWsService(localStorage);
+  final readinessService = ReadinessService(localStorage);
 
   runApp(MyApp(
     authRepository: authRepository,
@@ -64,6 +66,7 @@ Future<void> main() async {
     healthRepository: healthRepository,
     medicationRepository: medicationRepository,
     healthWsService: healthWsService,
+    readinessService: readinessService,
   ));
 }
 
@@ -75,6 +78,7 @@ class MyApp extends StatelessWidget {
   final HealthRepository _healthRepository;
   final MedicationRepository _medicationRepository;
   final HealthWsService _healthWsService;
+  final ReadinessService _readinessService;
 
   const MyApp({
     super.key,
@@ -85,13 +89,15 @@ class MyApp extends StatelessWidget {
     required HealthRepository healthRepository,
     required MedicationRepository medicationRepository,
     required HealthWsService healthWsService,
+    required ReadinessService readinessService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
        _familyRepository = familyRepository,
        _healthRepository = healthRepository,
        _medicationRepository = medicationRepository,
-       _healthWsService = healthWsService;
+       _healthWsService = healthWsService,
+       _readinessService = readinessService;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +121,7 @@ class MyApp extends StatelessWidget {
           // Tạo sớm ở app level để native plugin có thể đăng ký
           // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
           BlocProvider(
-            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService),
+            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService, _readinessService),
           ),
         ],
         child: const AppView(),

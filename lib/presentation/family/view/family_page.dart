@@ -14,7 +14,6 @@ class FamilyPage extends StatefulWidget {
 class _FamilyPageState extends State<FamilyPage> {
   bool _hasInitialized = false;
 
-  // Reusable refresh helper for family groups
   static final _refreshHelper = BlocRefreshHelper<FamilyBloc, FamilyState>(
     refreshTriggerStates: {
       FamilyStatus.groupDetailsLoaded,
@@ -47,7 +46,7 @@ class _FamilyPageState extends State<FamilyPage> {
 
   void _handleStateChange(FamilyState state) {
     if (!mounted) return;
-    
+
     final wasRefreshed = _refreshHelper.handleStateChange(
       context,
       state,

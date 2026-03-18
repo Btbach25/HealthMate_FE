@@ -83,10 +83,9 @@ class StatsMetricTile extends StatelessWidget {
                 metric.latestValue.toStringAsFixed(0),
                 style: valueStyle,
               ),
-              const SizedBox(height: 4),
               Text(
                 metric.unit,
-                style: const TextStyle(color: AppColors.textGrey, fontSize: 14),
+                style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
               ),
             ],
           ),
@@ -99,8 +98,8 @@ class StatsMetricTile extends StatelessWidget {
     final trend = metric.trendPercentage;
     if (trend == null || trend == 0) {
       return Text(
-        '${metric.readingCount} lần đo • Mới nhất: $lastUpdateFormatted',
-        style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+        '${metric.readingCount} lần đo • $lastUpdateFormatted',
+        style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
@@ -114,17 +113,19 @@ class StatsMetricTile extends StatelessWidget {
 
     return Row(
       children: [
-        Text(
-          '${metric.readingCount} lần đo • Mới nhất: $lastUpdateFormatted',
-          style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        Expanded(
+          child: Text(
+            '${metric.readingCount} lần đo • $lastUpdateFormatted',
+            style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        const SizedBox(width: 8),
-        Icon(trendIcon, color: trendColor, size: 16),
+        const SizedBox(width: 4),
+        Icon(trendIcon, color: trendColor, size: 14),
         Text(
           '${trend.toStringAsFixed(1)}%',
-          style: TextStyle(color: trendColor, fontSize: 12, fontWeight: FontWeight.bold),
+          style: TextStyle(color: trendColor, fontSize: 11, fontWeight: FontWeight.bold),
         ),
       ],
     );

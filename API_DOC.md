@@ -237,7 +237,86 @@ POST /auth/password
 
 ---
 
-## 2. Group APIs
+## 2. User APIs
+
+Base path: `/users/*`
+**Header bắt buộc:** `Authorization: Bearer <access_token>`
+
+---
+
+### 2.1 Lấy profile của tôi
+
+```
+GET /users/profile
+```
+
+**Response 200:**
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "Nguyen Van A",
+  "picture": "",
+  "role": "user",
+  "status": "verified",
+  "phone": "0901234567",
+  "address": "Hanoi, Vietnam",
+  "gender": "male",
+  "birthday": "1995-08-20",
+  "weight": 65.5,
+  "height": 170.0,
+  "blood_group": "O+",
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+> Các field `phone`, `address`, `gender`, `birthday`, `weight`, `height`, `blood_group` chỉ có khi đã được cập nhật.
+
+---
+
+### 2.2 Cập nhật profile của tôi
+
+```
+PUT /users/profile
+```
+
+**Body:** (tất cả optional — chỉ gửi field cần thay đổi)
+```json
+{
+  "name":        "Nguyen Van A",
+  "picture":     "https://...",
+  "phone":       "0901234567",
+  "address":     "Hanoi, Vietnam",
+  "gender":      "male",
+  "birthday":    "1995-08-20",
+  "weight":      65.5,
+  "height":      170.0,
+  "blood_group": "O+"
+}
+```
+
+**Response 200:** `(empty body)`
+
+---
+
+### 2.3 Tìm kiếm / danh sách người dùng
+
+```
+GET /users?search=keyword&limit=20&offset=0
+```
+
+| Query param | Kiểu   | Mô tả |
+|-------------|--------|-------|
+| `search`    | string | Tìm theo tên hoặc email (optional) |
+| `limit`     | int    | Số lượng kết quả (mặc định 20) |
+| `offset`    | int    | Vị trí bắt đầu (mặc định 0) |
+
+**Response 200:** `[User]` — mảng User (tương tự 2.1, có thể thiếu profile fields)
+
+---
+
+## 3. Group APIs
 
 Base path: `/groups/*`
 **Header bắt buộc:** `Authorization: Bearer <access_token>`
@@ -541,7 +620,7 @@ PUT /groups/:id/permissions
 
 ---
 
-## 3. Real-time WebSocket
+## 4. Real-time WebSocket
 
 **Endpoint:** `ws://localhost:8080/ws?token=<access_token>`
 
@@ -630,7 +709,64 @@ const ws = new WebSocket(`ws://localhost:8080/ws?token=${accessToken}`);
 
 ---
 
-## 4. Gợi ý flow tích hợp cho Frontend
+## 5. Readiness Score API (ML)
+
+Base path: `/metrics` — qua Nginx proxy tới `storage-service`.
+**Header bắt buộc:** `Authorization: Bearer <access_token>`
+
+---
+
+### 4.1 Dự đoán điểm sẵn sàng thể chất
+
+```
+POST /metrics/readiness
+```
+
+**Body:**
+```json
+{
+  "heart_rate":       75.0,
+  "sleep_duration":   7.5,
+  "stress_level":     "Low",
+  "blood_oxygen":     97.0,
+  "steps":            8000,
+  "calories_burned":  450
+}
+```
+
+| Field            | Kiểu     | Bắt buộc | Mô tả |
+|------------------|----------|----------|-------|
+| `heart_rate`     | float    | ✅       | Nhịp tim (bpm) |
+| `sleep_duration` | float    | ✅       | Số giờ ngủ |
+| `stress_level`   | string   | ✅       | `"None"` / `"Low"` / `"Moderate"` / `"High"` / `"Very High"` |
+| `blood_oxygen`   | float    | ✅       | SpO2 % (tự động clip về [85, 100]) |
+| `steps`          | float    | ❌       | Số bước/ngày (mặc định 0) |
+| `calories_burned`| float    | ❌       | Calories tiêu thụ kcal (mặc định 0) |
+
+**Response 200:**
+```json
+{
+  "readiness_score": 72.4
+}
+```
+
+> `readiness_score` là số thực trong khoảng **[0, 100]** — do model ONNX tính toán trên server.
+> Giá trị càng cao, cơ thể càng sẵn sàng vận động.
+
+**Response 400:** Body thiếu field bắt buộc.
+**Response 500:** Model chưa khởi tạo hoặc lỗi inference.
+
+---
+
+## 6. Gợi ý flow tích hợp cho Frontend
+
+### Flow lấy & cập nhật profile:
+1. `GET /users/profile` — lấy thông tin hiện tại
+2. `PUT /users/profile` — cập nhật các field cần thiết
+
+### Flow tìm người dùng để mời vào nhóm:
+1. `GET /users?search=email_hoặc_tên` — tìm user
+2. `POST /groups/:id/members` — mời bằng email
 
 ### Flow đăng ký + xác thực:
 1. `POST /auth/register` — nhận message, chờ OTP
@@ -652,7 +788,7 @@ const ws = new WebSocket(`ws://localhost:8080/ws?token=${accessToken}`);
 
 ---
 
-## 5. Các Metric Types hiện có
+## 7. Các Metric Types hiện có
 
 | Giá trị | Ý nghĩa |
 |---------|---------|

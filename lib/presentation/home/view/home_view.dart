@@ -25,17 +25,22 @@ class _HomeViewState extends State<HomeView> {
   Timer? _pollTimer;
 
   void _startPolling(BuildContext context) {
-    if (kIsWeb) return; // skip device health polling on web
-    context.read<DeviceHealthCubit>().poll();
+    if (kIsWeb) return;
+    final cubit = context.read<DeviceHealthCubit>();
+    cubit.poll().then((_) => cubit.startPeriodicSync());
     _pollTimer?.cancel();
+    // Re-fetch device data mỗi 5 phút (dữ liệu HealthKit/Health Connect không đổi liên tục)
     _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      context.read<DeviceHealthCubit>().poll();
+      cubit.poll();
     });
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    if (!kIsWeb) {
+      context.read<DeviceHealthCubit>().stopPeriodicSync();
+    }
     super.dispose();
   }
 
@@ -124,14 +129,27 @@ class _HomeViewState extends State<HomeView> {
                                   const SizedBox(height: 12),
                                   BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
                                     builder: (context, dState) {
-                                      if (dState.lastUpdated == null) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final ts = dState.lastUpdated!;
-                                      final time = '${ts.hour.toString().padLeft(2,'0')}:${ts.minute.toString().padLeft(2,'0')}';
-                                      return Text(
-                                        'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Readiness Score card
+                                          if (dState.readinessLoading)
+                                            _ReadinessLoadingCard()
+                                          else if (dState.readinessScore != null)
+                                            _ReadinessScoreCard(score: dState.readinessScore!),
+
+                                          if (dState.lastUpdated != null) ...[
+                                            const SizedBox(height: 6),
+                                            Builder(builder: (_) {
+                                              final ts = dState.lastUpdated!;
+                                              final time = '${ts.hour.toString().padLeft(2,'0')}:${ts.minute.toString().padLeft(2,'0')}';
+                                              return Text(
+                                                'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
+                                                style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                              );
+                                            }),
+                                          ],
+                                        ],
                                       );
                                     },
                                   ),
@@ -159,6 +177,77 @@ class _HomeViewState extends State<HomeView> {
           }
           return const Center(child: Text('Trạng thái không xác định'));
         },
+      ),
+    );
+  }
+}
+
+class _ReadinessLoadingCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: const [
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text('Đang tính điểm sẵn sàng...', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessScoreCard extends StatelessWidget {
+  final double score;
+  const _ReadinessScoreCard({required this.score});
+
+  Color _scoreColor() {
+    if (score >= 75) return const Color(0xFF4CAF50);
+    if (score >= 50) return const Color(0xFFFFC107);
+    return const Color(0xFFF44336);
+  }
+
+  String _scoreLabel() {
+    if (score >= 75) return 'Tốt';
+    if (score >= 50) return 'Trung bình';
+    return 'Cần nghỉ ngơi';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _scoreColor();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Center(
+                child: Text(
+                  score.toStringAsFixed(0),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Điểm sẵn sàng thể chất', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(_scoreLabel(), style: TextStyle(fontSize: 12, color: color)),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.bolt_rounded, color: color),
+          ],
+        ),
       ),
     );
   }

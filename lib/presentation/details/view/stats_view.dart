@@ -64,23 +64,40 @@ class _StatsViewState extends State<StatsView>
                       // SliverAppBar chứa Header, Buttons, và TabBar
                       SliverAppBar(
                         backgroundColor: AppColors.background,
-                        pinned: true, // Ghim TabBar ở trên cùng
-                        automaticallyImplyLeading: false, // Bỏ nút back
-                        flexibleSpace: FlexibleSpaceBar(
-                          // Dùng Column vì TabBar phải ở dưới cùng
-                          background: Column(
-                            children: [
-                              // 1. Header Card
-                              StatsHeaderCard(
-                                totalReadings: data.totalReadings,
-                                totalTypes: data.totalTypes,
+                        pinned: true,
+                        automaticallyImplyLeading: false,
+                        titleSpacing: 0,
+                        title: SafeArea(
+                          bottom: false,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Chỉ số sức khỏe',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
                               ),
-                              _buildActionButtons(),
-                            ],
+                            ),
+                          ),
+                        ),
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: SafeArea(
+                            bottom: false,
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 56), // chừa chỗ cho title
+                                StatsHeaderCard(
+                                  totalReadings: data.totalReadings,
+                                  totalTypes: data.totalTypes,
+                                ),
+                                _buildActionButtons(),
+                              ],
+                            ),
                           ),
                         ),
                         bottom: StatsTabBar(controller: _tabController),
-                        expandedHeight: 280,
+                        expandedHeight: 300,
                       ),
                     ];
                   },

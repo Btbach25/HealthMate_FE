@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -6,25 +7,26 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 
 /// Service upload dữ liệu sức khỏe lên BE qua WebSocket.
-/// BE endpoint: ws://host/ws?token=access_token
-/// Mỗi lần gọi uploadDataPoints sẽ mở kết nối, gửi dữ liệu rồi đóng.
+/// Giữ kết nối persistent, tự reconnect khi bị đứt.
 class HealthWsService {
   final LocalStorageService _localStorage;
 
   HealthWsService(this._localStorage);
+
+  WebSocketChannel? _channel;
+  bool _connected = false;
+  String? _userId;
 
   String get _wsBaseUrl {
     final envUrl = dotenv.env['BASE_URL'];
     final httpBase = (envUrl != null && envUrl.isNotEmpty)
         ? envUrl
         : 'http://localhost:8080';
-    // http → ws, https → wss
     return httpBase
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
   }
 
-  /// Map từ HealthDataType của device → metric_type mà BE chấp nhận.
   static const Map<HealthDataType, String> _metricMap = {
     HealthDataType.HEART_RATE: 'heart_rate',
     HealthDataType.RESTING_HEART_RATE: 'heart_rate',
@@ -34,65 +36,92 @@ class HealthWsService {
     HealthDataType.BLOOD_OXYGEN: 'spo2',
   };
 
-  double? _extractNumericValue(HealthDataPoint point) {
-    final value = point.value;
-    if (value is NumericHealthValue) return value.numericValue.toDouble();
+  double? _extractNumeric(HealthDataPoint point) {
+    final v = point.value;
+    if (v is NumericHealthValue) return v.numericValue.toDouble();
     return null;
   }
 
-  /// Upload danh sách data points lên BE qua WebSocket.
-  /// Chỉ gửi các metric type mà BE hỗ trợ.
-  Future<void> uploadDataPoints(List<HealthDataPoint> points) async {
-    // Device health không có trên web
-    if (kIsWeb) return;
+  /// Kết nối WS. Gọi một lần khi bắt đầu sync.
+  Future<void> connect() async {
+    if (kIsWeb || _connected) return;
 
     final token = await _localStorage.getAccessToken();
-    if (token == null) {
-      debugPrint('[HealthWs] Chưa đăng nhập, bỏ qua upload');
-      return;
-    }
+    if (token == null) return;
 
     final user = await _localStorage.getUser();
-    if (user == null) {
-      debugPrint('[HealthWs] Không có thông tin user');
-      return;
-    }
+    if (user == null) return;
+    _userId = user.id;
 
-    final supported =
-        points.where((p) => _metricMap.containsKey(p.type)).toList();
-    if (supported.isEmpty) {
-      debugPrint('[HealthWs] Không có metric nào để upload');
-      return;
-    }
-
-    WebSocketChannel? channel;
     try {
       final uri = Uri.parse('$_wsBaseUrl/ws?token=$token');
-      debugPrint('[HealthWs] Connecting to $uri');
-      channel = WebSocketChannel.connect(uri);
-      await channel.ready;
-      debugPrint('[HealthWs] Connected. Uploading ${supported.length} points...');
+      _channel = WebSocketChannel.connect(uri);
+      await _channel!.ready;
+      _connected = true;
+      debugPrint('[HealthWs] Connected to $uri');
 
-      int sent = 0;
-      for (final point in supported) {
-        final metricType = _metricMap[point.type]!;
-        final value = _extractNumericValue(point);
-        if (value == null) continue;
+      // Lắng nghe lỗi / đóng kết nối để reconnect
+      _channel!.stream.listen(
+        (_) {},
+        onError: (_) => _onDisconnected(),
+        onDone: _onDisconnected,
+      );
+    } catch (e) {
+      _connected = false;
+      debugPrint('[HealthWs] Connect failed: $e');
+    }
+  }
 
-        channel.sink.add(jsonEncode({
-          'user_id': user.id,
-          'metric_type': metricType,
+  void _onDisconnected() {
+    _connected = false;
+    _channel = null;
+    debugPrint('[HealthWs] Disconnected');
+  }
+
+  /// Gửi các metric mới nhất từ danh sách data points.
+  /// Nếu chưa kết nối thì tự connect lại.
+  Future<void> sendLatestMetrics(List<HealthDataPoint> points) async {
+    if (kIsWeb) return;
+    if (!_connected) await connect();
+    if (!_connected || _channel == null || _userId == null) return;
+
+    // Lấy điểm mới nhất cho mỗi metric type
+    final latest = <String, HealthDataPoint>{};
+    for (final point in points) {
+      final metricType = _metricMap[point.type];
+      if (metricType == null) continue;
+      final existing = latest[metricType];
+      if (existing == null || point.dateFrom.isAfter(existing.dateFrom)) {
+        latest[metricType] = point;
+      }
+    }
+
+    if (latest.isEmpty) return;
+
+    int sent = 0;
+    for (final entry in latest.entries) {
+      final value = _extractNumeric(entry.value);
+      if (value == null) continue;
+      try {
+        _channel!.sink.add(jsonEncode({
+          'user_id': _userId,
+          'metric_type': entry.key,
           'value': value,
-          'timestamp': point.dateFrom.toUtc().toIso8601String(),
+          'timestamp': entry.value.dateFrom.toUtc().toIso8601String(),
         }));
         sent++;
+      } catch (e) {
+        debugPrint('[HealthWs] Send error: $e');
+        _onDisconnected();
+        break;
       }
-
-      debugPrint('[HealthWs] Sent $sent metric points');
-    } catch (e) {
-      debugPrint('[HealthWs] Upload error: $e');
-    } finally {
-      await channel?.sink.close();
     }
+    if (sent > 0) debugPrint('[HealthWs] Sent $sent metrics');
+  }
+
+  Future<void> disconnect() async {
+    await _channel?.sink.close();
+    _connected = false;
+    _channel = null;
   }
 }

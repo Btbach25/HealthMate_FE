@@ -78,6 +78,7 @@ flutter:
   assets:
     - .env
     - .env.dev
+    - .env.mobile
     - .env.prod
     - assets/fonts/
     - assets/icons/

@@ -10,8 +10,8 @@
       "type": "dart",
       "flutterMode": "debug",
       "args": [
-        "--dart-define=ENV=dev",
-        "--dart-define-from-file=.env.dev"
+        "--dart-define=ENV=mobile",
+        "--dart-define-from-file=.env.mobile"
       ]
     },
     {
