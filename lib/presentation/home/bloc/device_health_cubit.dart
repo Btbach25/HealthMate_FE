@@ -55,7 +55,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   final ReadinessService _readinessService;
 
   Timer? _syncTimer;
+  Timer? _fetchTimer;
   List<HealthDataPoint> _lastPoints = [];
+
+  List<HealthDataPoint> get lastPoints => List.unmodifiable(_lastPoints);
 
   DeviceHealthCubit(this._service, this._wsService, this._readinessService)
       : super(const DeviceHealthState());
@@ -90,10 +93,13 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     _fetchReadiness(result);
   }
 
-  /// Bắt đầu gửi dữ liệu lên BE mỗi 5 giây qua WebSocket.
+  /// Bắt đầu gửi dữ liệu lên BE mỗi 5 giây qua WebSocket
+  /// và re-fetch Health Connect mỗi 60 giây để lấy data mới từ Samsung Health.
   void startPeriodicSync() {
     if (kIsWeb) return;
     _syncTimer?.cancel();
+    _fetchTimer?.cancel();
+
     _syncTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_lastPoints.isNotEmpty) {
         _wsService.sendLatestMetrics(_lastPoints).catchError((e) {
@@ -101,13 +107,30 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
         });
       }
     });
-    debugPrint('[DeviceHealthCubit] Periodic sync started (every 5s)');
+
+    _fetchTimer = Timer.periodic(const Duration(seconds: 60), (_) async {
+      final result = await _service.fetchAll();
+      if (result == null) return;
+      _lastPoints = result.dataPoints;
+      emit(state.copyWith(
+        lastUpdated: result.fetchedAt,
+        totalSteps: result.totalSteps,
+        dataCount: result.dataPoints.length,
+      ));
+      _wsService.sendLatestMetrics(_lastPoints).catchError((e) {
+        debugPrint('[DeviceHealthCubit] Fetch-timer sync error: $e');
+      });
+    });
+
+    debugPrint('[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:60s)');
   }
 
   /// Dừng gửi định kỳ và đóng WS.
   void stopPeriodicSync() {
     _syncTimer?.cancel();
     _syncTimer = null;
+    _fetchTimer?.cancel();
+    _fetchTimer = null;
     _wsService.disconnect();
     debugPrint('[DeviceHealthCubit] Periodic sync stopped');
   }

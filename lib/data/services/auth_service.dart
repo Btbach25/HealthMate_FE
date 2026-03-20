@@ -24,6 +24,7 @@ abstract class AuthService {
   Future<bool> verifyOtp({required String email, required String otp});
   Future<void> resendOtp({required String email});
   Future<void> resetPassword({required String newPassword});
+  Future<String?> refreshAccessToken(String refreshToken);
 }
 
 class AuthApiService implements AuthService {
@@ -251,5 +252,30 @@ class AuthApiService implements AuthService {
   Future<void> resetPassword({required String newPassword}) async {
     // TODO: Gọi API
     throw UnimplementedError();
+  }
+
+  @override
+  Future<String?> refreshAccessToken(String refreshToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final newToken = body['access_token'] as String?;
+        if (newToken != null) {
+          await _localStorage.saveAccessToken(newToken);
+          debugPrint('[Auth] Token refreshed successfully');
+          return newToken;
+        }
+      }
+      debugPrint('[Auth] refreshAccessToken failed: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('[Auth] refreshAccessToken error: $e');
+    }
+    return null;
   }
 }

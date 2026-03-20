@@ -40,6 +40,7 @@ class OtpView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<AuthFormBloc, AuthFormState>(
       listener: (context, state) {
+        if (!context.mounted) return;
         if (state.status == FormStatus.failure) {
           ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
         }

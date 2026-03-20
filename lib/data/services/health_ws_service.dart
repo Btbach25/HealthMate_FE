@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:health/health.dart';
@@ -10,8 +11,10 @@ import 'package:fe/data/services/local_storage_service.dart';
 /// Giữ kết nối persistent, tự reconnect khi bị đứt.
 class HealthWsService {
   final LocalStorageService _localStorage;
+  final Future<String?> Function()? _onRefresh;
 
-  HealthWsService(this._localStorage);
+  HealthWsService(this._localStorage, {Future<String?> Function()? onRefresh})
+      : _onRefresh = onRefresh;
 
   WebSocketChannel? _channel;
   bool _connected = false;
@@ -19,9 +22,14 @@ class HealthWsService {
 
   String get _wsBaseUrl {
     final envUrl = dotenv.env['BASE_URL'];
-    final httpBase = (envUrl != null && envUrl.isNotEmpty)
-        ? envUrl
-        : 'http://localhost:8080';
+    String httpBase;
+    if (envUrl != null && envUrl.isNotEmpty) {
+      httpBase = envUrl;
+    } else if (!kIsWeb && Platform.isAndroid) {
+      httpBase = 'http://10.0.2.2:8080';
+    } else {
+      httpBase = 'http://localhost:8080';
+    }
     return httpBase
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
@@ -46,21 +54,31 @@ class HealthWsService {
   Future<void> connect() async {
     if (kIsWeb || _connected) return;
 
-    final token = await _localStorage.getAccessToken();
-    if (token == null) return;
-
     final user = await _localStorage.getUser();
     if (user == null) return;
     _userId = user.id;
 
+    // Thử kết nối với token hiện tại
+    String? token = await _localStorage.getAccessToken();
+    if (token == null) return;
+
+    await _tryConnect(token);
+
+    // Nếu thất bại, thử refresh token và kết nối lại
+    if (!_connected && _onRefresh != null) {
+      final newToken = await _onRefresh();
+      if (newToken != null) await _tryConnect(newToken);
+    }
+  }
+
+  Future<void> _tryConnect(String token) async {
     try {
       final uri = Uri.parse('$_wsBaseUrl/ws?token=$token');
       _channel = WebSocketChannel.connect(uri);
       await _channel!.ready;
       _connected = true;
-      debugPrint('[HealthWs] Connected to $uri');
+      debugPrint('[HealthWs] Connected');
 
-      // Lắng nghe lỗi / đóng kết nối để reconnect
       _channel!.stream.listen(
         (_) {},
         onError: (_) => _onDisconnected(),
@@ -68,6 +86,7 @@ class HealthWsService {
       );
     } catch (e) {
       _connected = false;
+      _channel = null;
       debugPrint('[HealthWs] Connect failed: $e');
     }
   }

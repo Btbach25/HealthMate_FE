@@ -11,7 +11,7 @@ import 'package:fe/data/services/mock_family_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:fe/data/services/mock_medication_service.dart';
-import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/services/api_stats_service.dart';
 import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
 import 'package:fe/data/services/readiness_service.dart';
@@ -45,18 +45,18 @@ Future<void> main() async {
 
   final homeService = MockHomeService();
   final homeRepository = HomeRepository(homeService: homeService);
-  final statsService = MockStatsService();
+  final statsService = ApiStatsService(localStorage, onRefresh: authRepository.refreshToken);
   final statsRepository = StatsRepository(statsService: statsService);
   final familyService = MockFamilyService();
   final familyRepository = FamilyRepository(familyService: familyService);
-  final healthService = HealthService(localStorage);
+  final healthService = HealthService(localStorage, onRefresh: authRepository.refreshToken);
   final healthRepository = HealthRepository(service: healthService);
   final medicationService = MockMedicationService();
   final medicationRepository =
       MedicationRepository(service: medicationService);
 
-  final healthWsService = HealthWsService(localStorage);
-  final readinessService = ReadinessService(localStorage);
+  final healthWsService = HealthWsService(localStorage, onRefresh: authRepository.refreshToken);
+  final readinessService = ReadinessService(localStorage, onRefresh: authRepository.refreshToken);
 
   runApp(MyApp(
     authRepository: authRepository,

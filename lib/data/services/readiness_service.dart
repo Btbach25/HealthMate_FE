@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:fe/core/utils/auth_http_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:fe/data/services/local_storage_service.dart';
 
 class ReadinessService {
-  final LocalStorageService _localStorage;
+  final AuthHttpHelper _http;
 
-  ReadinessService(this._localStorage);
+  ReadinessService(LocalStorageService localStorage, {Future<String?> Function()? onRefresh})
+      : _http = AuthHttpHelper(localStorage, onRefresh);
 
   String get _baseUrl {
     final envUrl = dotenv.env['BASE_URL'];
@@ -27,10 +28,7 @@ class ReadinessService {
     double? steps,
     double? caloriesBurned,
   }) async {
-    final token = await _localStorage.getAccessToken();
-    if (token == null) return null;
-
-    final body = <String, dynamic>{
+    final reqBody = <String, dynamic>{
       'heart_rate': heartRate,
       'sleep_duration': sleepDuration,
       'stress_level': stressLevel,
@@ -40,16 +38,10 @@ class ReadinessService {
     };
 
     try {
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/metrics/readiness'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await _http.post(
+        Uri.parse('$_baseUrl/metrics/readiness'),
+        body: jsonEncode(reqBody),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

@@ -709,14 +709,62 @@ const ws = new WebSocket(`ws://localhost:8080/ws?token=${accessToken}`);
 
 ---
 
-## 5. Readiness Score API (ML)
+## 5. Metrics API
 
 Base path: `/metrics` — qua Nginx proxy tới `storage-service`.
 **Header bắt buộc:** `Authorization: Bearer <access_token>`
 
 ---
 
-### 4.1 Dự đoán điểm sẵn sàng thể chất
+### 5.1 Lấy dữ liệu biểu đồ sức khỏe theo range
+
+```
+GET /metrics/charts
+```
+
+**Query params:**
+
+| Param | Kiểu | Bắt buộc | Mô tả |
+|-------|------|----------|-------|
+| `user_id` | string | ✅ | UUID của user cần lấy data |
+| `metric_type` | string | ✅ | Loại chỉ số: `heart_rate`, `steps_count`, `calories_burned`, `blood_pressure`, `spo2` |
+| `range` | string | ✅ | Khoảng thời gian: `24h`, `7d`, `30d`, hoặc `custom` |
+| `start_time` | string | Chỉ khi `range=custom` | Thời gian bắt đầu, định dạng RFC3339 (VD: `2026-03-01T00:00:00Z`) |
+| `end_time` | string | Chỉ khi `range=custom` | Thời gian kết thúc, định dạng RFC3339 |
+
+**Bucket size tự động theo range:**
+
+| Range | Bucket |
+|-------|--------|
+| `24h` | 15 phút |
+| `7d` | 1 ngày |
+| `30d` | 1 ngày |
+| `custom` (≤ 2 ngày) | 1 giờ |
+| `custom` (≤ 30 ngày) | 1 ngày |
+| `custom` (≤ 365 ngày) | 1 tuần |
+
+**Ví dụ request:**
+```
+GET /metrics/charts?user_id=uuid&metric_type=heart_rate&range=7d
+GET /metrics/charts?user_id=uuid&metric_type=steps_count&range=custom&start_time=2026-03-01T00:00:00Z&end_time=2026-03-19T00:00:00Z
+```
+
+**Response 200:**
+```json
+{
+  "data": [
+    { "timestamp": "2026-03-13T00:00:00Z", "value": 75.0 },
+    { "timestamp": "2026-03-14T00:00:00Z", "value": 78.5 },
+    { "timestamp": "2026-03-15T00:00:00Z", "value": 72.0 }
+  ]
+}
+```
+
+**Response 400:** Thiếu `user_id`, `metric_type`, hoặc `start_time`/`end_time` khi dùng `range=custom`.
+
+---
+
+### 5.2 Dự đoán điểm sẵn sàng thể chất
 
 ```
 POST /metrics/readiness
