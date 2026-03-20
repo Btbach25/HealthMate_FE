@@ -8,7 +8,12 @@ abstract class FamilyEvent extends Equatable {
 }
 
 class FetchFamilyGroups extends FamilyEvent {
-  const FetchFamilyGroups();
+  /// True khi đây là lần gọi lại sau 401 (tránh retry vô hạn).
+  final bool isRetryAfter401;
+  const FetchFamilyGroups({this.isRetryAfter401 = false});
+
+  @override
+  List<Object?> get props => [isRetryAfter401];
 }
 
 class CreateGroup extends FamilyEvent {
@@ -59,11 +64,13 @@ class LeaveGroup extends FamilyEvent {
 
 class FetchGroupDetails extends FamilyEvent {
   final String groupId;
+  /// True khi đây là lần gọi lại sau 401 (tránh retry vô hạn).
+  final bool isRetryAfter401;
 
-  const FetchGroupDetails({required this.groupId});
+  const FetchGroupDetails({required this.groupId, this.isRetryAfter401 = false});
 
   @override
-  List<Object?> get props => [groupId];
+  List<Object?> get props => [groupId, isRetryAfter401];
 }
 
 class InviteMember extends FamilyEvent {
@@ -73,6 +80,8 @@ class InviteMember extends FamilyEvent {
   final String? relationship;
   final int? age;
   final List<String> sharedMetrics;
+  /// UUID của user được mời (backend API bắt buộc). Nếu null, API thật sẽ báo lỗi.
+  final String? userId;
 
   const InviteMember({
     required this.groupId,
@@ -81,10 +90,11 @@ class InviteMember extends FamilyEvent {
     this.relationship,
     this.age,
     required this.sharedMetrics,
+    this.userId,
   });
 
   @override
-  List<Object?> get props => [groupId, email, name, relationship, age, sharedMetrics];
+  List<Object?> get props => [groupId, email, name, relationship, age, sharedMetrics, userId];
 }
 
 class TransferOwnership extends FamilyEvent {
@@ -108,26 +118,32 @@ class FetchOutgoingInvitations extends FamilyEvent {
   const FetchOutgoingInvitations();
 }
 
+/// BE dùng group ID trong path: POST /groups/:id/accept.
 class AcceptInvitation extends FamilyEvent {
-  final String invitationId;
+  final String groupId;
   final List<String> sharedMetrics;
+  /// Số thành viên hiện tại trong nhóm (không tính người đang nhận lời mời).
+  /// Dùng để cập nhật optimistic UI ngay sau khi chấp nhận.
+  final int? currentMemberCount;
 
   const AcceptInvitation({
-    required this.invitationId,
+    required this.groupId,
     required this.sharedMetrics,
+    this.currentMemberCount,
   });
 
   @override
-  List<Object?> get props => [invitationId, sharedMetrics];
+  List<Object?> get props => [groupId, sharedMetrics, currentMemberCount];
 }
 
+/// BE dùng group ID trong path: POST /groups/:id/reject.
 class DeclineInvitation extends FamilyEvent {
-  final String invitationId;
+  final String groupId;
 
-  const DeclineInvitation({required this.invitationId});
+  const DeclineInvitation({required this.groupId});
 
   @override
-  List<Object?> get props => [invitationId];
+  List<Object?> get props => [groupId];
 }
 
 class RemoveMember extends FamilyEvent {

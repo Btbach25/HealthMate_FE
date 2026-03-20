@@ -6,13 +6,9 @@ import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
 import 'package:fe/data/services/family_service.dart';
 
-/// Repository layer that abstracts data sources
-/// Currently uses FamilyService (can be Mock or API implementation)
-/// 
-/// This layer provides:
-/// - Error handling and transformation
-/// - Caching (can be added later)
-/// - Data transformation
+/// Repository layer that abstracts data sources.
+/// Wraps unexpected errors into [UnknownException] for getFamilyGroups;
+/// all other methods simply rethrow.
 class FamilyRepository {
   final FamilyService _familyService;
 
@@ -23,10 +19,8 @@ class FamilyRepository {
     try {
       return await _familyService.getFamilyGroups();
     } on ApiException {
-      // Re-throw ApiException as-is (already has proper error messages)
       rethrow;
     } catch (e) {
-      // Wrap unexpected errors
       throw UnknownException(
         message: 'Lỗi khi tải danh sách nhóm gia đình.',
         originalError: e,
@@ -37,52 +31,25 @@ class FamilyRepository {
   Future<FamilyGroup> createGroup({
     required String name,
     required List<String> sharedMetrics,
-  }) async {
-    try {
-      return await _familyService.createGroup(
-        name: name,
-        sharedMetrics: sharedMetrics,
-      );
-    } catch (e) {
-      print('Error in FamilyRepository.createGroup: $e');
-      rethrow;
-    }
-  }
+  }) =>
+      _familyService.createGroup(name: name, sharedMetrics: sharedMetrics);
 
   Future<void> updateGroup({
     required String groupId,
     String? name,
     List<String>? sharedMetrics,
-  }) async {
-    try {
-      await _familyService.updateGroup(
+  }) =>
+      _familyService.updateGroup(
         groupId: groupId,
         name: name,
         sharedMetrics: sharedMetrics,
       );
-    } catch (e) {
-      print('Error in FamilyRepository.updateGroup: $e');
-      rethrow;
-    }
-  }
 
-  Future<void> deleteGroup({required String groupId}) async {
-    try {
-      await _familyService.deleteGroup(groupId: groupId);
-    } catch (e) {
-      print('Error in FamilyRepository.deleteGroup: $e');
-      rethrow;
-    }
-  }
+  Future<void> deleteGroup({required String groupId}) =>
+      _familyService.deleteGroup(groupId: groupId);
 
-  Future<void> leaveGroup({required String groupId}) async {
-    try {
-      await _familyService.leaveGroup(groupId: groupId);
-    } catch (e) {
-      print('Error in FamilyRepository.leaveGroup: $e');
-      rethrow;
-    }
-  }
+  Future<void> leaveGroup({required String groupId}) =>
+      _familyService.leaveGroup(groupId: groupId);
 
   Future<void> inviteMember({
     required String groupId,
@@ -91,102 +58,57 @@ class FamilyRepository {
     String? relationship,
     int? age,
     required List<String> sharedMetrics,
-  }) async {
-    try {
-      await _familyService.inviteMember(
+    String? userId,
+  }) =>
+      _familyService.inviteMember(
         groupId: groupId,
         email: email,
         name: name,
         relationship: relationship,
         age: age,
         sharedMetrics: sharedMetrics,
+        userId: userId,
       );
-    } catch (e) {
-      print('Error in FamilyRepository.inviteMember: $e');
-      rethrow;
-    }
-  }
 
-  Future<GroupDetails> getGroupDetails({required String groupId}) async {
-    try {
-      return await _familyService.getGroupDetails(groupId: groupId);
-    } catch (e) {
-      print('Error in FamilyRepository.getGroupDetails: $e');
-      rethrow;
-    }
-  }
+  Future<GroupDetails> getGroupDetails({
+    required String groupId,
+    FamilyGroup? cachedGroup,
+  }) =>
+      _familyService.getGroupDetails(
+        groupId: groupId,
+        cachedGroup: cachedGroup,
+      );
 
   Future<void> transferOwnership({
     required String groupId,
     required String newOwnerId,
-  }) async {
-    try {
-      await _familyService.transferOwnership(
+  }) =>
+      _familyService.transferOwnership(
         groupId: groupId,
         newOwnerId: newOwnerId,
       );
-    } catch (e) {
-      print('Error in FamilyRepository.transferOwnership: $e');
-      rethrow;
-    }
-  }
 
   Future<void> acceptInvitation({
-    required String invitationId,
+    required String groupId,
     required List<String> sharedMetrics,
-  }) async {
-    try {
-      await _familyService.acceptInvitation(
-        invitationId: invitationId,
+  }) =>
+      _familyService.acceptInvitation(
+        groupId: groupId,
         sharedMetrics: sharedMetrics,
       );
-    } catch (e) {
-      print('Error in FamilyRepository.acceptInvitation: $e');
-      rethrow;
-    }
-  }
 
-  Future<void> declineInvitation({required String invitationId}) async {
-    try {
-      await _familyService.declineInvitation(invitationId: invitationId);
-    } catch (e) {
-      print('Error in FamilyRepository.declineInvitation: $e');
-      rethrow;
-    }
-  }
+  Future<void> declineInvitation({required String groupId}) =>
+      _familyService.declineInvitation(groupId: groupId);
 
-  Future<List<IncomingInvitation>> getIncomingInvitations() async {
-    try {
-      return await _familyService.getIncomingInvitations();
-    } catch (e) {
-      print('Error in FamilyRepository.getIncomingInvitations: $e');
-      rethrow;
-    }
-  }
+  Future<List<IncomingInvitation>> getIncomingInvitations() =>
+      _familyService.getIncomingInvitations();
 
-  Future<List<OutgoingInvitation>> getOutgoingInvitations() async {
-    try {
-      return await _familyService.getOutgoingInvitations();
-    } catch (e) {
-      print('Error in FamilyRepository.getOutgoingInvitations: $e');
-      rethrow;
-    }
-  }
+  Future<List<OutgoingInvitation>> getOutgoingInvitations() =>
+      _familyService.getOutgoingInvitations();
 
   Future<void> removeMember({
     required String groupId,
     required String memberId,
-  }) async {
-    try {
-      await _familyService.removeMember(
-        groupId: groupId,
-        memberId: memberId,
-      );
-    } catch (e) {
-      print('Error in FamilyRepository.removeMember: $e');
-      rethrow;
-    }
-  }
+  }) =>
+      _familyService.removeMember(groupId: groupId, memberId: memberId);
 }
-
-

@@ -45,33 +45,5 @@ class FamilyStateHelper {
     return contentStates.contains(state.status);
   }
 
-  /// Checks if state indicates a successful operation
-  static bool isSuccessState(FamilyStatus status) {
-    final successStates = {
-      FamilyStatus.groupCreated,
-      FamilyStatus.groupUpdated,
-      FamilyStatus.memberInvited,
-      FamilyStatus.memberRemoved,
-      FamilyStatus.ownershipTransferred,
-      FamilyStatus.invitationAccepted,
-      FamilyStatus.invitationDeclined,
-    };
-    return successStates.contains(status);
-  }
-
-  /// Checks if state requires data refresh
-  static bool requiresRefresh(FamilyStatus status) {
-    final refreshStates = {
-      FamilyStatus.groupCreated,
-      FamilyStatus.groupUpdated,
-      FamilyStatus.memberInvited,
-      FamilyStatus.memberRemoved,
-      FamilyStatus.ownershipTransferred,
-      FamilyStatus.groupLeft,
-      FamilyStatus.invitationAccepted,
-      FamilyStatus.invitationDeclined,
-    };
-    return refreshStates.contains(status);
-  }
 }
 

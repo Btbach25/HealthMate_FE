@@ -23,6 +23,8 @@ class HealthService {
     return 'http://localhost:8080';
   }
 
+  /// Gọi GET /health/latest. Nếu BE trả 404 hoặc lỗi (endpoint chưa có / lỗi mạng) → trả [HealthOverview.empty()] để app không crash.
+  /// Đặt HEALTH_LATEST_ENABLED=false trong .env để tắt gọi API (tránh 404 khi BE chưa có endpoint).
   Future<HealthOverview> getHealthOverview() async {
     final user = await _localStorage.getUser();
     if (user == null || user.isEmpty) throw Exception('Không tìm thấy user');

@@ -156,6 +156,17 @@ abstract class ApiClient {
       return const TimeoutException();
     }
     
+    if (errorString.contains('cors') ||
+        (errorString.contains('redirect') && errorString.contains('preflight')) ||
+        errorString.contains('err_failed') ||
+        (errorString.contains('blocked') && errorString.contains('policy'))) {
+      return UnknownException(
+        message: 'Không thể kết nối API (lỗi CORS/redirect). '
+            'Khi chạy web, api-gateway cần trả 200 cho OPTIONS và không redirect.',
+        originalError: error,
+      );
+    }
+    
     if (errorString.contains('network') || 
         errorString.contains('connection') ||
         errorString.contains('socket')) {

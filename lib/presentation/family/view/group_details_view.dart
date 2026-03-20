@@ -4,11 +4,13 @@ import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
-import 'package:fe/data/enums/group_member_role.dart';
+import 'package:fe/data/models/group/family_member.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/family_app_bar.dart';
 import 'package:fe/presentation/family/widgets/family_member_card.dart';
 import 'package:fe/presentation/family/widgets/add_member_modal.dart';
+import 'package:fe/presentation/family/widgets/family_member_metrics_dialog.dart';
 import 'package:fe/presentation/family/widgets/transfer_ownership_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,10 +26,13 @@ class GroupDetailsView extends StatefulWidget {
 }
 
 class _GroupDetailsViewState extends State<GroupDetailsView> {
+  String? _requestedGroupId;
+  bool _didNavigateAway = false;
+
   @override
-  void initState() {
-    super.initState();
-    context.read<FamilyBloc>().add(FetchGroupDetails(groupId: widget.groupId));
+  void didUpdateWidget(covariant GroupDetailsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.groupId != widget.groupId) _requestedGroupId = null;
   }
 
   @override
@@ -36,20 +41,47 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
       backgroundColor: AppColors.background,
       body: BlocListener<FamilyBloc, FamilyState>(
         listener: (context, state) {
-          final isCurrentGroup =
-              state.currentGroupId == widget.groupId;
-          if (state.status == FamilyStatus.groupLeft && isCurrentGroup) {
-            if (context.mounted) {
-              context.pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đã rời nhóm thành công'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            }
+          // Nếu FE đã đánh dấu group này là đã rời/xóa, luôn thoát khỏi màn chi tiết.
+          // Tránh bị stuck khi status/group list bị request trễ ghi đè.
+          final shouldExit = state.hiddenGroupIds.contains(widget.groupId);
+          if (shouldExit && context.mounted && !_didNavigateAway) {
+            _didNavigateAway = true;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã rời nhóm thành công'),
+                backgroundColor: AppColors.primary,
+              ),
+            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              // Force navigation even if router thinks we're already on /family.
+              final ts = DateTime.now().microsecondsSinceEpoch.toString();
+              context.go('/family?left=$ts');
+            });
+            return;
           }
-          if (state.status == FamilyStatus.memberRemoved && isCurrentGroup) {
+
+          // Khi rời nhóm, currentGroupId đã bị set null → dùng "nhóm đang xem không còn trong danh sách"
+          final leftGroupWeAreViewing = state.status == FamilyStatus.groupLeft &&
+              !state.summary.groups.any((g) => g.id == widget.groupId);
+          if (leftGroupWeAreViewing) {
+            if (!context.mounted || _didNavigateAway) return;
+            _didNavigateAway = true;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã rời nhóm thành công'),
+                backgroundColor: AppColors.primary,
+              ),
+            );
+            // Tránh pop nhầm dialog/navigator con: điều hướng thẳng về màn danh sách nhóm.
+            Future.microtask(() {
+              if (!mounted) return;
+              final ts = DateTime.now().microsecondsSinceEpoch.toString();
+              context.go('/family?left=$ts');
+            });
+          }
+          if (state.status == FamilyStatus.memberRemoved &&
+              state.currentGroupId == widget.groupId) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Đã xóa thành viên khỏi nhóm'),
@@ -60,8 +92,26 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
         },
         child: BlocBuilder<FamilyBloc, FamilyState>(
           builder: (context, state) {
+            final isCurrentGroup = state.currentGroupId == widget.groupId;
+            final waitingForDetails = isCurrentGroup && state.groupDetails == null;
+            final waitingForThisGroup = !isCurrentGroup && state.status != FamilyStatus.error;
+            // Khi FetchFamilyGroups ghi đè (loaded, currentGroupId=null) → reset để gửi lại fetch
+            if (state.status == FamilyStatus.loaded && state.currentGroupId == null) {
+              _requestedGroupId = null;
+            }
+            // Chỉ gửi fetch 1 lần: từ post-frame, không dispatch trong initState → tránh một đống request
+            if ((waitingForDetails || waitingForThisGroup) && _requestedGroupId != widget.groupId) {
+              _requestedGroupId = widget.groupId;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                context.read<FamilyBloc>().add(FetchGroupDetails(groupId: widget.groupId));
+              });
+            }
+
             if (state.status == FamilyStatus.initial ||
-                state.status == FamilyStatus.loading) {
+                state.status == FamilyStatus.loading ||
+                (waitingForDetails && state.status != FamilyStatus.error) ||
+                waitingForThisGroup) {
               return const LoadingWidget(
                 message: 'Đang tải thông tin nhóm...',
                 isFullScreen: true,
@@ -72,15 +122,17 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               return ErrorDisplayWidget(
                 message: state.errorMessage ?? 'Đã có lỗi xảy ra',
                 onRetry: () {
-                  context.read<FamilyBloc>().add(
-                        FetchGroupDetails(groupId: widget.groupId),
-                      );
+                  if (state.isSessionExpired) {
+                    context.read<AuthBloc>().add(AuthLogoutRequested());
+                    context.go('/login');
+                  } else {
+                    context.read<FamilyBloc>().add(
+                          FetchGroupDetails(groupId: widget.groupId),
+                        );
+                  }
                 },
               );
             }
-
-            final isCurrentGroup =
-                state.currentGroupId == widget.groupId;
 
             if ((state.status == FamilyStatus.groupDetailsLoaded ||
                     state.status == FamilyStatus.memberInvited ||
@@ -88,6 +140,48 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                 state.groupDetails != null &&
                 isCurrentGroup) {
               final details = state.groupDetails!;
+              final authUser = context.read<AuthBloc>().state.user;
+              final isCurrentUserOwner = authUser.id.isNotEmpty && details.group.ownerId == authUser.id;
+              final ownerAlreadyInList = details.members.any((m) => m.userId == authUser.id);
+              final groupMetricsPlaceholder = details.group.sharedMetrics;
+
+              final List<FamilyMember> effectiveMembers = [];
+              if (isCurrentUserOwner && !ownerAlreadyInList) {
+                effectiveMembers.add(
+                  FamilyMember(
+                    id: authUser.id,
+                    userId: authUser.id,
+                    groupId: details.group.id,
+                    name: authUser.name.isNotEmpty ? authUser.name : 'Bạn',
+                    email: authUser.email,
+                    age: null,
+                    relationship: null,
+                    avatar: authUser.picture,
+                    healthStatus: HealthStatus.healthy,
+                    lastUpdated: DateTime.now(),
+                    healthConditions: const [],
+                    sharedMetrics: groupMetricsPlaceholder,
+                    createdAt: DateTime.now(),
+                  ),
+                );
+              }
+              for (final m in details.members) {
+                if (m.userId == authUser.id) {
+                  effectiveMembers.add(
+                    m.copyWith(
+                      name: authUser.name.isNotEmpty ? authUser.name : 'Bạn',
+                      email: authUser.email,
+                      avatar: authUser.picture,
+                      sharedMetrics: m.sharedMetrics.isEmpty
+                          ? groupMetricsPlaceholder
+                          : m.sharedMetrics,
+                    ),
+                  );
+                } else {
+                  effectiveMembers.add(m);
+                }
+              }
+              final displayMemberCount = effectiveMembers.length;
 
               return Center(
                 child: ConstrainedBox(
@@ -144,7 +238,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                         ),
                         const SizedBox(height: AppSize.spacing8),
                         Text(
-                          'Nhóm: ${details.group.name} • ${details.group.memberCount} thành viên',
+                          'Nhóm: ${details.group.name} • $displayMemberCount thành viên',
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textGrey,
                           ),
@@ -182,13 +276,22 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           ),
                         ),
                         const SizedBox(height: AppSize.spacing32),
-                        // Members list
-                        ...details.members.map((member) => Padding(
+                        // Members list (đã gộp chủ nhóm vào nếu API chưa trả)
+                        ...effectiveMembers.map((member) => Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: FamilyMemberCard(
                                 member: member,
-                                isOwner: details.group.userRole == GroupMemberRole.admin,
+                                // BE dùng owner_id, role "owner". Dùng ownerId để chắc chắn đúng.
+                                isOwner: isCurrentUserOwner,
+                                isGroupOwner: member.userId == details.group.ownerId,
                                 groupId: details.group.id,
+                                isCurrentUser: member.userId == authUser.id,
+                                onViewMetrics: () {
+                                  FamilyMemberMetricsDialog.show(
+                                    context: context,
+                                    member: member,
+                                  );
+                                },
                               ),
                             )),
                         SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
@@ -199,8 +302,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               );
             }
 
+            // Fallback: trạng thái không xác định (hiếm), vẫn coi như đang tải
             return const LoadingWidget(
-              message: 'Đang chuẩn bị dữ liệu nhóm...',
+              message: 'Đang tải thông tin nhóm...',
               isFullScreen: true,
             );
           },
@@ -224,9 +328,10 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
   }
 
   void _showLeaveGroupDialog(BuildContext context, dynamic details) {
-    final isOwner = details.group.userRole == GroupMemberRole.admin;
-    // Filter out current user from members list
-    final otherMembers = details.members.where((m) => m.userId != 'current-user-id').toList();
+    final authUser = context.read<AuthBloc>().state.user;
+    final isOwner = authUser.id.isNotEmpty && details.group.ownerId == authUser.id;
+    // Filter out current user from members list (dùng đúng user.id thay vì placeholder)
+    final otherMembers = details.members.where((m) => m.userId != authUser.id).toList();
     final hasOtherMembers = otherMembers.isNotEmpty;
 
     if (isOwner && hasOtherMembers) {
@@ -239,21 +344,20 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
         ),
       );
     } else if (isOwner && !hasOtherMembers) {
-      // Show warning that cannot leave without transferring
-      showDialog(
+      // Chủ nhóm và chỉ còn một mình trong nhóm: rời nhóm = xoá nhóm (confirm trước)
+      ConfirmationDialog.showConfirmation(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Không thể rời nhóm'),
-          content: const Text(
-            'Bạn cần chuyển quyền chủ nhóm cho thành viên khác trước khi rời nhóm. Hiện tại nhóm chỉ có bạn là thành viên.',
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Đóng'),
-            ),
-          ],
-        ),
+        title: 'Xóa nhóm gia đình',
+        message: 'Hiện tại chỉ còn bạn trong nhóm.\n'
+            'Nếu bạn rời nhóm, nhóm sẽ bị xóa hoàn toàn.\n\n'
+            'Bạn có chắc chắn muốn tiếp tục?',
+        confirmText: 'Xóa nhóm',
+        confirmColor: Colors.red,
+        onConfirm: () {
+          context.read<FamilyBloc>().add(DeleteGroup(groupId: details.group.id));
+          // Đóng dialog, điều hướng sẽ được BlocListener xử lý ở nơi khác (family view)
+          Navigator.of(context).pop();
+        },
       );
     } else {
       // Show confirmation dialog for non-owners

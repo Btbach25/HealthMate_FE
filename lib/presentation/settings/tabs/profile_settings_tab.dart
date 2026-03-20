@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
@@ -7,6 +6,7 @@ import 'package:fe/core/widgets/profile_date_field.dart';
 import 'package:fe/core/widgets/profile_text_field.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/data/services/user_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,7 +37,6 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   List<String> _filteredAllergies = [];
   bool _showAllergySuggestions = false;
   String _allergySearchQuery = '';
-  Timer? _saveTimer;
 
   final List<String> _commonAllergies = [
     'Penicillin',
@@ -72,22 +71,32 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     _weightController = TextEditingController();
     _heightController = TextEditingController();
     _customAllergyController = TextEditingController();
-    _loadUserData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserData());
   }
 
-  void _loadUserData() {
-    final user = context.read<AuthBloc>().state.user;
-    if (user.isNotEmpty && user.name.isNotEmpty && user.email.isNotEmpty) {
-      _nameController.text = user.name;
-      _emailController.text = user.email;
-      _selectedGender = 'Nam'; // Default
-      // Load other data from user model or defaults
+  Future<void> _loadUserData() async {
+    final authUser = context.read<AuthBloc>().state.user;
+    if (authUser.isNotEmpty) {
+      _nameController.text = authUser.name;
+      _emailController.text = authUser.email;
+      _selectedGender = 'Nam';
+    }
+    try {
+      final userService = context.read<UserService>();
+      final profile = await userService.getProfile();
+      if (profile.isNotEmpty && mounted) {
+        setState(() {
+          _nameController.text = profile.name;
+          _emailController.text = profile.email;
+        });
+      }
+    } catch (_) {
+      // Giữ data từ AuthBloc nếu API lỗi
     }
   }
 
   @override
   void dispose() {
-    _saveTimer?.cancel();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -98,7 +107,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -123,12 +132,16 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
       _isLoading = true;
     });
 
-    // Cancel any existing timer
-    _saveTimer?.cancel();
-
-    // Simulate API call with cancellable timer
-    _saveTimer = Timer(const Duration(seconds: 1), () {
+    try {
+      final userService = context.read<UserService>();
+      await userService.updateProfile(
+        name: _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : null,
+      );
+      final profile = await userService.getProfile();
       if (mounted) {
+        context.read<AuthBloc>().add(AuthUserUpdated(profile));
         setState(() {
           _isLoading = false;
           _isEditing = false;
@@ -140,11 +153,23 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           ),
         );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString().replaceAll('Exception:', '').trim()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _handleCancel() {
-    _loadUserData();
+    _loadUserData(); // async, form sẽ reset khi data load xong
     setState(() {
       _isEditing = false;
       _allergies = [];

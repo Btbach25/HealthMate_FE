@@ -148,7 +148,7 @@ class _EmailInput extends StatelessWidget {
           context.read<AuthFormBloc>().add(EmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
       decoration: const InputDecoration(
-        hintText: 'Nhập email của bạn (admin@gmail.com)',
+        hintText: 'Nhập email của bạn (vd: ban@email.com)',
         prefixIcon: Icon(Icons.email_outlined),
       ),
     );

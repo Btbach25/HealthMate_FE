@@ -33,9 +33,12 @@ class IncomingInvitation extends Equatable {
   String get inviterEmail => inviter?.email ?? '';
 
   factory IncomingInvitation.fromJson(Map<String, dynamic> json) {
+    // BE ListInvitations hiện trả group_id ở nested group.id, không có group_id top-level.
+    // Ưu tiên field group_id nếu có, fallback sang group.id.
+    final rawGroupId = json['group_id'] ?? (json['group'] is Map ? (json['group'] as Map)['id'] : null);
     return IncomingInvitation(
       id: cvToString(json['id']),
-      groupId: cvToString(json['group_id']),
+      groupId: cvToString(rawGroupId),
       group: _parseGroup(json),
       inviter: _parseInviter(json),
       sentAt: cvToDateRequired(json['sent_at']),
@@ -52,7 +55,24 @@ class IncomingInvitation extends Equatable {
     return cvToNestedObject<FamilyGroup>(
       json,
       'group',
-      (nested) => FamilyGroup.fromJson(nested),
+      (nested) {
+        // Nested group trong ListInvitations hiện chỉ có id, name, member_count.
+        // created_at/updated_at không có nên dùng sent_at của invitation làm thời gian mặc định.
+        final sentAt = cvToDateRequired(json['sent_at']);
+        return FamilyGroup(
+          id: cvToString(nested['id']),
+          name: cvToString(nested['name']),
+          memberCount: cvToInt(nested['member_count']),
+          userRole: GroupMemberRole.member,
+          createdAt: sentAt,
+          updatedAt: sentAt,
+          sharedMetrics: cvToList(
+            json['shared_metrics'],
+            (e) => MetricType.fromValue(cvToString(e)),
+          ),
+          ownerId: cvToString(nested['owner_id'] ?? ''),
+        );
+      },
       (flat) {
         final groupName = flat['group_name'];
         if (groupName == null) return null;

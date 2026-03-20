@@ -8,6 +8,7 @@ class SettingsCard extends StatelessWidget {
   final IconData? icon;
   final String title;
   final List<Widget> children;
+  final Widget? trailing;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
 
@@ -16,6 +17,7 @@ class SettingsCard extends StatelessWidget {
     this.icon,
     required this.title,
     required this.children,
+    this.trailing,
     this.padding,
     this.margin,
   });
@@ -42,10 +44,15 @@ class SettingsCard extends StatelessWidget {
               ],
               Text(
                 title,
-                style: AppTextStyles.h4.copyWith(
+                style: AppTextStyles.labelLarge.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: AppColors.textBlack,
                 ),
               ),
+              if (trailing != null) ...[
+                const Spacer(),
+                trailing!,
+              ],
             ],
           ),
           const SizedBox(height: 20),

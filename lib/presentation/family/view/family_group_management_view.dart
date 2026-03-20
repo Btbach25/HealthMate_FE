@@ -3,12 +3,12 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/utils/error_message_parser.dart';
 import 'package:fe/core/utils/family_state_helper.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
-import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/family_management_app_bar.dart';
 import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
@@ -351,7 +351,10 @@ class _MyGroupsTab extends StatelessWidget {
 
 
   Widget _buildGroupCard(BuildContext context, FamilyGroup group) {
-    final isOwner = group.userRole == GroupMemberRole.admin;
+    final authUserId = context.read<AuthBloc>().state.user.id;
+    final isOwner = authUserId.isNotEmpty && group.ownerId == authUserId;
+    // BE GET /groups không trả member_count → 0; chủ nhóm luôn là ít nhất 1 thành viên
+    final displayMemberCount = (isOwner && group.memberCount < 1) ? 1 : group.memberCount;
     final dateFormat = DateFormat('yyyy-MM-dd');
 
         return Container(
@@ -466,7 +469,7 @@ class _MyGroupsTab extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '${group.memberCount} thành viên • Tạo ${dateFormat.format(group.createdAt)}',
+                '$displayMemberCount thành viên • Tạo ${dateFormat.format(group.createdAt)}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textGrey,
@@ -720,7 +723,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
       confirmText: 'Từ chối',
       onConfirm: () {
         context.read<FamilyBloc>().add(
-              DeclineInvitation(invitationId: invitation.id),
+              DeclineInvitation(groupId: invitation.groupId),
             );
       },
     );
@@ -862,7 +865,9 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Mời: ${invitation.inviteeName}',
+                      invitation.inviteeEmail.isNotEmpty
+                          ? 'Mời: ${invitation.inviteeName} (${invitation.inviteeEmail})'
+                          : 'Mời: ${invitation.inviteeName}',
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textBlack,

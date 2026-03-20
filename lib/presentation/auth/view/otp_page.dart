@@ -1,4 +1,5 @@
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -112,7 +113,10 @@ class OtpForm extends StatelessWidget {
         const SizedBox(height: AppSize.p32),
         const Text('Mã OTP', style: AppStyles.bodyBold),
         const SizedBox(height: AppSize.p8),
-        _OtpInput(),
+        BlocBuilder<AuthFormBloc, AuthFormState>(
+          buildWhen: (previous, current) => previous.email != current.email,
+          builder: (context, state) => _OtpInput(key: ValueKey('otp_${state.email}'), email: state.email),
+        ),
         const SizedBox(height: AppSize.p12),
         
         BlocBuilder<AuthFormBloc, AuthFormState>(
@@ -138,7 +142,30 @@ class OtpForm extends StatelessWidget {
   }
 }
 
-class _OtpInput extends StatelessWidget {
+class _OtpInput extends StatefulWidget {
+  final String email;
+
+  const _OtpInput({super.key, required this.email});
+
+  @override
+  State<_OtpInput> createState() => _OtpInputState();
+}
+
+class _OtpInputState extends State<_OtpInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final defaultPinTheme = PinTheme(
@@ -153,27 +180,21 @@ class _OtpInput extends StatelessWidget {
     );
 
     return Pinput(
+      key: ValueKey('pinput_${widget.email}'),
       length: 6,
+      controller: _controller,
       defaultPinTheme: defaultPinTheme,
-      
       focusedPinTheme: defaultPinTheme.copyWith(
         decoration: defaultPinTheme.decoration!.copyWith(
           border: Border.all(color: AppColors.primary),
         ),
       ),
-      
       submittedPinTheme: defaultPinTheme,
-
-      autofocus: true,
+      autofocus: !kIsWeb,
       showCursor: true,
-
       onChanged: (value) {
         context.read<AuthFormBloc>().add(OtpChanged(value));
       },
-      // có thể dùng onCompleted nếu chỉ muốn gửi khi đã nhập đủ 6 số
-      // onCompleted: (pin) {
-      //   context.read<AuthFormBloc>().add(OtpChanged(pin));
-      // },
     );
   }
 }
