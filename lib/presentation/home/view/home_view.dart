@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
@@ -104,7 +105,7 @@ class _HomeViewState extends State<HomeView> {
                   constraints: const BoxConstraints(maxWidth: 700),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16.0),
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -114,15 +115,17 @@ class _HomeViewState extends State<HomeView> {
                         WelcomeMessage(name: displayUser.name),
                         const SizedBox(height: 24),
 
-                        // Provide HealthOverviewBloc; DeviceHealthCubit comes from app-level provider
+                        // Provide HealthOverviewBloc — tự subscribe DeviceHealthCubit bên trong
                         BlocProvider<HealthOverviewBloc>(
                           create: (context) => HealthOverviewBloc(
                             repository: RepositoryProvider.of(context),
+                            deviceCubit: context.read<DeviceHealthCubit>(),
                           ),
                           child: Builder(
                             builder: (innerContext) {
-                              // Start polling after first frame
-                              WidgetsBinding.instance.addPostFrameCallback((_) => _startPolling(innerContext));
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                (_) => _startPolling(innerContext),
+                              );
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -132,27 +135,15 @@ class _HomeViewState extends State<HomeView> {
                                   const SizedBox(height: 12),
                                   BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
                                     builder: (context, dState) {
-                                      return Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Readiness Score card
-                                          if (dState.readinessLoading)
-                                            _ReadinessLoadingCard()
-                                          else if (dState.readinessScore != null)
-                                            _ReadinessScoreCard(score: dState.readinessScore!),
-
-                                          if (dState.lastUpdated != null) ...[
-                                            const SizedBox(height: 6),
-                                            Builder(builder: (_) {
-                                              final ts = dState.lastUpdated!;
-                                              final time = '${ts.hour.toString().padLeft(2,'0')}:${ts.minute.toString().padLeft(2,'0')}';
-                                              return Text(
-                                                'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
-                                                style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
-                                              );
-                                            }),
-                                          ],
-                                        ],
+                                      if (dState.lastUpdated == null) return const SizedBox.shrink();
+                                      final ts = dState.lastUpdated!;
+                                      final time = '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text(
+                                          'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                        ),
                                       );
                                     },
                                   ),
@@ -161,7 +152,17 @@ class _HomeViewState extends State<HomeView> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+
+                        // Health score card — luôn hiển thị
+                        BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
+                          builder: (context, dState) {
+                            if (dState.readinessLoading) return _ReadinessLoadingCard();
+                            return _ReadinessScoreCard(score: dState.readinessScore);
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
 
                         if (homeData.medicationProgress != null)
                           MedicationCard(progress: homeData.medicationProgress!),
@@ -204,24 +205,31 @@ class _ReadinessLoadingCard extends StatelessWidget {
 }
 
 class _ReadinessScoreCard extends StatelessWidget {
-  final double score;
+  final double? score;
   const _ReadinessScoreCard({required this.score});
 
-  Color _scoreColor() {
-    if (score >= 75) return const Color(0xFF4CAF50);
-    if (score >= 50) return const Color(0xFFFFC107);
+  Color _scoreColor(double s) {
+    if (s >= 75) return const Color(0xFF4CAF50);
+    if (s >= 50) return const Color(0xFFFFC107);
     return const Color(0xFFF44336);
   }
 
-  String _scoreLabel() {
-    if (score >= 75) return 'Tốt';
-    if (score >= 50) return 'Trung bình';
+  String _scoreLabel(double s) {
+    if (s >= 75) return 'Tốt';
+    if (s >= 50) return 'Trung bình';
     return 'Cần nghỉ ngơi';
+  }
+
+  String _moodAsset(double s) {
+    if (s >= 75) return AppAssets.happy;
+    if (s >= 50) return AppAssets.neutral;
+    return AppAssets.sad;
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _scoreColor();
+    final hasScore = score != null;
+    final color = hasScore ? _scoreColor(score!) : AppColors.textGrey;
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -232,10 +240,12 @@ class _ReadinessScoreCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
               child: Center(
-                child: Text(
-                  score.toStringAsFixed(0),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
-                ),
+                child: hasScore
+                    ? Text(
+                        score!.toStringAsFixed(0),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                      )
+                    : Icon(Icons.hourglass_empty, color: color, size: 22),
               ),
             ),
             const SizedBox(width: 12),
@@ -244,11 +254,22 @@ class _ReadinessScoreCard extends StatelessWidget {
               children: [
                 const Text('Điểm sẵn sàng thể chất', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(_scoreLabel(), style: TextStyle(fontSize: 12, color: color)),
+                Text(
+                  hasScore ? _scoreLabel(score!) : 'Đang chờ dữ liệu thiết bị...',
+                  style: TextStyle(fontSize: 12, color: color),
+                ),
               ],
             ),
             const Spacer(),
-            Icon(Icons.bolt_rounded, color: color),
+            hasScore
+                ? Image.asset(
+                    _moodAsset(score!),
+                    width: 32,
+                    height: 32,
+                    color: color,
+                    colorBlendMode: BlendMode.srcIn,
+                  )
+                : const SizedBox(width: 32),
           ],
         ),
       ),

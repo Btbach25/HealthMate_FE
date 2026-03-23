@@ -103,11 +103,20 @@ class ApiStatsService implements StatsService {
       final response = await _http.get(uri);
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        final data = body['data'] as List?;
+        final decoded = jsonDecode(response.body);
+        List? data;
+        if (decoded is Map<String, dynamic>) {
+          data = decoded['data'] as List?;
+        } else if (decoded is List) {
+          data = decoded;
+        }
+        debugPrint('[ApiStatsService] $metricType: ${data?.length ?? 0} points');
         return data?.cast<Map<String, dynamic>>();
       }
-      debugPrint('[ApiStatsService] $metricType: ${response.statusCode}');
+      final preview = response.body.length > 300
+          ? '${response.body.substring(0, 300)}...'
+          : response.body;
+      debugPrint('[ApiStatsService] $metricType: ${response.statusCode} | $preview');
     } catch (e) {
       debugPrint('[ApiStatsService] $metricType error: $e');
     }

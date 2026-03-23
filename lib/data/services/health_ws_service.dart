@@ -117,7 +117,6 @@ class HealthWsService {
 
     if (latest.isEmpty) return;
 
-    int sent = 0;
     for (final entry in latest.entries) {
       final value = _extractNumeric(entry.value);
       if (value == null) continue;
@@ -128,14 +127,12 @@ class HealthWsService {
           'value': value,
           'timestamp': entry.value.dateFrom.toUtc().toIso8601String(),
         }));
-        sent++;
       } catch (e) {
         debugPrint('[HealthWs] Send error: $e');
         _onDisconnected();
         break;
       }
     }
-    if (sent > 0) debugPrint('[HealthWs] Sent $sent metrics');
   }
 
   Future<void> disconnect() async {

@@ -23,6 +23,13 @@ class _StatsViewState extends State<StatsView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final deviceCubit = context.read<DeviceHealthCubit>();
+      if (deviceCubit.lastPoints.isNotEmpty) {
+        context.read<StatsBloc>().add(TryDeviceFallback());
+      }
+    });
   }
 
   @override
@@ -36,7 +43,7 @@ class _StatsViewState extends State<StatsView>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: BlocListener<DeviceHealthCubit, DeviceHealthState>(
-        listenWhen: (prev, curr) => prev.dataCount == 0 && curr.dataCount > 0,
+        listenWhen: (prev, curr) => curr.dataCount > prev.dataCount,
         listener: (context, _) {
           if (!context.mounted) return;
           context.read<StatsBloc>().add(TryDeviceFallback());

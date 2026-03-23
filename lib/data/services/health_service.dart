@@ -38,6 +38,10 @@ class HealthService {
     final bpValue = results[1];
     final now = DateTime.now();
 
+    if (hrValue == null && bpValue == null) {
+      throw Exception('Không lấy được dữ liệu sức khỏe từ máy chủ');
+    }
+
     return HealthOverview(
       heartRate: hrValue != null
           ? HeartRate(time: now, userId: user.id, value: hrValue)
@@ -59,13 +63,21 @@ class HealthService {
       final response = await _http.get(uri);
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        final data = (body['data'] as List?) ?? [];
+        final decoded = jsonDecode(response.body);
+        List data = [];
+        if (decoded is Map<String, dynamic>) {
+          data = (decoded['data'] as List?) ?? [];
+        } else if (decoded is List) {
+          data = decoded;
+        }
         if (data.isEmpty) return null;
         final last = data.last as Map<String, dynamic>;
         return (last['value'] as num?)?.toDouble();
       }
-      debugPrint('[HealthService] $metricType: ${response.statusCode}');
+      final preview = response.body.length > 300
+          ? '${response.body.substring(0, 300)}...'
+          : response.body;
+      debugPrint('[HealthService] $metricType: ${response.statusCode} | $preview');
     } catch (e) {
       debugPrint('[HealthService] $metricType error: $e');
     }

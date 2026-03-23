@@ -18,10 +18,20 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Nav bar height: icon(28) + text(14) + spacing(2) + item padding(12) + outer padding(16) ≈ 72px
+    const double navBarHeight = 72;
+    final mq = MediaQuery.of(context);
     return Scaffold(
       body: Stack(
         children: [
-          navigationShell,
+          MediaQuery(
+            data: mq.copyWith(
+              padding: mq.padding.copyWith(
+                bottom: mq.padding.bottom + navBarHeight,
+              ),
+            ),
+            child: navigationShell,
+          ),
           Positioned(
             bottom: 0,
             left: 0,
