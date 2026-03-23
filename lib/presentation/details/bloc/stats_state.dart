@@ -8,9 +8,11 @@ class StatsState extends Equatable {
     this.status = StatsStatus.initial,
     this.statsData,
     this.errorMessage,
-    this.chartStatus = ChartStatus.initial, 
+    this.chartStatus = ChartStatus.initial,
     this.chartData,
     this.chartErrorMessage,
+    this.selectedRange = '7d',
+    this.isFromDevice = false,
   });
 
   final StatsStatus status;
@@ -19,13 +21,16 @@ class StatsState extends Equatable {
   final ChartStatus chartStatus;
   final List<MetricChart>? chartData;
   final String? chartErrorMessage;
+  final String selectedRange;
+  final bool isFromDevice;
 
-  // Khởi tạo state ban đầu
+  static const List<String> availableRanges = ['24h', '7d', '30d'];
+
   factory StatsState.initial() {
-    return StatsState(
+    return const StatsState(
       status: StatsStatus.initial,
-      statsData: StatsPageData.empty(),
       chartStatus: ChartStatus.initial,
+      selectedRange: '7d',
     );
   }
 
@@ -36,6 +41,8 @@ class StatsState extends Equatable {
     ChartStatus? chartStatus,
     List<MetricChart>? chartData,
     String? chartErrorMessage,
+    String? selectedRange,
+    bool? isFromDevice,
   }) {
     return StatsState(
       status: status ?? this.status,
@@ -44,9 +51,11 @@ class StatsState extends Equatable {
       chartStatus: chartStatus ?? this.chartStatus,
       chartData: chartData ?? this.chartData,
       chartErrorMessage: chartErrorMessage ?? this.chartErrorMessage,
+      selectedRange: selectedRange ?? this.selectedRange,
+      isFromDevice: isFromDevice ?? this.isFromDevice,
     );
   }
 
   @override
-  List<Object?> get props => [status, statsData, errorMessage,chartStatus, chartData, chartErrorMessage];
+  List<Object?> get props => [status, statsData, errorMessage, chartStatus, chartData, chartErrorMessage, selectedRange, isFromDevice];
 }

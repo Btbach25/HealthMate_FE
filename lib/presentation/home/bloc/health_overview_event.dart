@@ -13,3 +13,10 @@ class HealthOverviewRequested extends HealthOverviewEvent {
 class HealthOverviewRetried extends HealthOverviewEvent {
   const HealthOverviewRetried();
 }
+
+class HealthOverviewDeviceLoaded extends HealthOverviewEvent {
+  final HealthOverview overview;
+  const HealthOverviewDeviceLoaded(this.overview);
+  @override
+  List<Object?> get props => [overview];
+}

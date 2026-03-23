@@ -7,7 +7,8 @@
       "Bash(flutter analyze)",
       "Bash(flutter analyze lib/presentation/auth lib/data/services/auth_service.dart)",
       "Bash(taskkill /F /IM \"java.exe\")",
-      "Bash(taskkill /F /IM \"gradle.exe\")"
+      "Bash(taskkill /F /IM \"gradle.exe\")",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

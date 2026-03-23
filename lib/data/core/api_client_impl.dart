@@ -21,8 +21,8 @@ class ApiClientImpl extends ApiClient {
 
   @override
   String get baseUrl {
-    if (_baseUrlOverride != null && _baseUrlOverride!.isNotEmpty) {
-      return _baseUrlOverride!;
+    if (_baseUrlOverride != null && _baseUrlOverride.isNotEmpty) {
+      return _baseUrlOverride;
     }
     final envUrl = dotenv.env['BASE_URL'];
     if (envUrl != null && envUrl.isNotEmpty) return envUrl;
@@ -163,4 +163,3 @@ class ApiClientImpl extends ApiClient {
     }
   }
 }
-

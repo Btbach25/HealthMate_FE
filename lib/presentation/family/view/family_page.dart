@@ -36,8 +36,10 @@ class _FamilyPageState extends State<FamilyPage> {
 
     Future.delayed(const Duration(milliseconds: 1800), () {
       if (!mounted) return;
+      // ignore: use_build_context_synchronously
       final bloc = context.read<FamilyBloc>();
       final wasFetched = _refreshHelper.fetchInitialDataIfNeeded(
+        // ignore: use_build_context_synchronously
         context,
         bloc.state,
       );
@@ -53,7 +55,7 @@ class _FamilyPageState extends State<FamilyPage> {
 
   void _handleStateChange(FamilyState state) {
     if (!mounted) return;
-    
+
     final wasRefreshed = _refreshHelper.handleStateChange(
       context,
       state,

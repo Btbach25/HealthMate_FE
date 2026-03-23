@@ -10,9 +10,9 @@ class StatsRepository {
   StatsRepository({required StatsService statsService})
       : _statsService = statsService;
 
-  Future<StatsPageData> getStatsPageData() async {
+  Future<StatsPageData> getStatsPageData({String range = '7d'}) async {
     try {
-      return await _statsService.getStatsPageData();
+      return await _statsService.getStatsPageData(range: range);
     } on ApiException {
       // Re-throw ApiException as-is (already has proper error messages)
       rethrow;
@@ -25,9 +25,9 @@ class StatsRepository {
     }
   }
 
-  Future<List<MetricChart>> getChartData() async {
+  Future<List<MetricChart>> getChartData({String range = '7d'}) async {
     try {
-      return await _statsService.getChartData();
+      return await _statsService.getChartData(range: range);
     } on ApiException {
       // Re-throw ApiException as-is (already has proper error messages)
       rethrow;

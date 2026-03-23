@@ -14,13 +14,13 @@ import 'package:fe/data/services/user_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:fe/data/services/mock_medication_service.dart';
-import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/services/api_stats_service.dart';
 import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
+import 'package:fe/data/services/readiness_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -53,22 +53,26 @@ Future<void> main() async {
 
   final homeService = MockHomeService();
   final homeRepository = HomeRepository(homeService: homeService);
-  final statsService = MockStatsService();
+  final statsService = ApiStatsService(localStorage, onRefresh: authRepository.refreshToken);
   final statsRepository = StatsRepository(statsService: statsService);
   final apiClient = ApiClientImpl(
     localStorageService: localStorage,
-    onRefreshToken: () => authService.refreshAccessToken(),
+    onRefreshToken: () async {
+      final token = await authRepository.refreshToken();
+      return token != null;
+    },
   );
   final familyService = ApiFamilyService(apiClient: apiClient);
   final familyRepository = FamilyRepository(familyService: familyService);
   final userService = ApiUserService(apiClient: apiClient);
-  final healthService = HealthService(localStorage);
+  final healthService = HealthService(localStorage, onRefresh: authRepository.refreshToken);
   final healthRepository = HealthRepository(service: healthService);
   final medicationService = MockMedicationService();
   final medicationRepository =
       MedicationRepository(service: medicationService);
 
-  final healthWsService = HealthWsService(localStorage);
+  final healthWsService = HealthWsService(localStorage, onRefresh: authRepository.refreshToken);
+  final readinessService = ReadinessService(localStorage, onRefresh: authRepository.refreshToken);
 
   runApp(MyApp(
     authRepository: authRepository,
@@ -79,6 +83,7 @@ Future<void> main() async {
     userService: userService,
     medicationRepository: medicationRepository,
     healthWsService: healthWsService,
+    readinessService: readinessService,
   ));
 }
 
@@ -91,6 +96,7 @@ class MyApp extends StatelessWidget {
   final ApiUserService _userService;
   final MedicationRepository _medicationRepository;
   final HealthWsService _healthWsService;
+  final ReadinessService _readinessService;
 
   const MyApp({
     super.key,
@@ -102,6 +108,7 @@ class MyApp extends StatelessWidget {
     required ApiUserService userService,
     required MedicationRepository medicationRepository,
     required HealthWsService healthWsService,
+    required ReadinessService readinessService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
@@ -109,7 +116,8 @@ class MyApp extends StatelessWidget {
        _healthRepository = healthRepository,
        _userService = userService,
        _medicationRepository = medicationRepository,
-       _healthWsService = healthWsService;
+       _healthWsService = healthWsService,
+       _readinessService = readinessService;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +142,7 @@ class MyApp extends StatelessWidget {
           // Tạo sớm ở app level để native plugin có thể đăng ký
           // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
           BlocProvider(
-            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService),
+            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService, _readinessService),
           ),
         ],
         child: const AppView(),
