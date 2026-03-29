@@ -161,8 +161,8 @@ abstract class ApiClient {
         errorString.contains('err_failed') ||
         (errorString.contains('blocked') && errorString.contains('policy'))) {
       return UnknownException(
-        message: 'Không thể kết nối API (lỗi CORS/redirect). '
-            'Khi chạy web, api-gateway cần trả 200 cho OPTIONS và không redirect.',
+        message: 'Không kết nối được tới máy chủ từ trình duyệt. '
+            'Hãy tải lại trang, kiểm tra mạng hoặc thử lại sau.',
         originalError: error,
       );
     }

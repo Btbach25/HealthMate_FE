@@ -54,7 +54,7 @@ class FamilyRepository {
   Future<void> inviteMember({
     required String groupId,
     required String email,
-    required String name,
+    String name = '',
     String? relationship,
     int? age,
     required List<String> sharedMetrics,

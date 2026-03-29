@@ -20,12 +20,14 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+        clipBehavior: Clip.hardEdge,
+        fit: StackFit.expand,
         children: [
-          navigationShell,
+          Positioned.fill(child: navigationShell),
           Positioned(
-            bottom: 0,
             left: 0,
             right: 0,
+            bottom: 0,
             child: _CustomBottomNavBar(
               currentIndex: navigationShell.currentIndex,
               onTap: _onTap,

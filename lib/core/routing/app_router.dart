@@ -10,7 +10,10 @@ import 'package:fe/presentation/family/view/family_group_management_page.dart';
 import 'package:fe/presentation/family/view/create_group_page.dart';
 import 'package:fe/presentation/family/view/group_details_page.dart';
 import 'package:fe/presentation/main_tabs/settings_page.dart';
-import 'package:fe/presentation/medications/view/medication_page.dart';
+import 'package:fe/data/repositories/medication_repository.dart';
+import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
+import 'package:fe/presentation/medications/view/medication_view.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -128,12 +131,24 @@ class AppRouter {
             ],
           ),
 
-          // NHÁNH 4: THUỐC
+          // NHÁNH 4: THUỐC — MedicationBloc (quét đơn mở bằng dialog từ MedicationView)
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/meds',
-                builder: (context, state) => const MedicationPage(),
+              ShellRoute(
+                builder: (context, state, child) {
+                  return BlocProvider(
+                    create: (c) => MedicationBloc(
+                      repository: c.read<MedicationRepository>(),
+                    )..add(const FetchMedications()),
+                    child: child,
+                  );
+                },
+                routes: [
+                  GoRoute(
+                    path: '/meds',
+                    builder: (context, state) => const MedicationView(),
+                  ),
+                ],
               ),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/presentation/details/bloc/stats_bloc.dart';
 import 'package:fe/presentation/details/widgets/stats_chart_lazy_loader.dart';
@@ -56,7 +57,7 @@ class _StatsViewState extends State<StatsView>
             // Bố cục chính của trang
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
+                constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
                 // NestedScrollView để header cuộn cùng với list
                 child: NestedScrollView(
                   headerSliverBuilder: (context, innerBoxIsScrolled) {

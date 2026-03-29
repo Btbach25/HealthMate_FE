@@ -1,6 +1,6 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/utils/family_state_helper.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/enums/group_member_status.dart';
@@ -130,7 +130,7 @@ class _FamilyGroupManagementViewState
           if (FamilyStateHelper.shouldShowErrorScreen(state)) {
             return Center(
               child: Text(
-                ErrorMessageParser.parse(state.errorMessage),
+                UserFacingError.message(state.errorMessage),
                 style: const TextStyle(color: AppColors.error),
               ),
             );
@@ -140,7 +140,7 @@ class _FamilyGroupManagementViewState
           if (FamilyStateHelper.shouldShowContent(state)) {
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 700),
+                constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
                 child: Column(
                   children: [
                     FamilyManagementAppBar(
@@ -289,7 +289,7 @@ class _MyGroupsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 700),
+        constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
         child: RefreshIndicator(
           onRefresh: () async {
             context.read<FamilyBloc>().add(const FetchFamilyGroups());

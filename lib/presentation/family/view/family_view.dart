@@ -1,4 +1,5 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
@@ -59,7 +60,7 @@ class FamilyView extends StatelessWidget {
               state.status == FamilyStatus.invitationDeclined) {
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppSize.maxWidth),
+                constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
                 child: RefreshIndicator(
                   onRefresh: () async {
                     context.read<FamilyBloc>().add(const FetchFamilyGroups());
@@ -133,9 +134,11 @@ class FamilyView extends StatelessWidget {
                       // Summary cards
                       FamilySummaryCards(
                         groupsJoined: state.summary.groupsJoined,
-                        pendingInvitations: state.summary.pendingInvitations,
+                        pendingInvitations: _totalPendingInvitations(state),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
+                      const _FamilyPurposeBanner(),
+                      const SizedBox(height: 28),
 
                       // Family groups list
                       if (state.summary.groups.isNotEmpty) ...[
@@ -159,6 +162,11 @@ class FamilyView extends StatelessWidget {
                         const SizedBox(height: AppSize.spacing8),
                       ],
 
+                      if (state.summary.groups.isEmpty) ...[
+                        const _FamilyEmptyGroupsHint(),
+                        const SizedBox(height: AppSize.spacing24),
+                      ],
+
                       // Create new group card
                       const _CreateGroupCard(),
                       SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
@@ -172,6 +180,107 @@ class FamilyView extends StatelessWidget {
 
           return const Center(child: Text('Trạng thái không xác định'));
         },
+      ),
+    );
+  }
+}
+
+/// Giá trị nhân văn + minh bạch mục đích (không thay thế dịch vụ y tế).
+class _FamilyPurposeBanner extends StatelessWidget {
+  const _FamilyPurposeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSize.p16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(AppSize.r16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.volunteer_activism_outlined,
+            color: AppColors.primary,
+            size: 26,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chăm sóc sức khỏe cùng người thân',
+                  style: AppTextStyles.labelLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Nhóm gia đình giúp phối hợp theo dõi, hỗ trợ người cao tuổi và người bệnh mạn tính — '
+                  'minh bạch và tôn trọng quyền riêng tư.',
+                  style: AppTextStyles.caption.copyWith(height: 1.45),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FamilyEmptyGroupsHint extends StatelessWidget {
+  const _FamilyEmptyGroupsHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSize.p16,
+        vertical: AppSize.p20,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSize.r16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.cardShadowList,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.groups_2_outlined,
+            color: AppColors.textSecondary,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bắt đầu bằng một nhóm nhỏ',
+                  style: AppTextStyles.labelLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Tạo nhóm để mời người nhà, cùng xem chỉ số và hỗ trợ nhau trong chăm sóc hằng ngày.',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textGrey,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -280,4 +389,11 @@ class _CreateGroupCard extends StatelessWidget {
   }
 }
 
+/// Lời mời đến (cần phản hồi) + lời mời đi còn [pending].
+int _totalPendingInvitations(FamilyState state) {
+  final outgoingPending = state.outgoingInvitations
+      .where((o) => o.status == GroupMemberStatus.pending)
+      .length;
+  return state.incomingInvitations.length + outgoingPending;
+}
 

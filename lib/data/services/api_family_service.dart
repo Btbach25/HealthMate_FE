@@ -129,7 +129,7 @@ class ApiFamilyService implements FamilyService {
     final tidied = groupId.trim();
     if (tidied.isEmpty || !_uuidRegex.hasMatch(tidied)) {
       throw UnknownException(
-        message: 'Mã nhóm không hợp lệ. Bạn có thể đang dùng dữ liệu thử nghiệm không phải UUID.',
+        message: 'Mã nhóm không hợp lệ. Hãy mở lại nhóm từ danh sách hoặc đăng nhập lại.',
         originalError: null,
       );
     }
@@ -153,7 +153,7 @@ class ApiFamilyService implements FamilyService {
   Future<void> inviteMember({
     required String groupId,
     required String email,
-    required String name,
+    String name = '',
     String? relationship,
     int? age,
     required List<String> sharedMetrics,

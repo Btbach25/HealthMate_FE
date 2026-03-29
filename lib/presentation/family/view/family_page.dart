@@ -67,10 +67,13 @@ class _FamilyPageState extends State<FamilyPage> {
     return BlocProvider.value(
       value: context.read<FamilyBloc>(),
       child: BlocListener<AuthBloc, AuthState>(
+        // ResetFamily chạy ở AppView khi đổi auth — ở đây chỉ bắt lại để fetch khi đã đăng nhập (tab có thể đã mở trước đó).
+        listenWhen: (prev, curr) =>
+            curr.status == AuthStatus.authenticated &&
+            prev.status != AuthStatus.authenticated,
         listener: (context, authState) {
-          if (authState.status == AuthStatus.authenticated) {
-            _tryInitialFetch(context);
-          }
+          setState(() => _hasInitialized = false);
+          _tryInitialFetch(context);
         },
         child: BlocListener<FamilyBloc, FamilyState>(
           listener: (context, state) => _handleStateChange(state),

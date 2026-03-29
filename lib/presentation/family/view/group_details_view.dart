@@ -1,4 +1,5 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/utils/user_id_utils.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
@@ -141,8 +142,10 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                 isCurrentGroup) {
               final details = state.groupDetails!;
               final authUser = context.read<AuthBloc>().state.user;
-              final isCurrentUserOwner = authUser.id.isNotEmpty && details.group.ownerId == authUser.id;
-              final ownerAlreadyInList = details.members.any((m) => m.userId == authUser.id);
+              final isCurrentUserOwner =
+                  authUser.id.isNotEmpty && sameUserId(details.group.ownerId, authUser.id);
+              final ownerAlreadyInList =
+                  details.members.any((m) => sameUserId(m.userId, authUser.id));
               final groupMetricsPlaceholder = details.group.sharedMetrics;
 
               final List<FamilyMember> effectiveMembers = [];
@@ -166,7 +169,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                 );
               }
               for (final m in details.members) {
-                if (m.userId == authUser.id) {
+                if (sameUserId(m.userId, authUser.id)) {
                   effectiveMembers.add(
                     m.copyWith(
                       name: authUser.name.isNotEmpty ? authUser.name : 'Bạn',
@@ -185,7 +188,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
 
               return Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: AppSize.maxWidth),
+                  constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(AppSize.p20),
                     child: Column(
@@ -243,6 +246,36 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                             color: AppColors.textGrey,
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                size: 20,
+                                color: AppColors.textGrey,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Thông tin trong nhóm chỉ nhằm hỗ trợ theo dõi; không thay thế '
+                                  'tư vấn y tế. Hãy luôn tuân theo chỉ định của cơ sở khám chữa bệnh.',
+                                  style: AppTextStyles.caption.copyWith(
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: AppSize.spacing24),
                         // Add member button
                         SizedBox(
@@ -283,9 +316,10 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                 member: member,
                                 // BE dùng owner_id, role "owner". Dùng ownerId để chắc chắn đúng.
                                 isOwner: isCurrentUserOwner,
-                                isGroupOwner: member.userId == details.group.ownerId,
+                                isGroupOwner:
+                                    sameUserId(member.userId, details.group.ownerId),
                                 groupId: details.group.id,
-                                isCurrentUser: member.userId == authUser.id,
+                                isCurrentUser: sameUserId(member.userId, authUser.id),
                                 onViewMetrics: () {
                                   FamilyMemberMetricsDialog.show(
                                     context: context,
@@ -329,9 +363,11 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
 
   void _showLeaveGroupDialog(BuildContext context, dynamic details) {
     final authUser = context.read<AuthBloc>().state.user;
-    final isOwner = authUser.id.isNotEmpty && details.group.ownerId == authUser.id;
+    final isOwner =
+        authUser.id.isNotEmpty && sameUserId(details.group.ownerId, authUser.id);
     // Filter out current user from members list (dùng đúng user.id thay vì placeholder)
-    final otherMembers = details.members.where((m) => m.userId != authUser.id).toList();
+    final otherMembers =
+        details.members.where((m) => !sameUserId(m.userId, authUser.id)).toList();
     final hasOtherMembers = otherMembers.isNotEmpty;
 
     if (isOwner && hasOtherMembers) {

@@ -1,5 +1,5 @@
-/// Utility class to parse and translate error messages
-/// Provides consistent error message handling across the app
+/// Map pattern tiếng Anh từ backend → tiếng Việt.
+/// Để hiển thị lỗi cho người dùng, dùng `UserFacingError` trong `user_facing_error.dart`.
 class ErrorMessageParser {
   /// Default error message when parsing fails
   static const String defaultErrorMessage = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
@@ -7,6 +7,7 @@ class ErrorMessageParser {
   /// Error message mappings
   static final Map<String, String> _errorMappings = {
     'group not found': 'Không tìm thấy nhóm. Vui lòng thử lại.',
+    'group already exists': 'Tên nhóm đã tồn tại. Vui lòng chọn tên khác.',
     'user not found': 'Không tìm thấy người dùng. Vui lòng thử lại.',
     'invitation not found': 'Không tìm thấy lời mời. Vui lòng thử lại.',
     'email.*already': 'Email này đã được mời vào nhóm.',

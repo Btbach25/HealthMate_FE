@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/data/models/home_data.dart';
 import 'package:fe/data/repositories/home_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,7 +31,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (e) {
       emit(state.copyWith(
         status: HomeStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }

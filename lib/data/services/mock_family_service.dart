@@ -186,7 +186,7 @@ class MockFamilyService implements FamilyService {
   Future<void> inviteMember({
     required String groupId,
     required String email,
-    required String name,
+    String name = '',
     String? relationship,
     int? age,
     required List<String> sharedMetrics,
@@ -236,7 +236,9 @@ class MockFamilyService implements FamilyService {
       invitee: User(
         id: 'user-${now.millisecondsSinceEpoch}',
         email: email,
-        name: name,
+        name: name.trim().isNotEmpty
+            ? name
+            : email.split('@').first,
         role: UserRole.user,
         status: UserStatus.verified,
         provider: LoginProvider.email,

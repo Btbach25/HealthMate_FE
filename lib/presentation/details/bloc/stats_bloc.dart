@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:fe/data/repositories/stats_repository.dart';
@@ -54,7 +55,7 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       } catch (e) {
         emit(state.copyWith(
           chartStatus: ChartStatus.error,
-          chartErrorMessage: e.toString(),
+          chartErrorMessage: UserFacingError.message(e),
         ));
       }
     }

@@ -1,8 +1,16 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/app_stat_tile.dart';
+import 'package:fe/core/widgets/card_with_accent_bar.dart';
+import 'package:fe/core/widgets/error_widget.dart';
+import 'package:fe/core/widgets/feature_highlight_card.dart';
+import 'package:fe/core/widgets/hero_action_banner.dart';
+import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
-import 'package:fe/presentation/medications/widgets/add_medication_sheet.dart';
+import 'package:fe/presentation/medications/widgets/add_medication_dialog.dart';
+import 'package:fe/presentation/medications/widgets/manage_medications_dialog.dart';
+import 'package:fe/presentation/medications/widgets/prescription_scan_dialog.dart';
 import 'package:fe/presentation/medications/widgets/medication_item_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,40 +44,46 @@ class _PeriodConfig {
   final String label;
   final IconData icon;
   final Color color;
+  final Color softBg;
   final String timeRange;
 
   const _PeriodConfig({
     required this.label,
     required this.icon,
     required this.color,
+    required this.softBg,
     required this.timeRange,
   });
 }
 
 final _periodConfigs = <_Period, _PeriodConfig>{
-  _Period.morning: const _PeriodConfig(
+  _Period.morning: _PeriodConfig(
     label: 'Sáng',
-    icon: Icons.wb_twilight,
-    color: Color(0xFFF57C00),
-    timeRange: '6:00 - 11:59',
+    icon: Icons.wb_twilight_rounded,
+    color: const Color(0xFFE65100),
+    softBg: const Color(0xFFFFF3E0),
+    timeRange: '6:00 – 11:59',
   ),
-  _Period.noon: const _PeriodConfig(
+  _Period.noon: _PeriodConfig(
     label: 'Trưa',
-    icon: Icons.wb_sunny,
-    color: Color(0xFFFFA000),
-    timeRange: '12:00 - 16:59',
+    icon: Icons.wb_sunny_rounded,
+    color: AppColors.primary,
+    softBg: AppColors.primaryContainer,
+    timeRange: '12:00 – 16:59',
   ),
-  _Period.evening: const _PeriodConfig(
+  _Period.evening: _PeriodConfig(
     label: 'Chiều',
-    icon: Icons.wb_twilight,
-    color: Color(0xFF1976D2),
-    timeRange: '17:00 - 20:59',
+    icon: Icons.filter_drama_rounded,
+    color: const Color(0xFF1565C0),
+    softBg: const Color(0xFFE3F2FD),
+    timeRange: '17:00 – 20:59',
   ),
-  _Period.night: const _PeriodConfig(
+  _Period.night: _PeriodConfig(
     label: 'Tối',
-    icon: Icons.bedtime_outlined,
-    color: Color(0xFF7B1FA2),
-    timeRange: '21:00 - 5:59',
+    icon: Icons.nights_stay_rounded,
+    color: const Color(0xFF6A1B9A),
+    softBg: const Color(0xFFF3E5F5),
+    timeRange: '21:00 – 5:59',
   ),
 };
 
@@ -136,38 +150,57 @@ class MedicationView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: BlocBuilder<MedicationBloc, MedicationState>(
-        builder: (context, state) {
+      body: BlocListener<MedicationBloc, MedicationState>(
+        listenWhen: (previous, current) =>
+            current.feedbackMessage != null &&
+            (previous.feedbackMessage != current.feedbackMessage ||
+                previous.feedbackIsError != current.feedbackIsError),
+        listener: (context, state) {
+          final msg = state.feedbackMessage;
+          if (msg == null || !context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: state.feedbackIsError
+                  ? AppColors.error
+                  : AppColors.primary,
+            ),
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            context.read<MedicationBloc>().add(const ClearMedicationFeedback());
+          });
+        },
+        child: BlocBuilder<MedicationBloc, MedicationState>(
+          builder: (context, state) {
           if (state.status == MedicationStatus.initial ||
               state.status == MedicationStatus.loading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: LoadingWidget(
+                message: 'Đang tải lịch thuốc',
+                subtitle: 'Vui lòng đợi trong giây lát',
+                progressInElevatedCircle: true,
+              ),
             );
           }
 
           if (state.status == MedicationStatus.error) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    state.errorMessage ?? 'Đã có lỗi xảy ra',
-                    style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.error),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => context
-                        .read<MedicationBloc>()
-                        .add(const FetchMedications()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Thử lại'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ErrorDisplayWidget(
+                  title: 'Không tải được dữ liệu',
+                  message: state.errorMessage ?? 'Đã có lỗi xảy ra',
+                  wrapInCard: true,
+                  icon: Icons.cloud_off_rounded,
+                  onRetry: () => context
+                      .read<MedicationBloc>()
+                      .add(const FetchMedications()),
+                ),
               ),
             );
           }
@@ -182,36 +215,136 @@ class MedicationView extends StatelessWidget {
 
           return RefreshIndicator(
             color: AppColors.primary,
-            backgroundColor: AppColors.inputBackground,
+            backgroundColor: AppColors.surface,
             strokeWidth: 2.5,
-            displacement: 64,
+            displacement: 72,
+            edgeOffset: 8,
             onRefresh: () async {
               final bloc = context.read<MedicationBloc>();
               bloc.add(const FetchMedications());
               await bloc.stream.firstWhere(
                   (s) => s.status != MedicationStatus.loading);
             },
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 700),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _Header(
-                          onAdd: () => _showAddSheet(context)),
-                      const SizedBox(height: 16),
-                      _SummaryRow(
-                          total: total, taken: taken, missed: missed),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                      const _MedicationPurposeBanner(),
                       const SizedBox(height: 12),
-                      _ScanButton(),
+                      HeroActionBanner(
+                        title: 'Thuốc & lịch uống',
+                        subtitle:
+                            'Theo dõi nhắc nhở, đánh dấu đã uống và quét đơn nhanh chóng.',
+                        action: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: state.medications.isEmpty
+                                  ? null
+                                  : () =>
+                                      _showManageMedicationsDialog(context),
+                              icon: const Icon(Icons.edit_rounded, size: 20),
+                              label: const Text('Chỉnh sửa'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(
+                                    color: AppColors.primary),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  _showAddMedicationDialog(context),
+                              icon: const Icon(Icons.add_rounded, size: 22),
+                              label: const Text('Thêm'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppStatTile(
+                              icon: Icons.event_note_rounded,
+                              iconBg: AppColors.inputBackground,
+                              iconColor: AppColors.textSecondary,
+                              value: total,
+                              label: 'Lượt uống',
+                              valueColor: AppColors.textBlack,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AppStatTile(
+                              icon: Icons.task_alt_rounded,
+                              iconBg: AppColors.primaryContainer,
+                              iconColor: AppColors.primary,
+                              value: taken,
+                              label: 'Đã uống',
+                              valueColor: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AppStatTile(
+                              icon: Icons.schedule_rounded,
+                              iconBg: missed > 0
+                                  ? AppColors.errorLight
+                                  : AppColors.inputBackground,
+                              iconColor: missed > 0
+                                  ? AppColors.error
+                                  : AppColors.textGrey,
+                              value: missed,
+                              label: 'Cần chú ý',
+                              valueColor: missed > 0
+                                  ? AppColors.error
+                                  : AppColors.textBlack,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
+                      FeatureHighlightCard(
+                        leadingIcon: Icons.document_scanner_rounded,
+                        title: 'Quét đơn thuốc',
+                        subtitle:
+                            'Chụp hoặc chọn ảnh — gợi ý tên & liều tự động',
+                        showTrailingChevron: true,
+                        onTap: () async {
+                          await showPrescriptionScanDialog(context);
+                          if (!context.mounted) return;
+                          context
+                              .read<MedicationBloc>()
+                              .add(const FetchMedications());
+                        },
+                      ),
+                      const SizedBox(height: 20),
                       _ScheduleCard(
                         schedule: schedule,
                         completedCount: taken,
                         totalCount: total,
+                        onAddMedication: () => _showAddMedicationDialog(context),
                         onTake: (medId, remId) =>
                             context.read<MedicationBloc>().add(
                                   TakeMedication(
@@ -220,167 +353,57 @@ class MedicationView extends StatelessWidget {
                                   ),
                                 ),
                       ),
-                      const SizedBox(height: 80),
                     ],
                   ),
                 ),
-              ),
-            ),
           );
         },
+        ),
       ),
     );
   }
 
-  void _showAddSheet(BuildContext context) {
+  void _showAddMedicationDialog(BuildContext context) {
     final bloc = context.read<MedicationBloc>();
-    showModalBottomSheet(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
       useRootNavigator: true,
-      backgroundColor: Colors.transparent,
+      barrierDismissible: true,
       builder: (_) => BlocProvider.value(
         value: bloc,
-        child: const AddMedicationSheet(),
+        child: const AddMedicationDialog(),
+      ),
+    );
+  }
+
+  void _showManageMedicationsDialog(BuildContext context) {
+    final bloc = context.read<MedicationBloc>();
+    showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: true,
+      builder: (_) => BlocProvider.value(
+        value: bloc,
+        child: const ManageMedicationsDialog(),
       ),
     );
   }
 }
 
-// ─── Private sub-widgets ───────────────────────────────────────────────────────
-
-class _Header extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _Header({required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Quản lý thuốc', style: AppTextStyles.h4),
-        ElevatedButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Thêm'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-            textStyle: AppTextStyles.labelMedium
-                .copyWith(color: Colors.white),
-            elevation: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  final int total;
-  final int taken;
-  final int missed;
-  const _SummaryRow(
-      {required this.total, required this.taken, required this.missed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _StatBox(value: total, label: 'Tổng thuốc')),
-        const SizedBox(width: 10),
-        Expanded(
-            child: _StatBox(
-                value: taken,
-                label: 'Đã uống',
-                valueColor: AppColors.primary)),
-        const SizedBox(width: 10),
-        Expanded(
-            child: _StatBox(
-                value: missed,
-                label: 'Bị lỡ',
-                valueColor: missed > 0 ? AppColors.error : AppColors.textBlack)),
-      ],
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final int value;
-  final String label;
-  final Color? valueColor;
-
-  const _StatBox({required this.value, required this.label, this.valueColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: AppTextStyles.h3.copyWith(
-              color: valueColor ?? AppColors.textBlack,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: AppTextStyles.caption),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScanButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tính năng quét đơn thuốc đang phát triển'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
-        icon: const Icon(Icons.camera_alt_outlined,
-            size: 20, color: AppColors.textBlack),
-        label: const Text('Quét đơn thuốc',
-            style: TextStyle(color: AppColors.textBlack)),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: const BorderSide(color: AppColors.cardBorder, width: 1.5),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-          backgroundColor: AppColors.surface,
-        ),
-      ),
-    );
-  }
-}
+// ─── Schedule card ─────────────────────────────────────────────────────────────
 
 class _ScheduleCard extends StatelessWidget {
   final Map<_Period, List<_ScheduleItem>> schedule;
   final int completedCount;
   final int totalCount;
+  final VoidCallback onAddMedication;
   final void Function(String medicationId, String reminderId) onTake;
 
   const _ScheduleCard({
     required this.schedule,
     required this.completedCount,
     required this.totalCount,
+    required this.onAddMedication,
     required this.onTake,
   });
 
@@ -389,89 +412,185 @@ class _ScheduleCard extends StatelessWidget {
     final dateStr = DateFormat('EEEE, d MMMM yyyy', 'vi_VN')
         .format(DateTime.now());
     final allEmpty = schedule.values.every((list) => list.isEmpty);
+    final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
+    final allDone = totalCount > 0 && completedCount == totalCount;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today_outlined,
-                            size: 18, color: AppColors.textBlack),
-                        const SizedBox(width: 8),
-                        Text('Lịch uống thuốc hôm nay',
-                            style: AppTextStyles.labelLarge),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(dateStr, style: AppTextStyles.caption),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: completedCount == totalCount && totalCount > 0
-                      ? AppColors.primaryContainer
-                      : AppColors.inputBackground,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$completedCount/$totalCount',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: completedCount == totalCount && totalCount > 0
-                        ? AppColors.primary
-                        : AppColors.textGrey,
-                    fontWeight: FontWeight.w600,
+    return CardWithAccentBar(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: AppColors.primary,
+                    size: 22,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Lịch hôm nay',
+                              style: AppTextStyles.labelLarge.copyWith(
+                                fontSize: 17,
+                                height: 1.25,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: allDone
+                                  ? AppColors.successLight
+                                  : AppColors.inputBackground,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Text(
+                              '$completedCount / $totalCount',
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: allDone
+                                    ? AppColors.success
+                                    : AppColors.textGrey,
+                                fontWeight: FontWeight.w700,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateStr,
+                        style: AppTextStyles.caption,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (totalCount > 0) ...[
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: AppColors.inputBackground,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                allDone
+                    ? 'Hoàn thành tất cả lịch trong ngày — tuyệt vời!'
+                    : 'Còn ${totalCount - completedCount} lần uống trong ngày',
+                style: AppTextStyles.caption,
               ),
             ],
-          ),
+            if (allEmpty) ...[
+              const SizedBox(height: 16),
+              _ScheduleEmpty(onAdd: onAddMedication),
+            ] else ...[
+              const SizedBox(height: 12),
+              ..._Period.values.map((period) {
+                final config = _periodConfigs[period]!;
+                final items = schedule[period]!;
+                return _PeriodSection(
+                  config: config,
+                  items: items,
+                  onTake: onTake,
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-          if (allEmpty) ...[
-            const SizedBox(height: 32),
-            Center(
+class _ScheduleEmpty extends StatelessWidget {
+  final VoidCallback onAdd;
+
+  const _ScheduleEmpty({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.55),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.medication_liquid_rounded,
+                size: 40,
+                color: AppColors.primary.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.medication_outlined,
-                      size: 48, color: AppColors.textLight),
-                  const SizedBox(height: 12),
-                  Text('Không có thuốc nào hôm nay',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textGrey)),
+                  Text(
+                    'Chưa có lịch uống hôm nay',
+                    style: AppTextStyles.labelLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Thêm thuốc để nhận nhắc theo giờ, hoặc quét đơn để nhập nhanh.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textGrey,
+                      height: 1.45,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-          ] else ...[
-            const SizedBox(height: 20),
-            ..._Period.values.map((period) {
-              final config = _periodConfigs[period]!;
-              final items = schedule[period]!;
-              return _PeriodSection(
-                config: config,
-                items: items,
-                onTake: onTake,
-              );
-            }),
           ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.add_rounded, size: 20),
+          label: const Text('Thêm thuốc'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -490,46 +609,75 @@ class _PeriodSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Period header
           Row(
             children: [
-              Icon(config.icon, size: 20, color: config.color),
-              const SizedBox(width: 6),
-              Text(config.label,
-                  style: AppTextStyles.labelMedium
-                      .copyWith(color: config.color)),
-              const SizedBox(width: 6),
-              Text('(${config.timeRange})',
-                  style: AppTextStyles.caption),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: config.softBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(config.icon, size: 18, color: config.color),
+                    const SizedBox(width: 6),
+                    Text(
+                      config.label,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: config.color,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      config.timeRange,
+                      style: AppTextStyles.caption.copyWith(
+                        color: config.color.withValues(alpha: 0.85),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (items.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '${items.length}',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 10),
-          // Medication items
           if (items.isEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.inputBackground,
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: AppColors.cardBorder,
-                    style: BorderStyle.solid,
-                    width: 1),
+                  color: AppColors.cardBorder,
+                ),
               ),
               child: Text(
-                'Không có thuốc nào trong buổi ${config.label.toLowerCase()}',
+                'Không có thuốc trong khung ${config.label.toLowerCase()}',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.caption,
               ),
             )
           else
             ...items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: MedicationItemCard(
                     name: item.name,
                     dosage: item.dosage,
@@ -539,6 +687,52 @@ class _PeriodSection extends StatelessWidget {
                     onTap: () => onTake(item.medicationId, item.reminderId),
                   ),
                 )),
+        ],
+      ),
+    );
+  }
+}
+
+/// Nhắc nhở nhân văn + giới hạn trách nhiệm (ứng dụng hỗ trợ, không tư vấn y khoa).
+class _MedicationPurposeBanner extends StatelessWidget {
+  const _MedicationPurposeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.favorite_outline_rounded,
+            color: AppColors.primary,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hỗ trợ tuân thủ điều trị tại nhà',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Lịch và nhắc nhở mang tính hỗ trợ; không thay thế chỉ định của bác sĩ hay dược sĩ.',
+                  style: AppTextStyles.caption.copyWith(height: 1.35),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

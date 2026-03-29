@@ -113,7 +113,9 @@ class AuthApiService implements AuthService {
         final googleAuth = await googleUser.authentication;
         idToken = googleAuth.idToken;
       }
-      if (idToken == null) throw Exception('Không lấy được Google ID token. Vui lòng thử lại.');
+      if (idToken == null) {
+        throw Exception('Không hoàn tất đăng nhập Google. Vui lòng thử lại.');
+      }
 
       final url = Uri.parse('$baseUrl/auth/google');
       final response = await http.post(
@@ -323,8 +325,8 @@ class AuthApiService implements AuthService {
       final errMsg = body is Map<String, dynamic> ? (body['error'] ?? body['message']) : null;
       if (response.statusCode == 500) {
         throw Exception(
-          'Máy chủ không gửi được email (lỗi SMTP). '
-          'Vui lòng thử lại sau hoặc liên hệ quản trị.',
+          'Hiện không gửi được email xác nhận. '
+          'Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
         );
       }
       if (response.statusCode == 400) {

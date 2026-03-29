@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/data/models/health/health_overview.dart';
 import 'package:fe/data/repositories/health_repository.dart';
 
@@ -21,7 +22,10 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
       final overview = await _repository.getOverview();
       emit(state.copyWith(status: HealthOverviewStatus.success, overview: overview));
     } catch (e) {
-      emit(state.copyWith(status: HealthOverviewStatus.failure, errorMessage: _toMessage(e)));
+      emit(state.copyWith(
+        status: HealthOverviewStatus.failure,
+        errorMessage: UserFacingError.message(e),
+      ));
     }
   }
 
@@ -29,9 +33,4 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
     add(const HealthOverviewRequested());
   }
 
-  String _toMessage(Object e) {
-    final raw = e.toString().replaceAll('Exception: ', '');
-    if (raw.isEmpty) return 'Lỗi lấy dữ liệu';
-    return raw;
-  }
 }

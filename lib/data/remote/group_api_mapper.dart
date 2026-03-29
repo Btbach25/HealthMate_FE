@@ -5,6 +5,7 @@ import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
+import 'package:fe/core/utils/user_id_utils.dart';
 import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/enums/login_provider.dart';
 import 'package:fe/data/enums/user_role.dart';
@@ -56,7 +57,7 @@ class GroupApiMapper {
     final createdAt = _parseDate(json['created_at']);
     final updatedAt = _parseDate(json['updated_at']);
     return FamilyGroup(
-      id: id,
+      id: canonicalUserId(id),
       name: _str(json['name']),
       memberCount: _int(json['member_count']),
       userRole: GroupMemberRole.fromValue(_str(json['user_role']).isEmpty ? null : _str(json['user_role'])),
@@ -65,7 +66,7 @@ class GroupApiMapper {
       lastActivity: _parseDateOrNull(json['last_activity']),
       pendingInvitations: _int(json['pending_invitations']),
       sharedMetrics: _parseMetricTypes(json['shared_metrics']),
-      ownerId: _str(json['owner_id']),
+      ownerId: canonicalUserId(_str(json['owner_id'])),
     );
   }
 
@@ -74,15 +75,27 @@ class GroupApiMapper {
     Map<String, dynamic> json,
     String groupId,
   ) {
-    final userId = _str(json['user_id']);
-    final name = _str(json['name']);
+    final userId = canonicalUserId(_str(json['user_id']));
+    final emailRaw = _str(json['email']);
+    final nameRaw = _str(json['name']);
+    final altName = _str(json['user_name']);
+    final resolvedName = nameRaw.isNotEmpty
+        ? nameRaw
+        : (altName.isNotEmpty ? altName : '');
+    final displayName = resolvedName.isNotEmpty
+        ? resolvedName
+        : (emailRaw.isNotEmpty
+            ? emailRaw.split('@').first
+            : 'Thành viên');
     final createdAt = _parseDate(json['created_at']);
     return FamilyMember(
       id: userId,
       userId: userId,
-      groupId: _str(json['group_id']).isEmpty ? groupId : _str(json['group_id']),
-      name: name.isEmpty ? 'Thành viên' : name,
-      email: _str(json['email']).isEmpty ? null : _str(json['email']),
+      groupId: canonicalUserId(
+        _str(json['group_id']).isEmpty ? groupId : _str(json['group_id']),
+      ),
+      name: displayName,
+      email: emailRaw.isEmpty ? null : emailRaw,
       age: null,
       relationship: null,
       avatar: null,
@@ -94,15 +107,19 @@ class GroupApiMapper {
     );
   }
 
-  /// Danh sách Group JSON -> FamilyGroupSummary (groupsJoined từ list.length; pendingInvitations BE chưa trả thì 0).
+  /// Danh sách Group JSON -> FamilyGroupSummary (tổng pending_invitations theo từng nhóm nếu BE trả).
   static FamilyGroupSummary toFamilyGroupSummary(List<dynamic> list) {
     final groups = list
         .whereType<Map<String, dynamic>>()
         .map(toFamilyGroup)
         .toList();
+    final pendingSum = groups.fold<int>(
+      0,
+      (sum, g) => sum + g.pendingInvitations,
+    );
     return FamilyGroupSummary(
       groupsJoined: groups.length,
-      pendingInvitations: 0,
+      pendingInvitations: pendingSum,
       groups: groups,
     );
   }
