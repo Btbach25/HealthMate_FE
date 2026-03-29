@@ -38,6 +38,11 @@ class LocalStorageService {
     return prefs.getString(_refreshTokenKey);
   }
 
+  Future<void> saveAccessToken(String accessToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_accessTokenKey, accessToken);
+  }
+
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userKey);

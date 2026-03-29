@@ -1,6 +1,14 @@
 
 import 'package:flutter/material.dart';
 
+class AppAssets {
+  static const String happy = 'assets/icons/happy.png';
+  static const String neutral = 'assets/icons/neutral.png';
+  static const String sad = 'assets/icons/sad-face.png';
+  static const String appLogo = 'assets/icons/app_logo.png';
+  static const String googleLogo = 'assets/icons/google_logo.png';
+}
+
 class AppIcons {
   static const IconData heart = Icons.favorite_border;
   static const IconData weight = Icons.shopping_bag_outlined;

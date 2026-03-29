@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 
 class MockStatsService implements StatsService {
   @override
-  Future<StatsPageData> getStatsPageData() async {
+  Future<StatsPageData> getStatsPageData({String range = '7d'}) async {
     await Future.delayed(const Duration(milliseconds: 600));
 
     final lastUpdate = DateTime(2025, 11, 13);
@@ -96,7 +96,7 @@ class MockStatsService implements StatsService {
   }
 
   @override
-  Future<List<MetricChart>> getChartData() async {
+  Future<List<MetricChart>> getChartData({String range = '7d'}) async {
     await Future.delayed(const Duration(milliseconds: 900));
 
     final bloodPressurePoints = [

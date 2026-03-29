@@ -78,6 +78,22 @@ class AuthRepository {
     await _authService.resetPassword(newPassword: newPassword);
   }
 
+  /// Gọi POST /auth/refresh. Trả về access_token mới hoặc null nếu thất bại.
+  /// Khi thất bại: xóa token, emit unauthenticated → app redirect về login.
+  Future<String?> refreshToken() async {
+    final refreshToken = await _localStorageService.getRefreshToken();
+    if (refreshToken == null) {
+      await logout();
+      return null;
+    }
+    final newToken = await _authService.refreshAccessToken(refreshToken);
+    if (newToken == null) {
+      await logout();
+      return null;
+    }
+    return newToken;
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     await _localStorageService.clearAll();

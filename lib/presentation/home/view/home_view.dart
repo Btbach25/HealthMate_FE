@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/app_size.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/home_app_bar.dart';
@@ -27,17 +28,22 @@ class _HomeViewState extends State<HomeView> {
   Timer? _pollTimer;
 
   void _startPolling(BuildContext context) {
-    if (kIsWeb) return; // skip device health polling on web
-    context.read<DeviceHealthCubit>().poll();
+    if (kIsWeb) return;
+    final cubit = context.read<DeviceHealthCubit>();
+    cubit.poll().then((_) => cubit.startPeriodicSync());
     _pollTimer?.cancel();
+    // Re-fetch device data mỗi 5 phút (dữ liệu HealthKit/Health Connect không đổi liên tục)
     _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      context.read<DeviceHealthCubit>().poll();
+      cubit.poll();
     });
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    if (!kIsWeb) {
+      context.read<DeviceHealthCubit>().stopPeriodicSync();
+    }
     super.dispose();
   }
 
@@ -100,7 +106,7 @@ class _HomeViewState extends State<HomeView> {
                   constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16.0),
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -110,15 +116,17 @@ class _HomeViewState extends State<HomeView> {
                         WelcomeMessage(name: displayUser.name),
                         const SizedBox(height: 24),
 
-                        // Provide HealthOverviewBloc; DeviceHealthCubit comes from app-level provider
+                        // Provide HealthOverviewBloc — tự subscribe DeviceHealthCubit bên trong
                         BlocProvider<HealthOverviewBloc>(
                           create: (context) => HealthOverviewBloc(
                             repository: RepositoryProvider.of(context),
+                            deviceCubit: context.read<DeviceHealthCubit>(),
                           ),
                           child: Builder(
                             builder: (innerContext) {
-                              // Start polling after first frame
-                              WidgetsBinding.instance.addPostFrameCallback((_) => _startPolling(innerContext));
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                (_) => _startPolling(innerContext),
+                              );
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -128,14 +136,15 @@ class _HomeViewState extends State<HomeView> {
                                   const SizedBox(height: 12),
                                   BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
                                     builder: (context, dState) {
-                                      if (dState.lastUpdated == null) {
-                                        return const SizedBox.shrink();
-                                      }
+                                      if (dState.lastUpdated == null) return const SizedBox.shrink();
                                       final ts = dState.lastUpdated!;
-                                      final time = '${ts.hour.toString().padLeft(2,'0')}:${ts.minute.toString().padLeft(2,'0')}';
-                                      return Text(
-                                        'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                      final time = '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text(
+                                          'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                        ),
                                       );
                                     },
                                   ),
@@ -144,7 +153,17 @@ class _HomeViewState extends State<HomeView> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+
+                        // Health score card — luôn hiển thị
+                        BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
+                          builder: (context, dState) {
+                            if (dState.readinessLoading) return _ReadinessLoadingCard();
+                            return _ReadinessScoreCard(score: dState.readinessScore);
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
 
                         if (homeData.medicationProgress != null)
                           MedicationCard(progress: homeData.medicationProgress!),
@@ -163,6 +182,97 @@ class _HomeViewState extends State<HomeView> {
           }
           return const Center(child: Text('Trạng thái không xác định'));
         },
+      ),
+    );
+  }
+}
+
+class _ReadinessLoadingCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: const [
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text('Đang tính điểm sẵn sàng...', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessScoreCard extends StatelessWidget {
+  final double? score;
+  const _ReadinessScoreCard({required this.score});
+
+  Color _scoreColor(double s) {
+    if (s >= 75) return const Color(0xFF4CAF50);
+    if (s >= 50) return const Color(0xFFFFC107);
+    return const Color(0xFFF44336);
+  }
+
+  String _scoreLabel(double s) {
+    if (s >= 75) return 'Tốt';
+    if (s >= 50) return 'Trung bình';
+    return 'Cần nghỉ ngơi';
+  }
+
+  String _moodAsset(double s) {
+    if (s >= 75) return AppAssets.happy;
+    if (s >= 50) return AppAssets.neutral;
+    return AppAssets.sad;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasScore = score != null;
+    final color = hasScore ? _scoreColor(score!) : AppColors.textGrey;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Center(
+                child: hasScore
+                    ? Text(
+                        score!.toStringAsFixed(0),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                      )
+                    : Icon(Icons.hourglass_empty, color: color, size: 22),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Điểm sẵn sàng thể chất', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  hasScore ? _scoreLabel(score!) : 'Đang chờ dữ liệu thiết bị...',
+                  style: TextStyle(fontSize: 12, color: color),
+                ),
+              ],
+            ),
+            const Spacer(),
+            hasScore
+                ? Image.asset(
+                    _moodAsset(score!),
+                    width: 32,
+                    height: 32,
+                    color: color,
+                    colorBlendMode: BlendMode.srcIn,
+                  )
+                : const SizedBox(width: 32),
+          ],
+        ),
       ),
     );
   }

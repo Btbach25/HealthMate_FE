@@ -225,12 +225,20 @@ class MedicationView extends StatelessWidget {
               await bloc.stream.firstWhere(
                   (s) => s.status != MedicationStatus.loading);
             },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       const _MedicationPurposeBanner(),
                       const SizedBox(height: 12),
                       HeroActionBanner(
@@ -356,6 +364,8 @@ class MedicationView extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+            ),
           );
         },
         ),

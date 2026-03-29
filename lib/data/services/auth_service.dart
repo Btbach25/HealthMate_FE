@@ -15,8 +15,7 @@ abstract class AuthService {
   Future<User?> login({required String email, required String password});
   Future<User?> loginWithGoogle({String? idToken});
   Future<void> logout();
-  /// Gọi POST /auth/refresh với refresh_token, lưu access_token mới. Trả về true nếu thành công.
-  Future<bool> refreshAccessToken();
+  Future<String?> refreshAccessToken(String refreshToken);
   Future<User?> register({
     required String name,
     required String email,
@@ -147,41 +146,6 @@ class AuthApiService implements AuthService {
   Future<void> logout() async {
     await _googleSignIn.signOut();
     await _localStorage.clearAll();
-  }
-
-  @override
-  Future<bool> refreshAccessToken() async {
-    final refreshToken = await _localStorage.getRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) return false;
-    try {
-      final url = Uri.parse('$baseUrl/auth/refresh');
-      final response = await http
-          .post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'refresh_token': refreshToken}),
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        if (body is Map<String, dynamic>) {
-          final newAccess = body['access_token']?.toString();
-          if (newAccess != null && newAccess.isNotEmpty) {
-            await _localStorage.saveTokens(
-              accessToken: newAccess,
-              refreshToken: refreshToken,
-            );
-            return true;
-          }
-        }
-      }
-    } catch (_) {
-      // Ignore
-    }
-    return false;
   }
 
   @override
@@ -349,5 +313,30 @@ class AuthApiService implements AuthService {
     throw Exception(
       'Tính năng đặt lại mật khẩu đang được phát triển. Vui lòng liên hệ quản trị viên.',
     );
+  }
+
+  @override
+  Future<String?> refreshAccessToken(String refreshToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final newToken = body['access_token'] as String?;
+        if (newToken != null) {
+          await _localStorage.saveAccessToken(newToken);
+          debugPrint('[Auth] Token refreshed successfully');
+          return newToken;
+        }
+      }
+      debugPrint('[Auth] refreshAccessToken failed: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('[Auth] refreshAccessToken error: $e');
+    }
+    return null;
   }
 }
