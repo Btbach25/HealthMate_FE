@@ -196,10 +196,24 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                     decoration: const InputDecoration(
                       hintText: 'Nhập tên nhóm',
                     ),
-                    validator: (value) => FormValidationHelper.validateRequired(
-                      value,
-                      fieldName: 'tên nhóm',
-                    ),
+                    validator: (value) {
+                      final req = FormValidationHelper.validateRequired(
+                        value,
+                        fieldName: 'tên nhóm',
+                      );
+                      if (req != null) return req;
+                      final min = FormValidationHelper.validateMinLength(
+                        value,
+                        3,
+                        fieldName: 'Tên nhóm',
+                      );
+                      if (min != null) return min;
+                      return FormValidationHelper.validateMaxLength(
+                        value,
+                        100,
+                        fieldName: 'Tên nhóm',
+                      );
+                    },
                   ),
                   const SizedBox(height: AppSize.spacing24),
                   const Text(

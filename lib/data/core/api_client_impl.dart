@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fe/core/config/api_base_url.dart';
+import 'package:fe/core/utils/access_token_expiry.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/services/local_storage_service.dart';
@@ -24,15 +24,29 @@ class ApiClientImpl extends ApiClient {
     if (_baseUrlOverride != null && _baseUrlOverride.isNotEmpty) {
       return _baseUrlOverride;
     }
-    final envUrl = dotenv.env['BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
-    if (kIsWeb) return 'http://localhost:8080';
-    return 'http://localhost:8080';
+    return resolveApiBaseUrl();
   }
 
   @override
   Future<String?> getAuthToken() async {
     return _localStorageService.getAccessToken();
+  }
+
+  @override
+  Future<Map<String, String>> buildHeaders({
+    Map<String, String>? additionalHeaders,
+    bool includeAuth = true,
+  }) async {
+    if (includeAuth && onRefreshToken != null) {
+      final token = await getAuthToken();
+      if (shouldProactivelyRefreshAccessToken(token)) {
+        await onRefreshToken!();
+      }
+    }
+    return super.buildHeaders(
+      additionalHeaders: additionalHeaders,
+      includeAuth: includeAuth,
+    );
   }
 
   bool _shouldSkipRefresh(String endpoint) =>

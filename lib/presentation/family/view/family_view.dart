@@ -222,8 +222,7 @@ class _FamilyPurposeBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Nhóm gia đình giúp phối hợp theo dõi, hỗ trợ người cao tuổi và người bệnh mạn tính — '
-                  'minh bạch và tôn trọng quyền riêng tư.',
+                  'Nhóm gia đình giúp phối hợp theo dõi, hỗ trợ người cao tuổi và người bệnh mạn tính — minh bạch và tôn trọng quyền riêng tư.',
                   style: AppTextStyles.caption.copyWith(height: 1.45),
                 ),
               ],

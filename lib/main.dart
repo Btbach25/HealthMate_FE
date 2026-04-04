@@ -40,6 +40,7 @@ Future<void> main() async {
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
   try {
     await dotenv.load(fileName: '.env.$env');
+    debugPrint('[env] ENV=$env BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}');
   } catch (e) {
     // File .env không tồn tại, sử dụng giá trị mặc định từ code
     debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');

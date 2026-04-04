@@ -60,8 +60,8 @@ final _periodConfigs = <_Period, _PeriodConfig>{
   _Period.morning: _PeriodConfig(
     label: 'Sáng',
     icon: Icons.wb_twilight_rounded,
-    color: const Color(0xFFE65100),
-    softBg: const Color(0xFFFFF3E0),
+    color: AppColors.medicationScheduleMorning,
+    softBg: AppColors.medicationScheduleMorningSoft,
     timeRange: '6:00 – 11:59',
   ),
   _Period.noon: _PeriodConfig(
@@ -74,15 +74,15 @@ final _periodConfigs = <_Period, _PeriodConfig>{
   _Period.evening: _PeriodConfig(
     label: 'Chiều',
     icon: Icons.filter_drama_rounded,
-    color: const Color(0xFF1565C0),
-    softBg: const Color(0xFFE3F2FD),
+    color: AppColors.medicationScheduleEvening,
+    softBg: AppColors.infoLight,
     timeRange: '17:00 – 20:59',
   ),
   _Period.night: _PeriodConfig(
     label: 'Tối',
     icon: Icons.nights_stay_rounded,
-    color: const Color(0xFF6A1B9A),
-    softBg: const Color(0xFFF3E5F5),
+    color: AppColors.medicationScheduleNight,
+    softBg: AppColors.medicationScheduleNightSoft,
     timeRange: '21:00 – 5:59',
   ),
 };
@@ -277,7 +277,7 @@ class MedicationView extends StatelessWidget {
                               label: const Text('Thêm'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppColors.surface,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
@@ -593,7 +593,7 @@ class _ScheduleEmpty extends StatelessWidget {
           label: const Text('Thêm thuốc'),
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            foregroundColor: AppColors.surface,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

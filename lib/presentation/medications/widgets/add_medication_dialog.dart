@@ -5,6 +5,7 @@ import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
 import 'dart:async';
 
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -99,6 +100,19 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       return;
     }
 
+    final userId = context.read<AuthBloc>().state.user.id;
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Không xác định được tài khoản. Vui lòng đăng nhập lại.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final id = 'med-${DateTime.now().millisecondsSinceEpoch}';
     final timeStrings = _times.map(_formatTime).toList();
     final now = DateTime.now();
@@ -108,7 +122,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
 
     final medication = Medication(
       id: id,
-      userId: 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d',
+      userId: userId,
       name: _nameCtrl.text.trim(),
       dosage: _dosageCtrl.text.trim(),
       frequency: MedicationFrequency(

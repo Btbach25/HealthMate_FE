@@ -67,8 +67,6 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   String? _error;
   List<_DraftEntry>? _entries;
 
-  static const _fallbackUserId = 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d';
-
   @override
   void dispose() {
     _disposeEntries();
@@ -247,10 +245,22 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       return;
     }
 
-    final authBloc = context.read<AuthBloc>();
-    final userId = authBloc.state.user.id.isNotEmpty
-        ? authBloc.state.user.id
-        : _fallbackUserId;
+    final userId = context.read<AuthBloc>().state.user.id;
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Không xác định được tài khoản. Vui lòng đăng nhập lại.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final toAdd = <Medication>[];
     final now = DateTime.now();

@@ -266,8 +266,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Thông tin trong nhóm chỉ nhằm hỗ trợ theo dõi; không thay thế '
-                                  'tư vấn y tế. Hãy luôn tuân theo chỉ định của cơ sở khám chữa bệnh.',
+                                  'Thông tin trong nhóm chỉ nhằm hỗ trợ theo dõi; không thay thế tư vấn y tế. Hãy luôn tuân theo chỉ định của cơ sở khám chữa bệnh.',
                                   style: AppTextStyles.caption.copyWith(
                                     height: 1.4,
                                   ),

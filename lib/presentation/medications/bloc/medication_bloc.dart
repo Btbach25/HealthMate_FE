@@ -107,9 +107,7 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
         status: MedicationStatus.loaded,
         medications: meds,
         clearErrorMessage: true,
-        feedbackMessage: n == 1
-            ? 'Đã thêm 1 thuốc vào lịch'
-            : 'Đã thêm $n thuốc vào lịch',
+        feedbackMessage: 'Đã thêm $n thuốc vào lịch',
         feedbackIsError: false,
       ));
     } catch (e) {
