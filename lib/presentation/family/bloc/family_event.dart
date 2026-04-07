@@ -16,6 +16,11 @@ class FetchFamilyGroups extends FamilyEvent {
   List<Object?> get props => [isRetryAfter401];
 }
 
+/// Đưa bloc về trạng thái ban đầu (sau đăng xuất / trước khi đăng nhập lại) để không giữ màn lỗi 401 cũ.
+class ResetFamily extends FamilyEvent {
+  const ResetFamily();
+}
+
 class CreateGroup extends FamilyEvent {
   final String name;
   final List<String> sharedMetrics;
@@ -76,17 +81,18 @@ class FetchGroupDetails extends FamilyEvent {
 class InviteMember extends FamilyEvent {
   final String groupId;
   final String email;
+  /// Chỉ dùng mock; BE mời bằng email — tên lấy từ tài khoản khi người được mời tham gia.
   final String name;
   final String? relationship;
   final int? age;
   final List<String> sharedMetrics;
-  /// UUID của user được mời (backend API bắt buộc). Nếu null, API thật sẽ báo lỗi.
+  /// Id người được mời (bắt buộc khi gọi máy chủ). Nếu null, lời mời có thể thất bại.
   final String? userId;
 
   const InviteMember({
     required this.groupId,
     required this.email,
-    required this.name,
+    this.name = '',
     this.relationship,
     this.age,
     required this.sharedMetrics,

@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:fe/core/config/api_base_url.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:health/health.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fe/data/services/local_storage_service.dart';
@@ -21,15 +20,7 @@ class HealthWsService {
   String? _userId;
 
   String get _wsBaseUrl {
-    final envUrl = dotenv.env['BASE_URL'];
-    String httpBase;
-    if (envUrl != null && envUrl.isNotEmpty) {
-      httpBase = envUrl;
-    } else if (!kIsWeb && Platform.isAndroid) {
-      httpBase = 'http://10.0.2.2:8080';
-    } else {
-      httpBase = 'http://localhost:8080';
-    }
+    final httpBase = resolveApiBaseUrl();
     return httpBase
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');

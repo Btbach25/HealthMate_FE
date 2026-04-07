@@ -25,7 +25,6 @@ class AddMemberModal extends StatefulWidget {
 class _AddMemberModalState extends State<AddMemberModal>
     with InlineMessageMixin {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   RelationshipType? _selectedRelationship;
   final Set<MetricType> _selectedMetrics = {};
@@ -35,7 +34,6 @@ class _AddMemberModalState extends State<AddMemberModal>
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -69,7 +67,6 @@ class _AddMemberModalState extends State<AddMemberModal>
           InviteMember(
             groupId: widget.groupId,
             email: email,
-            name: _nameController.text.trim(),
             relationship: _selectedRelationship?.value,
             age: null,
             sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
@@ -102,7 +99,8 @@ class _AddMemberModalState extends State<AddMemberModal>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Điền thông tin và chọn dữ liệu chia sẻ để mời thành viên vào nhóm',
+                      'Nhập email tài khoản đã đăng ký — họ tên hiển thị theo hồ sơ khi họ tham gia. '
+                      'Chọn dữ liệu được phép xem.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textGrey.withValues(alpha:0.8),
@@ -123,26 +121,6 @@ class _AddMemberModalState extends State<AddMemberModal>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Họ tên',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textBlack,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Nhập họ tên',
-                  ),
-                  validator: (value) => FormValidationHelper.validateRequired(
-                    value,
-                    fieldName: 'họ tên',
-                  ),
-                ),
-                const SizedBox(height: 16),
                 const Text(
                   'Email',
                   style: TextStyle(

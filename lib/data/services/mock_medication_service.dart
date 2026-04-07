@@ -98,6 +98,12 @@ class MockMedicationService implements MedicationService {
   }
 
   @override
+  Future<void> deleteMedication(String medicationId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    _medications.removeWhere((m) => m.id == medicationId);
+  }
+
+  @override
   Future<List<Medication>> takeMedication(
       String medicationId, String reminderId) async {
     await Future.delayed(const Duration(milliseconds: 100));

@@ -47,4 +47,17 @@ class MedicationRepository {
       );
     }
   }
+
+  Future<void> deleteMedication(String medicationId) async {
+    try {
+      return await _service.deleteMedication(medicationId);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi xóa thuốc.',
+        originalError: e,
+      );
+    }
+  }
 }

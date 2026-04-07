@@ -2,6 +2,7 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/utils/string_helper.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/widgets/profile_date_field.dart';
 import 'package:fe/core/widgets/profile_text_field.dart';
 import 'package:fe/core/widgets/settings_card.dart';
@@ -160,7 +161,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll('Exception:', '').trim()}'),
+            content: Text(UserFacingError.message(e)),
             backgroundColor: AppColors.error,
           ),
         );

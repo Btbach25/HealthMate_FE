@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:fe/core/config/api_base_url.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
 import 'package:fe/data/enums/metric_status.dart';
 import 'package:fe/data/models/details/chart_data_point.dart';
@@ -8,9 +8,7 @@ import 'package:fe/data/models/details/metric_summary.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/stats_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiStatsService implements StatsService {
   final LocalStorageService _localStorage;
@@ -19,13 +17,7 @@ class ApiStatsService implements StatsService {
   ApiStatsService(this._localStorage, {Future<String?> Function()? onRefresh})
       : _http = AuthHttpHelper(_localStorage, onRefresh);
 
-  String get _baseUrl {
-    final envUrl = dotenv.env['BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
-    if (kIsWeb) return 'http://localhost:8080';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8080';
-    return 'http://localhost:8080';
-  }
+  String get _baseUrl => resolveApiBaseUrl();
 
   static const _metricTypes = [
     'heart_rate',

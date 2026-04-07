@@ -23,4 +23,7 @@ class ApiEndpoints {
   // ---------- Users (cần Bearer) ----------
   static const String usersProfile = '/users/profile';
   static const String users = '/users';
+
+  // ---------- Medications (storage-service qua gateway, Bearer) ----------
+  static const String medications = '/medications';
 }

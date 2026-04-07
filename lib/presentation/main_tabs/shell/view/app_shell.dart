@@ -23,6 +23,8 @@ class AppShell extends StatelessWidget {
     final mq = MediaQuery.of(context);
     return Scaffold(
       body: Stack(
+        clipBehavior: Clip.hardEdge,
+        fit: StackFit.expand,
         children: [
           MediaQuery(
             data: mq.copyWith(
@@ -33,9 +35,9 @@ class AppShell extends StatelessWidget {
             child: navigationShell,
           ),
           Positioned(
-            bottom: 0,
             left: 0,
             right: 0,
+            bottom: 0,
             child: _CustomBottomNavBar(
               currentIndex: navigationShell.currentIndex,
               onTap: _onTap,

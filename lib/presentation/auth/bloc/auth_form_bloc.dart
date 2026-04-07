@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/repositories/auth_repository.dart';
@@ -9,12 +10,6 @@ part 'auth_form_state.dart';
 
 class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
   final AuthRepository _authRepository;
-
-  /// Loại bỏ tiền tố "Exception: " khi hiển thị lỗi cho người dùng.
-  static String _cleanErrorMessage(dynamic e) {
-    final s = e.toString();
-    return s.startsWith('Exception: ') ? s.substring(11) : s;
-  }
 
   AuthFormBloc({required AuthRepository authRepository})
     : _authRepository = authRepository,
@@ -88,7 +83,10 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       await _authRepository.loginWithGoogle(idToken: event.idToken);
       emit(state.copyWith(status: FormStatus.success));
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(
+        status: FormStatus.failure,
+        errorMessage: UserFacingError.message(e),
+      ));
     }
   }
 
@@ -118,7 +116,10 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
           verificationEmail: state.email,
         ));
       } else {
-        emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
+        emit(state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ));
       }
     }
   }
@@ -164,7 +165,10 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       }
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
       );
     }
   }
@@ -184,7 +188,10 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       );
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
       );
     }
   }
@@ -211,7 +218,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       await _authRepository.verifyOtp(email: state.email.trim(), otp: otp);
       emit(state.copyWith(status: FormStatus.success, successMessage: 'Xác thực thành công!'));
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
+      emit(state.copyWith(status: FormStatus.failure, errorMessage: UserFacingError.message(e)));
     }
   }
 
@@ -219,7 +226,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     try {
       await _authRepository.resendOtp(email: state.email);
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)));
+      emit(state.copyWith(status: FormStatus.failure, errorMessage: UserFacingError.message(e)));
     }
   }
 
@@ -257,7 +264,10 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       );
     } catch (e) {
       emit(
-        state.copyWith(status: FormStatus.failure, errorMessage: _cleanErrorMessage(e)),
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
       );
     }
   }

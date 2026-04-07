@@ -32,7 +32,14 @@ class AppColors {
   static const Color warningLight = Color(0xFFFFF8E1);
   static const Color info = Color(0xFF2196F3);
   static const Color infoLight = Color(0xFFE3F2FD);
-  
+
+  /// Màn thuốc — màu accent theo khung giờ (sáng / chiều / tối).
+  static const Color medicationScheduleMorning = Color(0xFFE65100);
+  static const Color medicationScheduleMorningSoft = Color(0xFFFFF3E0);
+  static const Color medicationScheduleEvening = Color(0xFF1565C0);
+  static const Color medicationScheduleNight = Color(0xFF6A1B9A);
+  static const Color medicationScheduleNightSoft = Color(0xFFF3E5F5);
+
   // Card Colors
   static const Color cardBorder = Color(0xFFEDEDED);
   static const Color cardShadow = Color(0x1A000000);

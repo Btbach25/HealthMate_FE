@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
@@ -31,6 +31,11 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<AcceptInvitation>(_onAcceptInvitation);
     on<DeclineInvitation>(_onDeclineInvitation);
     on<RemoveMember>(_onRemoveMember);
+    on<ResetFamily>(_onResetFamily);
+  }
+
+  void _onResetFamily(ResetFamily event, Emitter<FamilyState> emit) {
+    emit(FamilyState.initial());
   }
 
   // ---------------------------------------------------------------------------
@@ -63,46 +68,6 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     return next;
   }
 
-  /// Parse lỗi thành message tiếng Việt, dùng [ErrorMessageParser] + bổ sung
-  /// các case đặc thù cho groups (CORS, UUID, ...).
-  String _parseError(dynamic error) {
-    final errorMessage = error.toString();
-    final lowerError = errorMessage.toLowerCase();
-
-    if (lowerError.contains('cors') ||
-        (lowerError.contains('redirect') && lowerError.contains('preflight')) ||
-        lowerError.contains('err_failed') ||
-        (lowerError.contains('blocked') && lowerError.contains('policy'))) {
-      return 'Không tải được danh sách nhóm (lỗi CORS). '
-          'Khi chạy web, cần cấu hình api-gateway: OPTIONS /groups trả 200, không redirect.';
-    }
-
-    if (lowerError.contains('invalid uuid format')) {
-      return 'Lỗi format UUID. Có thể do đăng nhập Google (JWT dùng ID không phải UUID).';
-    }
-
-    return ErrorMessageParser.parse(errorMessage);
-  }
-
-  /// Parse lỗi riêng cho invite member (nhiều case chi tiết hơn).
-  String _parseInviteMemberError(String errorMessage) {
-    final lowerError = errorMessage.toLowerCase();
-
-    if (lowerError.contains('invalid request')) {
-      return 'Yêu cầu không hợp lệ (400). Kiểm tra: (1) Email đúng định dạng, '
-          '(2) Tài khoản đã đăng ký với email này.';
-    }
-    if (lowerError.contains('invitation is still pending') ||
-        lowerError.contains('still pending')) {
-      return 'Lời mời đang chờ người này phản hồi. Không thể gửi thêm.';
-    }
-    if (lowerError.contains('already a member')) {
-      return 'Người này đã là thành viên của nhóm.';
-    }
-
-    return _parseError(errorMessage);
-  }
-
   // ---------------------------------------------------------------------------
   // Event handlers
   // ---------------------------------------------------------------------------
@@ -126,6 +91,10 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         currentGroupId: null,
         groupDetails: null,
       ));
+      if (!isClosed) {
+        add(const FetchOutgoingInvitations());
+        add(const FetchIncomingInvitations());
+      }
     } catch (e) {
       final isUnauthorized = e is UnauthorizedException;
       if (isUnauthorized && !event.isRetryAfter401) {
@@ -137,7 +106,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
         isSessionExpired: isUnauthorized,
       ));
     }
@@ -166,7 +135,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -196,7 +165,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -218,7 +187,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -253,7 +222,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -316,7 +285,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
         isSessionExpired: isUnauthorized,
       ));
     }
@@ -347,7 +316,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseInviteMemberError(e.toString()),
+        errorMessage: UserFacingError.inviteMember(e),
       ));
     }
   }
@@ -374,7 +343,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -383,7 +352,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     FetchIncomingInvitations event,
     Emitter<FamilyState> emit,
   ) async {
-    if (state.incomingInvitations.isEmpty) {
+    if (state.incomingInvitations.isEmpty &&
+        state.status == FamilyStatus.initial) {
       emit(state.copyWith(status: FamilyStatus.loading));
     }
     try {
@@ -391,15 +361,12 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       emit(state.copyWith(
         status: FamilyStatus.invitationsLoaded,
         incomingInvitations: invitations,
-        summary: state.summary.copyWith(
-          pendingInvitations: invitations.length,
-        ),
       ));
     } catch (e) {
       if (state.incomingInvitations.isEmpty) {
         emit(state.copyWith(
           status: FamilyStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: UserFacingError.message(e),
         ));
       }
     }
@@ -409,7 +376,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     FetchOutgoingInvitations event,
     Emitter<FamilyState> emit,
   ) async {
-    if (state.outgoingInvitations.isEmpty) {
+    if (state.outgoingInvitations.isEmpty &&
+        state.status == FamilyStatus.initial) {
       emit(state.copyWith(status: FamilyStatus.loading));
     }
     try {
@@ -422,7 +390,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       if (state.outgoingInvitations.isEmpty) {
         emit(state.copyWith(
           status: FamilyStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: UserFacingError.message(e),
         ));
       }
     }
@@ -474,7 +442,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -502,7 +470,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       }
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }
@@ -526,7 +494,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     } catch (e) {
       emit(state.copyWith(
         status: FamilyStatus.error,
-        errorMessage: _parseError(e),
+        errorMessage: UserFacingError.message(e),
       ));
     }
   }

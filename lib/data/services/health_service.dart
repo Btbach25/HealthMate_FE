@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:fe/core/config/api_base_url.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/health/blood_pressure.dart';
 import '../models/health/heart_rate.dart';
 import '../models/health/health_overview.dart';
@@ -15,13 +14,7 @@ class HealthService {
   HealthService(this._localStorage, {Future<String?> Function()? onRefresh})
       : _http = AuthHttpHelper(_localStorage, onRefresh);
 
-  String get _baseUrl {
-    final envUrl = dotenv.env['BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
-    if (kIsWeb) return 'http://localhost:8080';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8080';
-    return 'http://localhost:8080';
-  }
+  String get _baseUrl => resolveApiBaseUrl();
 
   /// Gọi GET /health/latest. Nếu BE trả 404 hoặc lỗi (endpoint chưa có / lỗi mạng) → trả [HealthOverview.empty()] để app không crash.
   /// Đặt HEALTH_LATEST_ENABLED=false trong .env để tắt gọi API (tránh 404 khi BE chưa có endpoint).

@@ -1,4 +1,4 @@
-import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +44,7 @@ class FamilyBlocListenerHelper {
       if (state.status == FamilyStatus.error) {
         setLoading();
         showInlineMessage(
-          ErrorMessageParser.parse(state.errorMessage),
+          UserFacingError.message(state.errorMessage),
           backgroundColor: AppColors.error,
         );
         onError?.call();

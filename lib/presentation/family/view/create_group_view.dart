@@ -2,7 +2,7 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/mixins/inline_message_mixin.dart';
-import 'package:fe/core/utils/error_message_parser.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/utils/form_validation_helper.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
@@ -36,7 +36,7 @@ class CreateGroupView extends StatelessWidget {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
+          constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
           child: CreateGroupForm(
             rootContext: context,
             padding: EdgeInsets.only(
@@ -145,10 +145,14 @@ class _CreateGroupFormState extends State<CreateGroupForm>
             _isLoading = false;
           });
           final groupName = state.createdGroupName!;
-          showInlineMessage(
-            'Tạo nhóm "$groupName" thành công',
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 4),
+          // Dùng SnackBar vì sau đó có thể `Navigator.pop()` nên inline message
+          // phụ thuộc widget còn sống dễ không kịp hiển thị.
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tạo nhóm "$groupName" thành công'),
+              backgroundColor: AppColors.primary,
+              duration: const Duration(seconds: 4),
+            ),
           );
           _resetForm();
           widget.onSubmitSuccess?.call();
@@ -158,7 +162,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
             _isLoading = false;
           });
           showInlineMessage(
-            ErrorMessageParser.parse(state.errorMessage),
+            UserFacingError.message(state.errorMessage),
             backgroundColor: AppColors.error,
           );
         }
@@ -192,10 +196,24 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                     decoration: const InputDecoration(
                       hintText: 'Nhập tên nhóm',
                     ),
-                    validator: (value) => FormValidationHelper.validateRequired(
-                      value,
-                      fieldName: 'tên nhóm',
-                    ),
+                    validator: (value) {
+                      final req = FormValidationHelper.validateRequired(
+                        value,
+                        fieldName: 'tên nhóm',
+                      );
+                      if (req != null) return req;
+                      final min = FormValidationHelper.validateMinLength(
+                        value,
+                        3,
+                        fieldName: 'Tên nhóm',
+                      );
+                      if (min != null) return min;
+                      return FormValidationHelper.validateMaxLength(
+                        value,
+                        100,
+                        fieldName: 'Tên nhóm',
+                      );
+                    },
                   ),
                   const SizedBox(height: AppSize.spacing24),
                   const Text(

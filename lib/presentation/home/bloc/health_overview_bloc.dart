@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/data/models/health/health_overview.dart';
 import 'package:fe/data/repositories/health_repository.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
@@ -48,7 +49,10 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
       if (state.overview != null) {
         emit(state.copyWith(status: HealthOverviewStatus.success));
       } else {
-        emit(state.copyWith(status: HealthOverviewStatus.failure, errorMessage: _toMessage(e)));
+        emit(state.copyWith(
+          status: HealthOverviewStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ));
       }
     }
   }
@@ -61,7 +65,9 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
     // Chỉ dùng device data nếu chưa có BE data
     if (state.status == HealthOverviewStatus.success &&
         state.overview != null &&
-        !_isDeviceOverview(state.overview!)) return;
+        !_isDeviceOverview(state.overview!)) {
+      return;
+    }
     emit(state.copyWith(status: HealthOverviewStatus.success, overview: event.overview));
   }
 
@@ -71,12 +77,6 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
       (o.weight?.userId.isEmpty ?? false) ||
       (o.bloodPressure?.userId.isEmpty ?? false) ||
       (o.temperature?.userId.isEmpty ?? false);
-
-  String _toMessage(Object e) {
-    final raw = e.toString().replaceAll('Exception: ', '');
-    if (raw.isEmpty) return 'Lỗi lấy dữ liệu';
-    return raw;
-  }
 
   @override
   Future<void> close() {

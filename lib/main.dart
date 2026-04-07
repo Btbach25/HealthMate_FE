@@ -1,4 +1,6 @@
 // lib/main.dart
+import 'dart:math' show min;
+
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/data/repositories/family_repository.dart';
@@ -13,7 +15,7 @@ import 'package:fe/data/services/api_user_service.dart';
 import 'package:fe/data/services/user_service.dart';
 import 'package:fe/data/services/mock_home_service.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
-import 'package:fe/data/services/mock_medication_service.dart';
+import 'package:fe/data/services/api_medication_service.dart';
 import 'package:fe/data/services/api_stats_service.dart';
 import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
@@ -38,6 +40,7 @@ Future<void> main() async {
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
   try {
     await dotenv.load(fileName: '.env.$env');
+    debugPrint('[env] ENV=$env BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}');
   } catch (e) {
     // File .env không tồn tại, sử dụng giá trị mặc định từ code
     debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');
@@ -67,7 +70,7 @@ Future<void> main() async {
   final userService = ApiUserService(apiClient: apiClient);
   final healthService = HealthService(localStorage, onRefresh: authRepository.refreshToken);
   final healthRepository = HealthRepository(service: healthService);
-  final medicationService = MockMedicationService();
+  final medicationService = ApiMedicationService(apiClient: apiClient);
   final medicationRepository =
       MedicationRepository(service: medicationService);
 
@@ -159,9 +162,39 @@ class AppView extends StatelessWidget {
     final authBloc = context.read<AuthBloc>();
     final router = AppRouter(authBloc: authBloc).router;
 
-    return MaterialApp.router(
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (prev, curr) =>
+          (prev.status == AuthStatus.authenticated &&
+              curr.status == AuthStatus.unauthenticated) ||
+          (curr.status == AuthStatus.authenticated &&
+              prev.status != AuthStatus.authenticated),
+      listener: (context, authState) {
+        // FamilyBloc sống cả app; khi đăng xuất/đăng nhập lại phải xóa trạng thái lỗi 401 cũ
+        // (FamilyPage có thể chưa mount nên không lắng nghe được ở đó).
+        context.read<FamilyBloc>().add(const ResetFamily());
+      },
+      child: MaterialApp.router(
       title: 'HealthMate',
       debugShowCheckedModeBanner: false,
+      // Cột giữa: SizedBox không đủ — MediaQuery vẫn báo full màn hình nên Row/Scaffold vẫn giãn ngang.
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final colW = min(mq.size.width, AppSize.shellMaxWidth);
+        final h = mq.size.height;
+        final scoped = mq.copyWith(size: Size(colW, h));
+        return ColoredBox(
+          color: AppColors.background,
+          child: Center(
+            child: MediaQuery(
+              data: scoped,
+              child: SizedBox(
+                width: colW,
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      },
       theme: ThemeData(
         primaryColor: AppColors.primary,
         fontFamily: 'Inter',
@@ -180,6 +213,7 @@ class AppView extends StatelessWidget {
         ),
       ),
       routerConfig: router,
+      ),
     );
   }
 }
