@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:fe/data/exceptions/api_exception.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Base API client for making HTTP requests
@@ -11,9 +12,9 @@ abstract class ApiClient {
 
   /// Default headers for all requests
   Map<String, String> get defaultHeaders => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 
   /// Get authentication token (to be implemented by subclasses)
   Future<String?> getAuthToken();
@@ -30,18 +31,18 @@ abstract class ApiClient {
     bool includeAuth = true,
   }) async {
     final headers = Map<String, String>.from(defaultHeaders);
-    
+
     if (includeAuth) {
       final token = await getAuthToken();
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }
     }
-    
+
     if (additionalHeaders != null) {
       headers.addAll(additionalHeaders);
     }
-    
+
     return headers;
   }
 
@@ -66,7 +67,7 @@ abstract class ApiClient {
   ApiException _handleErrorResponse(http.Response response) {
     final statusCode = response.statusCode;
     dynamic errorData;
-    
+
     try {
       if (response.body.isNotEmpty) {
         errorData = json.decode(response.body);
@@ -75,8 +76,15 @@ abstract class ApiClient {
       // Ignore JSON decode errors
     }
 
-    final errorMessage = _extractErrorMessage(errorData) ?? 
-        'Có lỗi xảy ra. Vui lòng thử lại.';
+    final preview = response.body.length > 300
+        ? '${response.body.substring(0, 300)}...'
+        : response.body;
+    debugPrint(
+      '[API] ${response.request?.method} ${response.request?.url} → $statusCode | $preview',
+    );
+
+    final errorMessage =
+        _extractErrorMessage(errorData) ?? 'Có lỗi xảy ra. Vui lòng thử lại.';
 
     switch (statusCode) {
       case 401:
@@ -116,14 +124,14 @@ abstract class ApiClient {
   /// Extract error message from error response
   String? _extractErrorMessage(dynamic errorData) {
     if (errorData == null) return null;
-    
+
     if (errorData is Map<String, dynamic>) {
       // Try common error message fields
       return errorData['message'] as String? ??
           errorData['error'] as String? ??
           errorData['msg'] as String?;
     }
-    
+
     return null;
   }
 
@@ -148,31 +156,32 @@ abstract class ApiClient {
     if (error is ApiException) {
       return error;
     }
-    
+
     final errorString = error.toString().toLowerCase();
-    
-    if (errorString.contains('timeout') || 
-        errorString.contains('timed out')) {
+
+    if (errorString.contains('timeout') || errorString.contains('timed out')) {
       return const TimeoutException();
     }
-    
+
     if (errorString.contains('cors') ||
-        (errorString.contains('redirect') && errorString.contains('preflight')) ||
+        (errorString.contains('redirect') &&
+            errorString.contains('preflight')) ||
         errorString.contains('err_failed') ||
         (errorString.contains('blocked') && errorString.contains('policy'))) {
       return UnknownException(
-        message: 'Không kết nối được tới máy chủ từ trình duyệt. '
+        message:
+            'Không kết nối được tới máy chủ từ trình duyệt. '
             'Hãy tải lại trang, kiểm tra mạng hoặc thử lại sau.',
         originalError: error,
       );
     }
-    
-    if (errorString.contains('network') || 
+
+    if (errorString.contains('network') ||
         errorString.contains('connection') ||
         errorString.contains('socket')) {
       return const NetworkException();
     }
-    
+
     return UnknownException(
       message: 'Có lỗi xảy ra. Vui lòng thử lại sau.',
       originalError: error,
@@ -193,23 +202,25 @@ abstract class ApiClient {
         uri = uri.replace(queryParameters: queryParameters);
       }
 
-      final response = await http.get(
-        uri,
-        headers: await buildHeaders(
-          additionalHeaders: headers,
-          includeAuth: includeAuth,
-        ),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw const TimeoutException();
-        },
-      );
+      final response = await http
+          .get(
+            uri,
+            headers: await buildHeaders(
+              additionalHeaders: headers,
+              includeAuth: includeAuth,
+            ),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw const TimeoutException();
+            },
+          );
 
       if (parser != null) {
         return handleResponse(response, parser);
       }
-      
+
       return response as T;
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -226,24 +237,26 @@ abstract class ApiClient {
     bool includeAuth = true,
   }) async {
     try {
-      final response = await http.post(
-        buildUrl(endpoint),
-        headers: await buildHeaders(
-          additionalHeaders: headers,
-          includeAuth: includeAuth,
-        ),
-        body: body != null ? json.encode(body) : null,
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw const TimeoutException();
-        },
-      );
+      final response = await http
+          .post(
+            buildUrl(endpoint),
+            headers: await buildHeaders(
+              additionalHeaders: headers,
+              includeAuth: includeAuth,
+            ),
+            body: body != null ? json.encode(body) : null,
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw const TimeoutException();
+            },
+          );
 
       if (parser != null) {
         return handleResponse(response, parser);
       }
-      
+
       return response as T;
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -260,24 +273,26 @@ abstract class ApiClient {
     bool includeAuth = true,
   }) async {
     try {
-      final response = await http.put(
-        buildUrl(endpoint),
-        headers: await buildHeaders(
-          additionalHeaders: headers,
-          includeAuth: includeAuth,
-        ),
-        body: body != null ? json.encode(body) : null,
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw const TimeoutException();
-        },
-      );
+      final response = await http
+          .put(
+            buildUrl(endpoint),
+            headers: await buildHeaders(
+              additionalHeaders: headers,
+              includeAuth: includeAuth,
+            ),
+            body: body != null ? json.encode(body) : null,
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw const TimeoutException();
+            },
+          );
 
       if (parser != null) {
         return handleResponse(response, parser);
       }
-      
+
       return response as T;
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -293,23 +308,25 @@ abstract class ApiClient {
     bool includeAuth = true,
   }) async {
     try {
-      final response = await http.delete(
-        buildUrl(endpoint),
-        headers: await buildHeaders(
-          additionalHeaders: headers,
-          includeAuth: includeAuth,
-        ),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw const TimeoutException();
-        },
-      );
+      final response = await http
+          .delete(
+            buildUrl(endpoint),
+            headers: await buildHeaders(
+              additionalHeaders: headers,
+              includeAuth: includeAuth,
+            ),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw const TimeoutException();
+            },
+          );
 
       if (parser != null) {
         return handleResponse(response, parser);
       }
-      
+
       return response as T;
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -317,4 +334,3 @@ abstract class ApiClient {
     }
   }
 }
-

@@ -8,7 +8,7 @@ class StatsRepository {
   final StatsService _statsService;
 
   StatsRepository({required StatsService statsService})
-      : _statsService = statsService;
+    : _statsService = statsService;
 
   Future<StatsPageData> getStatsPageData({String range = '7d'}) async {
     try {
@@ -29,12 +29,31 @@ class StatsRepository {
     try {
       return await _statsService.getChartData(range: range);
     } on ApiException {
-      // Re-throw ApiException as-is (already has proper error messages)
       rethrow;
     } catch (e) {
-      // Wrap unexpected errors
       throw UnknownException(
         message: 'Lỗi khi tải dữ liệu biểu đồ.',
+        originalError: e,
+      );
+    }
+  }
+
+  Future<List<MetricChart>> getChartDataForMember(
+    String userId, {
+    String range = '7d',
+    List<String>? filterMetricTypes,
+  }) async {
+    try {
+      return await _statsService.getChartDataForMember(
+        userId,
+        range: range,
+        filterMetricTypes: filterMetricTypes,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi tải dữ liệu biểu đồ thành viên.',
         originalError: e,
       );
     }

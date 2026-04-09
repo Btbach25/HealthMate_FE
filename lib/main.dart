@@ -27,20 +27,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/routing/app_router.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_service.dart';
+import 'data/services/fcm_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint('[FCM] Background message: ${message.messageId}');
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await initializeDateFormatting('vi_VN', null);
 
   // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
   try {
     await dotenv.load(fileName: '.env.$env');
-    debugPrint('[env] ENV=$env BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}');
+    debugPrint(
+      '[env] ENV=$env BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}',
+    );
   } catch (e) {
     // File .env không tồn tại, sử dụng giá trị mặc định từ code
     debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');
@@ -56,7 +70,10 @@ Future<void> main() async {
 
   final homeService = MockHomeService();
   final homeRepository = HomeRepository(homeService: homeService);
-  final statsService = ApiStatsService(localStorage, onRefresh: authRepository.refreshToken);
+  final statsService = ApiStatsService(
+    localStorage,
+    onRefresh: authRepository.refreshToken,
+  );
   final statsRepository = StatsRepository(statsService: statsService);
   final apiClient = ApiClientImpl(
     localStorageService: localStorage,
@@ -68,26 +85,39 @@ Future<void> main() async {
   final familyService = ApiFamilyService(apiClient: apiClient);
   final familyRepository = FamilyRepository(familyService: familyService);
   final userService = ApiUserService(apiClient: apiClient);
-  final healthService = HealthService(localStorage, onRefresh: authRepository.refreshToken);
+  final healthService = HealthService(
+    localStorage,
+    onRefresh: authRepository.refreshToken,
+  );
   final healthRepository = HealthRepository(service: healthService);
   final medicationService = ApiMedicationService(apiClient: apiClient);
-  final medicationRepository =
-      MedicationRepository(service: medicationService);
+  final medicationRepository = MedicationRepository(service: medicationService);
 
-  final healthWsService = HealthWsService(localStorage, onRefresh: authRepository.refreshToken);
-  final readinessService = ReadinessService(localStorage, onRefresh: authRepository.refreshToken);
+  final healthWsService = HealthWsService(
+    localStorage,
+    onRefresh: authRepository.refreshToken,
+  );
+  final readinessService = ReadinessService(
+    localStorage,
+    onRefresh: authRepository.refreshToken,
+  );
 
-  runApp(MyApp(
-    authRepository: authRepository,
-    homeRepository: homeRepository,
-    statsRepository: statsRepository,
-    familyRepository: familyRepository,
-    healthRepository: healthRepository,
-    userService: userService,
-    medicationRepository: medicationRepository,
-    healthWsService: healthWsService,
-    readinessService: readinessService,
-  ));
+  // Init FCM sau khi user đã login (token sẽ tự gửi sau khi có access token)
+  FcmService(localStorage).init();
+
+  runApp(
+    MyApp(
+      authRepository: authRepository,
+      homeRepository: homeRepository,
+      statsRepository: statsRepository,
+      familyRepository: familyRepository,
+      healthRepository: healthRepository,
+      userService: userService,
+      medicationRepository: medicationRepository,
+      healthWsService: healthWsService,
+      readinessService: readinessService,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -145,7 +175,11 @@ class MyApp extends StatelessWidget {
           // Tạo sớm ở app level để native plugin có thể đăng ký
           // ActivityResultLauncher trước khi activity đến trạng thái STARTED.
           BlocProvider(
-            create: (_) => DeviceHealthCubit(DeviceHealthService(), _healthWsService, _readinessService),
+            create: (_) => DeviceHealthCubit(
+              DeviceHealthService(),
+              _healthWsService,
+              _readinessService,
+            ),
           ),
         ],
         child: const AppView(),
@@ -154,14 +188,25 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AppView extends StatelessWidget {
+class AppView extends StatefulWidget {
   const AppView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authBloc = context.read<AuthBloc>();
-    final router = AppRouter(authBloc: authBloc).router;
+  State<AppView> createState() => _AppViewState();
+}
 
+class _AppViewState extends State<AppView> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    final authBloc = context.read<AuthBloc>();
+    _router = AppRouter(authBloc: authBloc).router;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listenWhen: (prev, curr) =>
           (prev.status == AuthStatus.authenticated &&
@@ -174,45 +219,45 @@ class AppView extends StatelessWidget {
         context.read<FamilyBloc>().add(const ResetFamily());
       },
       child: MaterialApp.router(
-      title: 'HealthMate',
-      debugShowCheckedModeBanner: false,
-      // Cột giữa: SizedBox không đủ — MediaQuery vẫn báo full màn hình nên Row/Scaffold vẫn giãn ngang.
-      builder: (context, child) {
-        final mq = MediaQuery.of(context);
-        final colW = min(mq.size.width, AppSize.shellMaxWidth);
-        final h = mq.size.height;
-        final scoped = mq.copyWith(size: Size(colW, h));
-        return ColoredBox(
-          color: AppColors.background,
-          child: Center(
-            child: MediaQuery(
-              data: scoped,
-              child: SizedBox(
-                width: colW,
-                child: child ?? const SizedBox.shrink(),
+        title: 'HealthMate',
+        debugShowCheckedModeBanner: false,
+        // Cột giữa: SizedBox không đủ — MediaQuery vẫn báo full màn hình nên Row/Scaffold vẫn giãn ngang.
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          final colW = min(mq.size.width, AppSize.shellMaxWidth);
+          final h = mq.size.height;
+          final scoped = mq.copyWith(size: Size(colW, h));
+          return ColoredBox(
+            color: AppColors.background,
+            child: Center(
+              child: MediaQuery(
+                data: scoped,
+                child: SizedBox(
+                  width: colW,
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
+          );
+        },
+        theme: ThemeData(
+          primaryColor: AppColors.primary,
+          fontFamily: 'Inter',
+          scaffoldBackgroundColor: AppColors.background,
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          inputDecorationTheme: const InputDecorationTheme(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: AppColors.inputBackground,
           ),
-        );
-      },
-      theme: ThemeData(
-        primaryColor: AppColors.primary,
-        fontFamily: 'Inter',
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
-            borderSide: BorderSide.none,
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
           ),
-          filled: true,
-          fillColor: AppColors.inputBackground,
         ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-        ),
-      ),
-      routerConfig: router,
+        routerConfig: _router,
       ),
     );
   }

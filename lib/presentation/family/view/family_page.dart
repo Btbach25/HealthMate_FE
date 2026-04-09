@@ -26,8 +26,8 @@ class _FamilyPageState extends State<FamilyPage> {
     statusExtractor: (state) => state.status,
   );
 
-    /// Chỉ fetch lần đầu khi đã đăng nhập. Trì hoãn để storage (token) sẵn sàng trên web, tránh 401.
-    void _tryInitialFetch(BuildContext context) {
+  /// Chỉ fetch lần đầu khi đã đăng nhập. Trì hoãn để storage (token) sẵn sàng trên web, tránh 401.
+  void _tryInitialFetch(BuildContext context) {
     if (_hasInitialized || !mounted) return;
     final authState = context.read<AuthBloc>().state;
     if (authState.status != AuthStatus.authenticated) return;
@@ -50,7 +50,9 @@ class _FamilyPageState extends State<FamilyPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tryInitialFetch(context));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _tryInitialFetch(context),
+    );
   }
 
   void _handleStateChange(FamilyState state) {
@@ -74,8 +76,14 @@ class _FamilyPageState extends State<FamilyPage> {
             curr.status == AuthStatus.authenticated &&
             prev.status != AuthStatus.authenticated,
         listener: (context, authState) {
+          if (!mounted) return;
           setState(() => _hasInitialized = false);
-          _tryInitialFetch(context);
+          // Dùng addPostFrameCallback để tránh gọi context.read() trong lúc
+          // widget tree chưa ổn định (sau login/navigate).
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _tryInitialFetch(context);
+          });
         },
         child: BlocListener<FamilyBloc, FamilyState>(
           listener: (context, state) => _handleStateChange(state),

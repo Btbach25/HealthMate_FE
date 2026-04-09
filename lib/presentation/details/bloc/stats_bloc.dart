@@ -143,10 +143,13 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     }
   }
 
-  StatsPageData? _deviceFallback() {
+  StatsPageData? _deviceFallback({String? range}) {
     final points = _deviceCubit?.lastPoints ?? [];
     if (points.isEmpty) return null;
-    final data = DeviceStatsConverter.toStatsPageData(points);
+    final data = DeviceStatsConverter.toStatsPageData(
+      points,
+      range: range ?? state.selectedRange,
+    );
     return data.metrics.isEmpty ? null : data;
   }
 
@@ -172,7 +175,7 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     // BE trả empty/lỗi → fallback device
     final points = _deviceCubit?.lastPoints ?? [];
     final deviceCharts = points.isNotEmpty
-        ? DeviceStatsConverter.toChartData(points)
+        ? DeviceStatsConverter.toChartData(points, range: state.selectedRange)
         : <MetricChart>[];
     emit(
       state.copyWith(chartStatus: ChartStatus.loaded, chartData: deviceCharts),

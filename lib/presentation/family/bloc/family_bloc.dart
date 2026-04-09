@@ -16,8 +16,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   final FamilyRepository _familyRepository;
 
   FamilyBloc({required FamilyRepository familyRepository})
-      : _familyRepository = familyRepository,
-        super(FamilyState.initial()) {
+    : _familyRepository = familyRepository,
+      super(FamilyState.initial()) {
     on<FetchFamilyGroups>(_onFetchFamilyGroups);
     on<CreateGroup>(_onCreateGroup);
     on<UpdateGroup>(_onUpdateGroup);
@@ -44,15 +44,21 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
 
   FamilyGroupSummary _applyHiddenGroups(FamilyGroupSummary summary) {
     if (state.hiddenGroupIds.isEmpty) return summary;
-    final filtered =
-        summary.groups.where((g) => !state.hiddenGroupIds.contains(g.id)).toList();
+    final filtered = summary.groups
+        .where((g) => !state.hiddenGroupIds.contains(g.id))
+        .toList();
     return summary.copyWith(groups: filtered, groupsJoined: filtered.length);
   }
 
   /// Trả summary đã bỏ nhóm [groupId] khỏi danh sách.
   FamilyGroupSummary _summaryWithoutGroup(String groupId) {
-    final updatedGroups = state.summary.groups.where((g) => g.id != groupId).toList();
-    return state.summary.copyWith(groups: updatedGroups, groupsJoined: updatedGroups.length);
+    final updatedGroups = state.summary.groups
+        .where((g) => g.id != groupId)
+        .toList();
+    return state.summary.copyWith(
+      groups: updatedGroups,
+      groupsJoined: updatedGroups.length,
+    );
   }
 
   Set<String> _hideGroupId(String groupId) {
@@ -76,21 +82,25 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     FetchFamilyGroups event,
     Emitter<FamilyState> emit,
   ) async {
-    emit(state.copyWith(
-      status: FamilyStatus.loading,
-      errorMessage: null,
-      isSessionExpired: false,
-    ));
-    try {
-      final summary = await _familyRepository.getFamilyGroups();
-      emit(state.copyWith(
-        status: FamilyStatus.loaded,
-        summary: _applyHiddenGroups(summary),
+    emit(
+      state.copyWith(
+        status: FamilyStatus.loading,
         errorMessage: null,
         isSessionExpired: false,
-        currentGroupId: null,
-        groupDetails: null,
-      ));
+      ),
+    );
+    try {
+      final summary = await _familyRepository.getFamilyGroups();
+      emit(
+        state.copyWith(
+          status: FamilyStatus.loaded,
+          summary: _applyHiddenGroups(summary),
+          errorMessage: null,
+          isSessionExpired: false,
+          currentGroupId: null,
+          groupDetails: null,
+        ),
+      );
       if (!isClosed) {
         add(const FetchOutgoingInvitations());
         add(const FetchIncomingInvitations());
@@ -104,11 +114,13 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         });
         return;
       }
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-        isSessionExpired: isUnauthorized,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+          isSessionExpired: isUnauthorized,
+        ),
+      );
     }
   }
 
@@ -116,27 +128,33 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     CreateGroup event,
     Emitter<FamilyState> emit,
   ) async {
-    emit(state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null));
+    emit(
+      state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null),
+    );
     try {
       final newGroup = await _familyRepository.createGroup(
         name: event.name,
         sharedMetrics: event.sharedMetrics,
       );
       final updatedGroups = [newGroup, ...state.summary.groups];
-      emit(state.copyWith(
-        status: FamilyStatus.groupCreated,
-        summary: state.summary.copyWith(
-          groups: updatedGroups,
-          groupsJoined: updatedGroups.length,
+      emit(
+        state.copyWith(
+          status: FamilyStatus.groupCreated,
+          summary: state.summary.copyWith(
+            groups: updatedGroups,
+            groupsJoined: updatedGroups.length,
+          ),
+          createdGroupName: event.name,
+          errorMessage: null,
         ),
-        createdGroupName: event.name,
-        errorMessage: null,
-      ));
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -154,19 +172,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       final currentGroupDetails = state.groupDetails;
       final currentGroupId = state.currentGroupId;
 
-      emit(state.copyWith(
-        status: FamilyStatus.groupUpdated,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(status: FamilyStatus.groupUpdated, errorMessage: null),
+      );
       add(FetchFamilyGroups());
       if (currentGroupDetails != null && currentGroupId == event.groupId) {
         add(FetchGroupDetails(groupId: event.groupId));
       }
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -177,18 +196,22 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     emit(state.copyWith(errorMessage: null));
     try {
       await _familyRepository.deleteGroup(groupId: event.groupId);
-      emit(state.copyWith(
-        status: FamilyStatus.groupLeft,
-        summary: _summaryWithoutGroup(event.groupId),
-        hiddenGroupIds: _hideGroupId(event.groupId),
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.groupLeft,
+          summary: _summaryWithoutGroup(event.groupId),
+          hiddenGroupIds: _hideGroupId(event.groupId),
+          errorMessage: null,
+        ),
+      );
       add(const FetchOutgoingInvitations());
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -199,31 +222,37 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     emit(state.copyWith(errorMessage: null));
     try {
       await _familyRepository.leaveGroup(groupId: event.groupId);
-      emit(state.copyWith(
-        status: FamilyStatus.groupLeft,
-        summary: _summaryWithoutGroup(event.groupId),
-        groupDetails: null,
-        currentGroupId: null,
-        hiddenGroupIds: _hideGroupId(event.groupId),
-        errorMessage: null,
-      ));
-    } catch (e) {
-      // 404 "member not found" → user đã không còn trong nhóm, coi như đã rời thành công
-      if (e is NotFoundException) {
-        emit(state.copyWith(
+      emit(
+        state.copyWith(
           status: FamilyStatus.groupLeft,
           summary: _summaryWithoutGroup(event.groupId),
           groupDetails: null,
           currentGroupId: null,
           hiddenGroupIds: _hideGroupId(event.groupId),
           errorMessage: null,
-        ));
+        ),
+      );
+    } catch (e) {
+      // 404 "member not found" → user đã không còn trong nhóm, coi như đã rời thành công
+      if (e is NotFoundException) {
+        emit(
+          state.copyWith(
+            status: FamilyStatus.groupLeft,
+            summary: _summaryWithoutGroup(event.groupId),
+            groupDetails: null,
+            currentGroupId: null,
+            hiddenGroupIds: _hideGroupId(event.groupId),
+            errorMessage: null,
+          ),
+        );
         return;
       }
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -231,13 +260,15 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     FetchGroupDetails event,
     Emitter<FamilyState> emit,
   ) async {
-    emit(state.copyWith(
-      status: FamilyStatus.loading,
-      currentGroupId: event.groupId,
-      groupDetails: null,
-      errorMessage: null,
-      isSessionExpired: false,
-    ));
+    emit(
+      state.copyWith(
+        status: FamilyStatus.loading,
+        currentGroupId: event.groupId,
+        groupDetails: null,
+        errorMessage: null,
+        isSessionExpired: false,
+      ),
+    );
     try {
       FamilyGroup? cachedGroup;
       for (final g in state.summary.groups) {
@@ -265,29 +296,34 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         );
       }
 
-      emit(state.copyWith(
-        status: FamilyStatus.groupDetailsLoaded,
-        groupDetails: details,
-        summary: updatedSummary,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.groupDetailsLoaded,
+          groupDetails: details,
+          summary: updatedSummary,
+          errorMessage: null,
+        ),
+      );
     } catch (e) {
       final isUnauthorized = e is UnauthorizedException;
       if (isUnauthorized && !event.isRetryAfter401) {
         emit(state.copyWith(status: FamilyStatus.loading, errorMessage: null));
         Future.delayed(const Duration(milliseconds: 800), () {
           if (!isClosed) {
-            add(FetchGroupDetails(
-                groupId: event.groupId, isRetryAfter401: true));
+            add(
+              FetchGroupDetails(groupId: event.groupId, isRetryAfter401: true),
+            );
           }
         });
         return;
       }
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-        isSessionExpired: isUnauthorized,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+          isSessionExpired: isUnauthorized,
+        ),
+      );
     }
   }
 
@@ -306,18 +342,21 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         sharedMetrics: event.sharedMetrics,
         userId: event.userId,
       );
-      emit(state.copyWith(
-        status: FamilyStatus.memberInvited,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(status: FamilyStatus.memberInvited, errorMessage: null),
+      );
       add(FetchGroupDetails(groupId: event.groupId));
-      add(const FetchFamilyGroups());
+      // Không dispatch FetchFamilyGroups ở đây: nó set currentGroupId=null
+      // khiến GroupDetailsView reset và trig lại FetchGroupDetails → loop loading.
+      // FetchGroupDetails đã cập nhật memberCount trong summary rồi.
       add(const FetchOutgoingInvitations());
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.inviteMember(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.inviteMember(e),
+        ),
+      );
     }
   }
 
@@ -333,18 +372,22 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       );
       final currentGroupDetails = state.groupDetails;
 
-      emit(state.copyWith(
-        status: FamilyStatus.ownershipTransferred,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.ownershipTransferred,
+          errorMessage: null,
+        ),
+      );
       if (currentGroupDetails != null) {
         add(FetchGroupDetails(groupId: event.groupId));
       }
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -358,16 +401,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
     try {
       final invitations = await _familyRepository.getIncomingInvitations();
-      emit(state.copyWith(
-        status: FamilyStatus.invitationsLoaded,
-        incomingInvitations: invitations,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.invitationsLoaded,
+          incomingInvitations: invitations,
+        ),
+      );
     } catch (e) {
       if (state.incomingInvitations.isEmpty) {
-        emit(state.copyWith(
-          status: FamilyStatus.error,
-          errorMessage: UserFacingError.message(e),
-        ));
+        emit(
+          state.copyWith(
+            status: FamilyStatus.error,
+            errorMessage: UserFacingError.message(e),
+          ),
+        );
       }
     }
   }
@@ -382,16 +429,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
     try {
       final invitations = await _familyRepository.getOutgoingInvitations();
-      emit(state.copyWith(
-        status: FamilyStatus.invitationsLoaded,
-        outgoingInvitations: invitations,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.invitationsLoaded,
+          outgoingInvitations: invitations,
+        ),
+      );
     } catch (e) {
       if (state.outgoingInvitations.isEmpty) {
-        emit(state.copyWith(
-          status: FamilyStatus.error,
-          errorMessage: UserFacingError.message(e),
-        ));
+        emit(
+          state.copyWith(
+            status: FamilyStatus.error,
+            errorMessage: UserFacingError.message(e),
+          ),
+        );
       }
     }
   }
@@ -423,27 +474,34 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         );
       }
 
-      emit(state.copyWith(
-        status: FamilyStatus.invitationAccepted,
-        hiddenGroupIds: _unhideGroupId(event.groupId),
-        summary: updatedSummary,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.invitationAccepted,
+          hiddenGroupIds: _unhideGroupId(event.groupId),
+          summary: updatedSummary,
+          errorMessage: null,
+        ),
+      );
       add(const FetchIncomingInvitations());
       add(const FetchFamilyGroups());
     } catch (e) {
       if (e is NotFoundException) {
-        emit(state.copyWith(
-          status: FamilyStatus.error,
-          errorMessage: 'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
-        ));
+        emit(
+          state.copyWith(
+            status: FamilyStatus.error,
+            errorMessage:
+                'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
+          ),
+        );
         add(const FetchIncomingInvitations());
         return;
       }
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -454,24 +512,31 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     emit(state.copyWith(errorMessage: null));
     try {
       await _familyRepository.declineInvitation(groupId: event.groupId);
-      emit(state.copyWith(
-        status: FamilyStatus.invitationDeclined,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.invitationDeclined,
+          errorMessage: null,
+        ),
+      );
       add(const FetchIncomingInvitations());
     } catch (e) {
       if (e is NotFoundException) {
-        emit(state.copyWith(
-          status: FamilyStatus.error,
-          errorMessage: 'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
-        ));
+        emit(
+          state.copyWith(
+            status: FamilyStatus.error,
+            errorMessage:
+                'Nhóm không còn tồn tại hoặc đã bị xóa. Lời mời đã được loại bỏ.',
+          ),
+        );
         add(const FetchIncomingInvitations());
         return;
       }
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -485,17 +550,18 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         memberId: event.memberId,
       );
-      emit(state.copyWith(
-        status: FamilyStatus.memberRemoved,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(status: FamilyStatus.memberRemoved, errorMessage: null),
+      );
       add(FetchGroupDetails(groupId: event.groupId));
       add(const FetchFamilyGroups());
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 }

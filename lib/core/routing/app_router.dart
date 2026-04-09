@@ -21,8 +21,7 @@ import '../../data/repositories/auth_repository.dart';
 import '../../presentation/auth/present.dart';
 import '../../presentation/home/view/home_page.dart';
 
-
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -30,20 +29,23 @@ class AppRouter {
   AppRouter({required this.authBloc});
 
   late final GoRouter router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     routes: <RouteBase>[
       // --- CÁC ROUTE XÁC THỰC (BÊN NGOÀLI SHELL) ---
       GoRoute(
         path: '/login',
-        builder: (BuildContext context, GoRouterState state) => const LoginPage(),
+        builder: (BuildContext context, GoRouterState state) =>
+            const LoginPage(),
       ),
       GoRoute(
         path: '/signup',
-        builder: (BuildContext context, GoRouterState state) => const SignUpPage(),
+        builder: (BuildContext context, GoRouterState state) =>
+            const SignUpPage(),
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (BuildContext context, GoRouterState state) => const ForgotPasswordPage(),
+        builder: (BuildContext context, GoRouterState state) =>
+            const ForgotPasswordPage(),
       ),
       GoRoute(
         path: '/otp',
@@ -76,9 +78,10 @@ class AppRouter {
       ),
       GoRoute(
         path: '/reset-password',
-        builder: (BuildContext context, GoRouterState state) => const ResetPasswordPage(),
+        builder: (BuildContext context, GoRouterState state) =>
+            const ResetPasswordPage(),
       ),
-      
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);
@@ -103,7 +106,8 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: 'manage',
-                    builder: (context, state) => const FamilyGroupManagementPage(),
+                    builder: (context, state) =>
+                        const FamilyGroupManagementPage(),
                   ),
                   GoRoute(
                     path: 'create',
@@ -175,7 +179,7 @@ class AppRouter {
         '/signup',
         '/forgot-password',
         '/otp',
-        '/reset-password'
+        '/reset-password',
       ];
       final isGoingToAuthRoute = authRoutes.contains(state.matchedLocation);
 

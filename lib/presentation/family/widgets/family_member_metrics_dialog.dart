@@ -8,14 +8,20 @@ import 'package:fe/core/widgets/settings_dropdown.dart';
 import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/health_status_extension.dart';
-import 'package:fe/data/services/mock_stats_service.dart';
+import 'package:fe/data/repositories/stats_repository.dart';
 import 'package:fe/presentation/details/widgets/stats_chart_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class FamilyMemberMetricsDialog extends StatefulWidget {
   final FamilyMember member;
+  final StatsRepository statsRepository;
 
-  const FamilyMemberMetricsDialog({super.key, required this.member});
+  const FamilyMemberMetricsDialog({
+    super.key,
+    required this.member,
+    required this.statsRepository,
+  });
 
   static Future<void> show({
     required BuildContext context,
@@ -24,7 +30,10 @@ class FamilyMemberMetricsDialog extends StatefulWidget {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => FamilyMemberMetricsDialog(member: member),
+      builder: (ctx) => FamilyMemberMetricsDialog(
+        member: member,
+        statsRepository: context.read<StatsRepository>(),
+      ),
     );
   }
 
@@ -36,27 +45,83 @@ class FamilyMemberMetricsDialog extends StatefulWidget {
 class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
   static const _allMetricsLabel = 'Tất cả chỉ số';
 
-  late final MockStatsService _statsService;
-  late final Future<List<MetricChart>> _chartsFuture;
-
   late final List<String> _metricItems;
 
+  // Dropdown state
   String _selectedMetric = _allMetricsLabel;
-  String _selectedRange = '30 ngày qua';
+  String _selectedRange = '7 ngày qua';
   String _selectedSort = 'Mới nhất';
+
+  // Charts future — rebuilt khi filter thay đổi
+  late Future<List<MetricChart>> _chartsFuture;
 
   @override
   void initState() {
     super.initState();
-    _statsService = MockStatsService();
-    _chartsFuture = _statsService.getChartData();
-
-    final sharedLabels = widget.member.sharedMetrics
-        .map((t) => MetricHelper.getMetricOption(t).label)
-        .toSet()
-        .toList()
-      ..sort();
+    final sharedLabels =
+        widget.member.sharedMetrics
+            .map((t) => MetricHelper.getMetricOption(t).label)
+            .toSet()
+            .toList()
+          ..sort();
     _metricItems = [_allMetricsLabel, ...sharedLabels];
+    _chartsFuture = _loadCharts();
+  }
+
+  /// Map nhãn hiển thị → range param cho API
+  String _rangeParam(String label) {
+    switch (label) {
+      case '24 giờ qua':
+        return '24h';
+      case '30 ngày qua':
+        return '30d';
+      default:
+        return '7d';
+    }
+  }
+
+  Future<List<MetricChart>> _loadCharts() {
+    // Lấy danh sách metric type (value string) để filter
+    final allSharedTypes = widget.member.sharedMetrics
+        .map((t) => t.value)
+        .toList();
+
+    List<String>? filterTypes;
+    if (_selectedMetric != _allMetricsLabel) {
+      // Tìm MetricType có label khớp
+      final matchedType = widget.member.sharedMetrics.where((t) {
+        return MetricHelper.getMetricOption(t).label == _selectedMetric;
+      });
+      filterTypes = matchedType.map((t) => t.value).toList();
+    } else {
+      filterTypes = allSharedTypes.isEmpty ? null : allSharedTypes;
+    }
+
+    return widget.statsRepository.getChartDataForMember(
+      widget.member.userId,
+      range: _rangeParam(_selectedRange),
+      filterMetricTypes: filterTypes,
+    );
+  }
+
+  void _applyFilter() {
+    setState(() {
+      _chartsFuture = _loadCharts();
+    });
+  }
+
+  List<MetricChart> _sortCharts(List<MetricChart> charts) {
+    final sorted = [...charts];
+    if (_selectedSort == 'Cũ nhất') {
+      for (final c in sorted) {
+        c.points.sort((a, b) => a.time.compareTo(b.time));
+      }
+    } else {
+      for (final c in sorted) {
+        c.points.sort((a, b) => b.time.compareTo(a.time));
+      }
+    }
+    return sorted;
   }
 
   @override
@@ -76,6 +141,7 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ── Header ──────────────────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -105,13 +171,20 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                         Text(widget.member.name, style: AppTextStyles.h4),
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.member.relationship ?? ''}${widget.member.relationship != null && widget.member.age != null ? ' • ' : ''}${widget.member.age != null ? '${widget.member.age} tuổi' : ''}',
+                          [
+                            if (widget.member.relationship != null)
+                              widget.member.relationship!,
+                            if (widget.member.age != null)
+                              '${widget.member.age} tuổi',
+                          ].join(' • '),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textGrey,
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -131,7 +204,6 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -142,10 +214,12 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
-                                'Dữ liệu được chia sẻ: ${widget.member.sharedMetrics.length} loại chỉ số',
+                                'Chia sẻ ${widget.member.sharedMetrics.length} chỉ số',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textGrey.withValues(alpha: 0.8),
+                                  color: AppColors.textGrey.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -164,6 +238,7 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
               ),
               const SizedBox(height: 16),
 
+              // ── Filter row ──────────────────────────────────────────
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -172,35 +247,32 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SettingsDropdown(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final useRow = constraints.maxWidth >= 420;
+                  final dropdowns = [
+                    SettingsDropdown(
                       label: 'Loại chỉ số',
                       value: _selectedMetric,
                       items: _metricItems,
                       onChanged: (v) {
                         if (v == null) return;
-                        setState(() => _selectedMetric = v);
+                        _selectedMetric = v;
+                        _applyFilter();
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SettingsDropdown(
-                      label: 'Khoảng thời gian',
+                    SettingsDropdown(
+                      label: 'Thời gian',
                       value: _selectedRange,
-                      items: const ['7 ngày qua', '30 ngày qua'],
+                      items: const ['24 giờ qua', '7 ngày qua', '30 ngày qua'],
                       onChanged: (v) {
                         if (v == null) return;
-                        setState(() => _selectedRange = v);
+                        _selectedRange = v;
+                        _applyFilter();
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SettingsDropdown(
-                      label: 'Sắp xếp theo',
+                    SettingsDropdown(
+                      label: 'Sắp xếp',
                       value: _selectedSort,
                       items: const ['Mới nhất', 'Cũ nhất'],
                       onChanged: (v) {
@@ -208,15 +280,36 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                         setState(() => _selectedSort = v);
                       },
                     ),
-                  ),
-                ],
+                  ];
+                  if (useRow) {
+                    return Row(
+                      children: [
+                        Expanded(child: dropdowns[0]),
+                        const SizedBox(width: 8),
+                        Expanded(child: dropdowns[1]),
+                        const SizedBox(width: 8),
+                        Expanded(child: dropdowns[2]),
+                      ],
+                    );
+                  }
+                  return Column(
+                    children: [
+                      dropdowns[0],
+                      const SizedBox(height: 8),
+                      dropdowns[1],
+                      const SizedBox(height: 8),
+                      dropdowns[2],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
+
+              // ── Record count ─────────────────────────────────────────
               FutureBuilder<List<MetricChart>>(
                 future: _chartsFuture,
                 builder: (context, snapshot) {
-                  final charts = snapshot.data ?? const [];
-                  final pointsCount = charts.fold<int>(
+                  final pointsCount = (snapshot.data ?? []).fold<int>(
                     0,
                     (sum, c) => sum + c.points.length,
                   );
@@ -233,8 +326,9 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
               ),
               const SizedBox(height: 16),
 
+              // ── Charts ───────────────────────────────────────────────
               Flexible(
-                child: FutureBuilder(
+                child: FutureBuilder<List<MetricChart>>(
                   future: _chartsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -243,7 +337,13 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                         child: LoadingWidget(),
                       );
                     }
-                    final charts = snapshot.data ?? const [];
+                    if (snapshot.hasError) {
+                      return _EmptyState(
+                        rangeLabel: _selectedRange,
+                        errorMessage: 'Không thể tải dữ liệu. Thử lại sau.',
+                      );
+                    }
+                    final charts = _sortCharts(snapshot.data ?? []);
                     if (charts.isEmpty) {
                       return _EmptyState(rangeLabel: _selectedRange);
                     }
@@ -267,7 +367,8 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
 
 class _EmptyState extends StatelessWidget {
   final String rangeLabel;
-  const _EmptyState({required this.rangeLabel});
+  final String? errorMessage;
+  const _EmptyState({required this.rangeLabel, this.errorMessage});
 
   @override
   Widget build(BuildContext context) {
@@ -281,30 +382,31 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.bar_chart_rounded, size: 56, color: AppColors.textGrey),
+          const Icon(
+            Icons.bar_chart_rounded,
+            size: 56,
+            color: AppColors.textGrey,
+          ),
           const SizedBox(height: 12),
-          const Text(
-            'Không có dữ liệu phù hợp',
-            style: TextStyle(
+          Text(
+            errorMessage ?? 'Không có dữ liệu phù hợp',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: AppColors.textBlack,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'Hãy thử thay đổi bộ lọc để xem dữ liệu khác.',
+            errorMessage != null
+                ? 'Kiểm tra kết nối hoặc thử lại.'
+                : 'Hãy thử thay đổi bộ lọc để xem dữ liệu khác.',
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textGrey),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '(Mock) $rangeLabel',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
           ),
         ],
       ),
     );
   }
 }
-

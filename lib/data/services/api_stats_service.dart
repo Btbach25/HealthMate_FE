@@ -15,7 +15,7 @@ class ApiStatsService implements StatsService {
   late final AuthHttpHelper _http;
 
   ApiStatsService(this._localStorage, {Future<String?> Function()? onRefresh})
-      : _http = AuthHttpHelper(_localStorage, onRefresh);
+    : _http = AuthHttpHelper(_localStorage, onRefresh);
 
   String get _baseUrl => resolveApiBaseUrl();
 
@@ -65,33 +65,77 @@ class ApiStatsService implements StatsService {
       if (points == null || points.isEmpty) continue;
 
       final dataPoints = points
-          .map((p) => ChartDataPoint(
-                time: DateTime.parse(p['timestamp'] as String),
-                value: (p['value'] as num).toDouble(),
-              ))
+          .map(
+            (p) => ChartDataPoint(
+              time: DateTime.parse(p['timestamp'] as String),
+              value: (p['value'] as num).toDouble(),
+            ),
+          )
           .toList();
 
-      charts.add(MetricChart(
-        id: _metricTypes[i],
-        title: _metricTitle(_metricTypes[i]),
-        unit: _metricUnit(_metricTypes[i]),
-        dataPointCount: dataPoints.length,
-        lineColor: _metricColor(_metricTypes[i]),
-        points: dataPoints,
-      ));
+      charts.add(
+        MetricChart(
+          id: _metricTypes[i],
+          title: _metricTitle(_metricTypes[i]),
+          unit: _metricUnit(_metricTypes[i]),
+          dataPointCount: dataPoints.length,
+          lineColor: _metricColor(_metricTypes[i]),
+          points: dataPoints,
+        ),
+      );
+    }
+    return charts;
+  }
+
+  @override
+  Future<List<MetricChart>> getChartDataForMember(
+    String userId, {
+    String range = '7d',
+    List<String>? filterMetricTypes,
+  }) async {
+    final typesToFetch = filterMetricTypes ?? _metricTypes;
+    final results = await Future.wait(
+      typesToFetch.map((m) => _fetchPoints(userId, m, range)),
+    );
+    final charts = <MetricChart>[];
+    for (int i = 0; i < typesToFetch.length; i++) {
+      final points = results[i];
+      if (points == null || points.isEmpty) continue;
+      final dataPoints = points
+          .map(
+            (p) => ChartDataPoint(
+              time: DateTime.parse(p['timestamp'] as String),
+              value: (p['value'] as num).toDouble(),
+            ),
+          )
+          .toList();
+      charts.add(
+        MetricChart(
+          id: typesToFetch[i],
+          title: _metricTitle(typesToFetch[i]),
+          unit: _metricUnit(typesToFetch[i]),
+          dataPointCount: dataPoints.length,
+          lineColor: _metricColor(typesToFetch[i]),
+          points: dataPoints,
+        ),
+      );
     }
     return charts;
   }
 
   Future<List<Map<String, dynamic>>?> _fetchPoints(
-      String userId, String metricType, String range) async {
+    String userId,
+    String metricType,
+    String range,
+  ) async {
     try {
-      final uri =
-          Uri.parse('$_baseUrl/metrics/charts').replace(queryParameters: {
-        'user_id': userId,
-        'metric_type': metricType,
-        'range': range,
-      });
+      final uri = Uri.parse('$_baseUrl/metrics/charts').replace(
+        queryParameters: {
+          'user_id': userId,
+          'metric_type': metricType,
+          'range': range,
+        },
+      );
       final response = await _http.get(uri);
 
       if (response.statusCode == 200) {
@@ -102,13 +146,17 @@ class ApiStatsService implements StatsService {
         } else if (decoded is List) {
           data = decoded;
         }
-        debugPrint('[ApiStatsService] $metricType: ${data?.length ?? 0} points');
+        debugPrint(
+          '[ApiStatsService] $metricType: ${data?.length ?? 0} points',
+        );
         return data?.cast<Map<String, dynamic>>();
       }
       final preview = response.body.length > 300
           ? '${response.body.substring(0, 300)}...'
           : response.body;
-      debugPrint('[ApiStatsService] $metricType: ${response.statusCode} | $preview');
+      debugPrint(
+        '[ApiStatsService] $metricType: ${response.statusCode} | $preview',
+      );
     } catch (e) {
       debugPrint('[ApiStatsService] $metricType error: $e');
     }
@@ -116,7 +164,9 @@ class ApiStatsService implements StatsService {
   }
 
   MetricSummary _buildSummary(
-      String metricType, List<Map<String, dynamic>> points) {
+    String metricType,
+    List<Map<String, dynamic>> points,
+  ) {
     final values = points.map((p) => (p['value'] as num).toDouble()).toList();
     final timestamps = points
         .map((p) => DateTime.parse(p['timestamp'] as String))
@@ -149,41 +199,61 @@ class ApiStatsService implements StatsService {
 
   String _metricTitle(String m) {
     switch (m) {
-      case 'heart_rate': return 'Nhịp tim';
-      case 'steps_count': return 'Số bước chân';
-      case 'calories_burned': return 'Calories tiêu thụ';
-      case 'blood_pressure': return 'Huyết áp tâm thu';
-      case 'spo2': return 'SpO2';
-      default: return m;
+      case 'heart_rate':
+        return 'Nhịp tim';
+      case 'steps_count':
+        return 'Số bước chân';
+      case 'calories_burned':
+        return 'Calories tiêu thụ';
+      case 'blood_pressure':
+        return 'Huyết áp tâm thu';
+      case 'spo2':
+        return 'SpO2';
+      default:
+        return m;
     }
   }
 
   String _metricUnit(String m) {
     switch (m) {
-      case 'heart_rate': return 'bpm';
-      case 'steps_count': return 'bước';
-      case 'calories_burned': return 'kcal';
-      case 'blood_pressure': return 'mmHg';
-      case 'spo2': return '%';
-      default: return '';
+      case 'heart_rate':
+        return 'bpm';
+      case 'steps_count':
+        return 'bước';
+      case 'calories_burned':
+        return 'kcal';
+      case 'blood_pressure':
+        return 'mmHg';
+      case 'spo2':
+        return '%';
+      default:
+        return '';
     }
   }
 
   String _metricIcon(String m) {
     switch (m) {
-      case 'steps_count': return 'steps';
-      default: return 'heart';
+      case 'steps_count':
+        return 'steps';
+      default:
+        return 'heart';
     }
   }
 
   Color _metricColor(String m) {
     switch (m) {
-      case 'heart_rate': return Colors.red.shade400;
-      case 'steps_count': return Colors.green.shade600;
-      case 'calories_burned': return Colors.orange.shade600;
-      case 'blood_pressure': return Colors.purple.shade400;
-      case 'spo2': return Colors.blue.shade400;
-      default: return Colors.grey;
+      case 'heart_rate':
+        return Colors.red.shade400;
+      case 'steps_count':
+        return Colors.green.shade600;
+      case 'calories_burned':
+        return Colors.orange.shade600;
+      case 'blood_pressure':
+        return Colors.purple.shade400;
+      case 'spo2':
+        return Colors.blue.shade400;
+      default:
+        return Colors.grey;
     }
   }
 
