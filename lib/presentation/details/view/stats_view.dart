@@ -212,9 +212,9 @@ class _StatsViewState extends State<StatsView>
                       const StatsChartLazyLoader(),
                     ],
                   ),
-                  ),
                 ),
               ),
+            ),
             );
           }
 

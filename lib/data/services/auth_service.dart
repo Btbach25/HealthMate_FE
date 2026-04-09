@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:fe/core/config/api_base_url.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user/auth_response.dart';
@@ -37,20 +36,9 @@ class AuthApiService implements AuthService {
   );
 
   AuthApiService(this._localStorage);
-  String get baseUrl {
-    final envUrl = dotenv.env['BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) return envUrl;
 
-    if (kIsWeb) {
-      return 'http://localhost/api/v1';
-    }
-
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2/api/v1';
-    }
-
-    return 'http://localhost/api/v1';
-  }
+  /// Phải trùng api-gateway (mặc định :8080, path `/auth/...`).
+  String get baseUrl => resolveApiBaseUrl();
 
   @override
   Future<User?> login({required String email, required String password}) async {
@@ -120,7 +108,9 @@ class AuthApiService implements AuthService {
         final googleAuth = await googleUser.authentication;
         idToken = googleAuth.idToken;
       }
-      if (idToken == null) throw Exception('Không lấy được Google ID token. Vui lòng thử lại.');
+      if (idToken == null) {
+        throw Exception('Không hoàn tất đăng nhập Google. Vui lòng thử lại.');
+      }
 
       final url = Uri.parse('$baseUrl/auth/google');
       final response = await http.post(
@@ -303,8 +293,8 @@ class AuthApiService implements AuthService {
       final errMsg = body is Map<String, dynamic> ? (body['error'] ?? body['message']) : null;
       if (response.statusCode == 500) {
         throw Exception(
-          'Máy chủ không gửi được email (lỗi SMTP). '
-          'Vui lòng thử lại sau hoặc liên hệ quản trị.',
+          'Hiện không gửi được email xác nhận. '
+          'Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
         );
       }
       if (response.statusCode == 400) {
