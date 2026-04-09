@@ -179,7 +179,7 @@ class DeviceStatsConverter {
     final charts = <MetricChart>[];
 
     final hrPts = _chartPoints(filtered, HealthDataType.HEART_RATE);
-    if (hrPts.isNotEmpty)
+    if (hrPts.isNotEmpty) {
       charts.add(
         MetricChart(
           id: 'heart_rate',
@@ -190,9 +190,10 @@ class DeviceStatsConverter {
           points: hrPts,
         ),
       );
+    }
 
     final stepPts = _chartPoints(filtered, HealthDataType.STEPS);
-    if (stepPts.isNotEmpty)
+    if (stepPts.isNotEmpty) {
       charts.add(
         MetricChart(
           id: 'steps_count',
@@ -203,9 +204,10 @@ class DeviceStatsConverter {
           points: stepPts,
         ),
       );
+    }
 
     final spo2Pts = _chartPoints(filtered, HealthDataType.BLOOD_OXYGEN);
-    if (spo2Pts.isNotEmpty)
+    if (spo2Pts.isNotEmpty) {
       charts.add(
         MetricChart(
           id: 'spo2',
@@ -216,12 +218,13 @@ class DeviceStatsConverter {
           points: spo2Pts,
         ),
       );
+    }
 
     final bpPts = _chartPoints(
       filtered,
       HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
     );
-    if (bpPts.isNotEmpty)
+    if (bpPts.isNotEmpty) {
       charts.add(
         MetricChart(
           id: 'blood_pressure',
@@ -232,9 +235,10 @@ class DeviceStatsConverter {
           points: bpPts,
         ),
       );
+    }
 
     final calPts = _chartPoints(filtered, HealthDataType.ACTIVE_ENERGY_BURNED);
-    if (calPts.isNotEmpty)
+    if (calPts.isNotEmpty) {
       charts.add(
         MetricChart(
           id: 'calories_burned',
@@ -245,6 +249,7 @@ class DeviceStatsConverter {
           points: calPts,
         ),
       );
+    }
 
     return charts;
   }
