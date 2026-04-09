@@ -84,7 +84,7 @@ class DeviceHealthService {
     return true;
   }
 
-  Future<DeviceHealthResult?> fetchAll({int daysBack = 3}) async {
+  Future<DeviceHealthResult?> fetchAll({int daysBack = 7}) async {
     final ok = await _ensurePermissions();
     if (!ok) return null;
 

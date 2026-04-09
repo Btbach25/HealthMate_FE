@@ -1,6 +1,9 @@
 import 'package:fe/data/enums/metric_status.dart';
+import 'package:fe/data/models/details/chart_data_point.dart';
+import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fe/data/models/details/metric_summary.dart';
 import 'package:fe/data/models/details/stats_page_data.dart';
+import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 
 class DeviceStatsConverter {
@@ -93,6 +96,38 @@ class DeviceStatsConverter {
     final v = p.value;
     if (v is NumericHealthValue) return v.numericValue.toDouble();
     return null;
+  }
+
+  static List<MetricChart> toChartData(List<HealthDataPoint> points) {
+    final charts = <MetricChart>[];
+
+    final hrPts = _chartPoints(points, HealthDataType.HEART_RATE);
+    if (hrPts.isNotEmpty) charts.add(MetricChart(id: 'heart_rate', title: 'Nhịp tim', unit: 'bpm', lineColor: Colors.red.shade400, dataPointCount: hrPts.length, points: hrPts));
+
+    final stepPts = _chartPoints(points, HealthDataType.STEPS);
+    if (stepPts.isNotEmpty) charts.add(MetricChart(id: 'steps_count', title: 'Số bước chân', unit: 'bước', lineColor: Colors.green.shade600, dataPointCount: stepPts.length, points: stepPts));
+
+    final spo2Pts = _chartPoints(points, HealthDataType.BLOOD_OXYGEN);
+    if (spo2Pts.isNotEmpty) charts.add(MetricChart(id: 'spo2', title: 'SpO2', unit: '%', lineColor: Colors.blue.shade400, dataPointCount: spo2Pts.length, points: spo2Pts));
+
+    final bpPts = _chartPoints(points, HealthDataType.BLOOD_PRESSURE_SYSTOLIC);
+    if (bpPts.isNotEmpty) charts.add(MetricChart(id: 'blood_pressure', title: 'Huyết áp tâm thu', unit: 'mmHg', lineColor: Colors.purple.shade400, dataPointCount: bpPts.length, points: bpPts));
+
+    final calPts = _chartPoints(points, HealthDataType.ACTIVE_ENERGY_BURNED);
+    if (calPts.isNotEmpty) charts.add(MetricChart(id: 'calories_burned', title: 'Calories tiêu thụ', unit: 'kcal', lineColor: Colors.orange.shade600, dataPointCount: calPts.length, points: calPts));
+
+    return charts;
+  }
+
+  static List<ChartDataPoint> _chartPoints(List<HealthDataPoint> all, HealthDataType type) {
+    return _sorted(all, type)
+        .map((p) {
+          final v = _numericValue(p);
+          if (v == null) return null;
+          return ChartDataPoint(time: p.dateFrom, value: v);
+        })
+        .whereType<ChartDataPoint>()
+        .toList();
   }
 
   static MetricStatus _status(String id, double v) {

@@ -109,9 +109,15 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     emit(state.copyWith(chartStatus: ChartStatus.loading));
     try {
       final chartData = await _statsRepository.getChartData(range: state.selectedRange);
-      emit(state.copyWith(chartStatus: ChartStatus.loaded, chartData: chartData));
-    } catch (e) {
-      emit(state.copyWith(chartStatus: ChartStatus.error, chartErrorMessage: e.toString()));
-    }
+      if (chartData.isNotEmpty) {
+        emit(state.copyWith(chartStatus: ChartStatus.loaded, chartData: chartData));
+        return;
+      }
+    } catch (_) {}
+
+    // BE trả empty/lỗi → fallback device
+    final points = _deviceCubit?.lastPoints ?? [];
+    final deviceCharts = points.isNotEmpty ? DeviceStatsConverter.toChartData(points) : <MetricChart>[];
+    emit(state.copyWith(chartStatus: ChartStatus.loaded, chartData: deviceCharts));
   }
 }

@@ -50,6 +50,14 @@ class HealthWsService {
     return null;
   }
 
+  String _formatOffset(Duration offset) {
+    final sign = offset.isNegative ? '-' : '+';
+    final abs = offset.abs();
+    final hours = abs.inHours.toString().padLeft(2, '0');
+    final minutes = (abs.inMinutes % 60).toString().padLeft(2, '0');
+    return '$sign$hours:$minutes';
+  }
+
   /// Kết nối WS. Gọi một lần khi bắt đầu sync.
   Future<void> connect() async {
     if (kIsWeb || _connected) return;
@@ -78,6 +86,15 @@ class HealthWsService {
       await _channel!.ready;
       _connected = true;
       debugPrint('[HealthWs] Connected');
+      if (kDebugMode) {
+        final now = DateTime.now();
+        debugPrint(
+          '[HealthWs] Device timezone: '
+          'name=${now.timeZoneName}, '
+          'offset=${_formatOffset(now.timeZoneOffset)}, '
+          'localNow=${now.toIso8601String()}',
+        );
+      }
 
       _channel!.stream.listen(
         (_) {},
