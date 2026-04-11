@@ -54,7 +54,15 @@ class AuthApiService implements AuthService {
         body: jsonEncode({'email': email, 'password': password}),
       ).timeout(const Duration(seconds: 10));
 
-      final body = jsonDecode(response.body);
+      if (response.body.isEmpty) {
+        throw Exception('Máy chủ không phản hồi. Vui lòng thử lại sau.');
+      }
+      dynamic body;
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        throw Exception('Máy chủ đang gặp sự cố (${response.statusCode}). Vui lòng thử lại sau.');
+      }
 
       if (response.statusCode == 200) {
         final authResponse = AuthResponse.fromJson(body);
@@ -111,7 +119,15 @@ class AuthApiService implements AuthService {
         body: jsonEncode({'id_token': idToken}),
       ).timeout(const Duration(seconds: 10));
 
-      final body = jsonDecode(response.body);
+      if (response.body.isEmpty) {
+        throw Exception('Máy chủ không phản hồi. Vui lòng thử lại sau.');
+      }
+      dynamic body;
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        throw Exception('Máy chủ đang gặp sự cố (${response.statusCode}). Vui lòng thử lại sau.');
+      }
       if (response.statusCode == 200) {
         final authResponse = AuthResponse.fromJson(body);
         await _localStorage.saveTokens(

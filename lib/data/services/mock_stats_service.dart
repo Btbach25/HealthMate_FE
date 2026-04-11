@@ -134,4 +134,18 @@ class MockStatsService implements StatsService {
       ),
     ];
   }
+  
+  @override
+  Future<List<MetricChart>> getChartDataForMember(
+    String userId, {
+    String range = '7d',
+    List<String>? filterMetricTypes,
+  }) async {
+    // userId is intentionally ignored; all mock members share the same synthetic data.
+    final allCharts = await getChartData(range: range);
+    if (filterMetricTypes == null) return allCharts;
+    return allCharts
+        .where((c) => filterMetricTypes.contains(c.id))
+        .toList();
+  }
 }
