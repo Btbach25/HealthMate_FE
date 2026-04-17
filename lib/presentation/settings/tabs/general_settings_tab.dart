@@ -73,13 +73,8 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
       message: 'Bạn có chắc chắn muốn đăng xuất?',
       confirmText: 'Đăng xuất',
       onConfirm: () {
+        if (!mounted) return;
         context.read<AuthBloc>().add(AuthLogoutRequested());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đăng xuất thành công'),
-            backgroundColor: AppColors.primary,
-          ),
-        );
       },
     );
   }

@@ -102,8 +102,8 @@ Future<void> main() async {
     onRefresh: authRepository.refreshToken,
   );
 
-  // Init FCM sau khi user đã login (token sẽ tự gửi sau khi có access token)
-  FcmService(localStorage).init();
+  final fcmService = FcmService(localStorage);
+  fcmService.init(); // fire-and-forget: xin permission + gửi token nếu đã login
 
   runApp(
     MyApp(
@@ -116,6 +116,7 @@ Future<void> main() async {
       medicationRepository: medicationRepository,
       healthWsService: healthWsService,
       readinessService: readinessService,
+      fcmService: fcmService,
     ),
   );
 }
@@ -130,6 +131,7 @@ class MyApp extends StatelessWidget {
   final MedicationRepository _medicationRepository;
   final HealthWsService _healthWsService;
   final ReadinessService _readinessService;
+  final FcmService _fcmService;
 
   const MyApp({
     super.key,
@@ -142,6 +144,7 @@ class MyApp extends StatelessWidget {
     required MedicationRepository medicationRepository,
     required HealthWsService healthWsService,
     required ReadinessService readinessService,
+    required FcmService fcmService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
        _statsRepository = statsRepository,
@@ -150,7 +153,8 @@ class MyApp extends StatelessWidget {
        _userService = userService,
        _medicationRepository = medicationRepository,
        _healthWsService = healthWsService,
-       _readinessService = readinessService;
+       _readinessService = readinessService,
+       _fcmService = fcmService;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +167,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _healthRepository),
         RepositoryProvider<UserService>.value(value: _userService),
         RepositoryProvider.value(value: _medicationRepository),
+        RepositoryProvider.value(value: _fcmService),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -214,6 +219,13 @@ class _AppViewState extends State<AppView> {
           (curr.status == AuthStatus.authenticated &&
               prev.status != AuthStatus.authenticated),
       listener: (context, authState) {
+        if (!mounted) return;
+        if (authState.status == AuthStatus.authenticated) {
+          context.read<FcmService>().registerCurrentToken();
+        } else if (authState.status == AuthStatus.unauthenticated) {
+          context.read<DeviceHealthCubit>().stopPeriodicSync();
+          context.read<FcmService>().unregisterToken();
+        }
         // FamilyBloc sống cả app; khi đăng xuất/đăng nhập lại phải xóa trạng thái lỗi 401 cũ
         // (FamilyPage có thể chưa mount nên không lắng nghe được ở đó).
         context.read<FamilyBloc>().add(const ResetFamily());
