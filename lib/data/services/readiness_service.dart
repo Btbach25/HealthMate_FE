@@ -30,20 +30,25 @@ class ReadinessService {
       if (caloriesBurned != null) 'calories_burned': caloriesBurned,
     };
 
+    debugPrint('[readiness] → POST $_baseUrl/metrics/readiness');
+    debugPrint('[readiness] → body: ${jsonEncode(reqBody)}');
+
     try {
       final response = await _http.post(
         Uri.parse('$_baseUrl/metrics/readiness'),
         body: jsonEncode(reqBody),
       );
 
+      debugPrint('[readiness] ← status: ${response.statusCode}');
+      debugPrint('[readiness] ← body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final raw = data['readiness_score'];
         return (raw as num?)?.toDouble();
       }
-      debugPrint('[Readiness] Error ${response.statusCode}: ${response.body}');
     } catch (e) {
-      debugPrint('[Readiness] Exception: $e');
+      debugPrint('[readiness] ← exception: $e');
     }
     return null;
   }

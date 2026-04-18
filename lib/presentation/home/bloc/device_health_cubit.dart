@@ -62,6 +62,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   Timer? _syncTimer;
   Timer? _fetchTimer;
   List<HealthDataPoint> _lastPoints = [];
+  // Ngăn emit sau khi logout — DeviceHealthCubit sống ở app-level (không bị close),
+  // nên cần flag thủ công để bảo vệ BlocBuilder trong shell đang bị dispose.
+  bool _stopped = false;
 
   List<HealthDataPoint> get lastPoints => List.unmodifiable(_lastPoints);
 
@@ -89,6 +92,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
   /// Fetch device health 1 lần + tính readiness.
   Future<void> poll() async {
+    _stopped = false; // reset khi user đang active
     emit(state.copyWith(loading: true, error: null));
     final result = await _service.fetchAll();
     if (result == null) {
@@ -151,6 +155,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
   /// Dừng gửi định kỳ và đóng WS.
   void stopPeriodicSync() {
+    _stopped = true; // chặn emit từ async ops đang bay (vd: _fetchReadiness)
     _syncTimer?.cancel();
     _syncTimer = null;
     _fetchTimer?.cancel();
@@ -165,14 +170,16 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     final heartRate = _latestNumeric(points, HealthDataType.HEART_RATE);
     final bloodOxygen = _latestNumeric(points, HealthDataType.BLOOD_OXYGEN);
 
-    if (heartRate == null) {
-      emit(state.copyWith(readinessLoading: false));
+    if (heartRate == null || _stopped) {
+      if (!_stopped) emit(state.copyWith(readinessLoading: false));
       return;
     }
 
     final sleepHours = _totalSleepHours(points);
     final calories = _totalCalories(points);
     final steps = result.totalSteps?.toDouble();
+
+    debugPrint('[Readiness] Input → HR=$heartRate, SpO2=${bloodOxygen ?? 98.0}, sleep=${sleepHours.toStringAsFixed(2)}h, steps=$steps, cal=$calories');
 
     var score = await _readinessService.getScore(
       heartRate: heartRate,
@@ -183,13 +190,21 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       caloriesBurned: calories,
     );
 
-    // Tính điểm cục bộ nếu BE không trả về
-    score ??= _computeLocalScore(
-      heartRate: heartRate,
-      sleepHours: sleepHours,
-      steps: steps,
-      bloodOxygen: bloodOxygen,
-    );
+    // Nếu đã logout trong lúc await → không emit, tránh crash BlocBuilder trong shell
+    if (_stopped) return;
+
+    if (score != null) {
+      debugPrint('[Readiness] Source=BE score=$score');
+    } else {
+      // Tính điểm cục bộ nếu BE không trả về
+      score = _computeLocalScore(
+        heartRate: heartRate,
+        sleepHours: sleepHours,
+        steps: steps,
+        bloodOxygen: bloodOxygen,
+      );
+      debugPrint('[Readiness] Source=LOCAL score=$score (HR=$heartRate → hrScore=${((40 - ((heartRate - 75).abs() / 25 * 40)).clamp(0, 40)).toStringAsFixed(1)}, sleep=${(sleepHours / 8 * 30).clamp(0, 30).toStringAsFixed(1)}, steps=${steps != null ? (steps / 10000 * 20).clamp(0, 20).toStringAsFixed(1) : "10.0(default)"}, spo2=${bloodOxygen != null ? (bloodOxygen >= 95 ? "10.0" : (bloodOxygen / 95 * 10).clamp(0, 10).toStringAsFixed(1)) : "8.0(default)"})');
+    }
 
     emit(state.copyWith(readinessScore: score, readinessLoading: false));
   }

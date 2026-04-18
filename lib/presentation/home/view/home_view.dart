@@ -26,10 +26,19 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   Timer? _pollTimer;
+  DeviceHealthCubit? _deviceHealthCubit;
+  bool _syncStarted = false;
 
-  void _startPolling(BuildContext context) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _deviceHealthCubit ??= context.read<DeviceHealthCubit>();
+  }
+
+  void _startPolling() {
     if (kIsWeb) return;
-    final cubit = context.read<DeviceHealthCubit>();
+    final cubit = _deviceHealthCubit;
+    if (cubit == null) return;
     cubit.poll().then((_) => cubit.startPeriodicSync());
     _pollTimer?.cancel();
     // Re-fetch device data mỗi 5 phút (dữ liệu HealthKit/Health Connect không đổi liên tục)
@@ -41,9 +50,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   void dispose() {
     _pollTimer?.cancel();
-    if (!kIsWeb) {
-      context.read<DeviceHealthCubit>().stopPeriodicSync();
-    }
+    if (!kIsWeb) _deviceHealthCubit?.stopPeriodicSync();
     super.dispose();
   }
 
@@ -124,9 +131,13 @@ class _HomeViewState extends State<HomeView> {
                           ),
                           child: Builder(
                             builder: (innerContext) {
-                              WidgetsBinding.instance.addPostFrameCallback(
-                                (_) => _startPolling(innerContext),
-                              );
+                              if (!_syncStarted) {
+                                _syncStarted = true;
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (!mounted) return;
+                                  _startPolling();
+                                });
+                              }
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [

@@ -102,6 +102,22 @@ class FcmService {
 
   // ─── Register token ──────────────────────────────────────────────────────
 
+  /// Gọi sau khi login thành công để đảm bảo token đã được gửi lên BE.
+  Future<void> registerCurrentToken() async {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) await _registerToken(token);
+  }
+
+  /// Gọi khi logout: xóa token khỏi Firebase (token cũ thành stale, login sau sẽ tạo token mới).
+  Future<void> unregisterToken() async {
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+      debugPrint('[FCM] Token deleted (will refresh on next login)');
+    } catch (e) {
+      debugPrint('[FCM] Delete token error: $e');
+    }
+  }
+
   Future<void> _registerToken(String token) async {
     try {
       final user = await _localStorage.getUser();

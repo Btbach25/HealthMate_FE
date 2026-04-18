@@ -132,7 +132,6 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                 onRetry: () {
                   if (state.isSessionExpired) {
                     context.read<AuthBloc>().add(AuthLogoutRequested());
-                    context.go('/login');
                   } else {
                     context.read<FamilyBloc>().add(
                       FetchGroupDetails(groupId: widget.groupId),

@@ -16,30 +16,40 @@ class FamilyPage extends StatefulWidget {
 class _FamilyPageState extends State<FamilyPage> {
   bool _hasInitialized = false;
 
-  // Reusable refresh helper for family groups.
-  // Không gồm groupDetailsLoaded để tránh gọi GET /groups khi user đang xem chi tiết nhóm (gây một đống request).
+  // Cache bloc references để tránh context.read() lúc element đang inactive
+  // (giữa deactivate() và unmount() — lúc này mounted = true nhưng ancestor lookup fail).
+  AuthBloc? _authBloc;
+  FamilyBloc? _familyBloc;
+
   static final _refreshHelper = BlocRefreshHelper<FamilyBloc, FamilyState>(
-    // Tránh auto-fetch trùng với logic trong FamilyBloc (dễ gây race và ghi đè state).
     refreshTriggerStates: {},
     onRefresh: (context, bloc) => bloc.add(const FetchFamilyGroups()),
     initialState: FamilyStatus.initial,
     statusExtractor: (state) => state.status,
   );
 
-  /// Chỉ fetch lần đầu khi đã đăng nhập. Trì hoãn để storage (token) sẵn sàng trên web, tránh 401.
-  void _tryInitialFetch(BuildContext context) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lưu tham chiếu lúc element đang active — dùng trong callbacks sau này.
+    _authBloc = context.read<AuthBloc>();
+    _familyBloc = context.read<FamilyBloc>();
+  }
+
+  /// Chỉ fetch lần đầu khi đã đăng nhập.
+  void _tryInitialFetch() {
     if (_hasInitialized || !mounted) return;
-    final authState = context.read<AuthBloc>().state;
-    if (authState.status != AuthStatus.authenticated) return;
-    final familyState = context.read<FamilyBloc>().state;
-    if (!_refreshHelper.isInitialState(familyState)) return;
+    final authBloc = _authBloc;
+    final familyBloc = _familyBloc;
+    if (authBloc == null || familyBloc == null) return;
+    if (authBloc.state.status != AuthStatus.authenticated) return;
+    if (!_refreshHelper.isInitialState(familyBloc.state)) return;
 
     Future.delayed(const Duration(milliseconds: 1800), () {
       if (!mounted) return;
-      // ignore: use_build_context_synchronously
-      final bloc = context.read<FamilyBloc>();
+      final bloc = _familyBloc;
+      if (bloc == null) return;
       final wasFetched = _refreshHelper.fetchInitialDataIfNeeded(
-        // ignore: use_build_context_synchronously
         context,
         bloc.state,
       );
@@ -50,14 +60,11 @@ class _FamilyPageState extends State<FamilyPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _tryInitialFetch(context),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryInitialFetch());
   }
 
   void _handleStateChange(FamilyState state) {
     if (!mounted) return;
-
     final wasRefreshed = _refreshHelper.handleStateChange(
       context,
       state,
@@ -71,18 +78,15 @@ class _FamilyPageState extends State<FamilyPage> {
     return BlocProvider.value(
       value: context.read<FamilyBloc>(),
       child: BlocListener<AuthBloc, AuthState>(
-        // ResetFamily chạy ở AppView khi đổi auth — ở đây chỉ bắt lại để fetch khi đã đăng nhập (tab có thể đã mở trước đó).
         listenWhen: (prev, curr) =>
             curr.status == AuthStatus.authenticated &&
             prev.status != AuthStatus.authenticated,
         listener: (context, authState) {
           if (!mounted) return;
           setState(() => _hasInitialized = false);
-          // Dùng addPostFrameCallback để tránh gọi context.read() trong lúc
-          // widget tree chưa ổn định (sau login/navigate).
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            _tryInitialFetch(context);
+            _tryInitialFetch();
           });
         },
         child: BlocListener<FamilyBloc, FamilyState>(

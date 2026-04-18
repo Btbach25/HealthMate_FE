@@ -40,15 +40,21 @@ class ConfirmationDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () {
-            Navigator.pop(context);
-            onCancel?.call();
+            Navigator.of(context, rootNavigator: true).pop();
+            if (onCancel != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                onCancel!();
+              });
+            }
           },
           child: Text(cancelText),
         ),
         ElevatedButton(
           onPressed: () {
-            Navigator.pop(context);
-            onConfirm();
+            Navigator.of(context, rootNavigator: true).pop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              onConfirm();
+            });
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: confirmColor ?? AppColors.primary,
