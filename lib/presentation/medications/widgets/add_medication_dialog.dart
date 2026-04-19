@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
+import 'package:fe/presentation/medications/widgets/medication_dialog_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -19,13 +20,19 @@ class AddMedicationDialog extends StatefulWidget {
 }
 
 class _AddMedicationDialogState extends State<AddMedicationDialog> {
+  static const TimeOfDay _defaultReminderTime = TimeOfDay(hour: 8, minute: 0);
+  static const String _selectDateLabel = 'Chọn ngày';
+  static const Duration _submitTimeout = Duration(seconds: 45);
+  static const int _minDateYear = 2020;
+  static const int _maxDateYear = 2030;
+
   final _nameCtrl = TextEditingController();
   final _dosageCtrl = TextEditingController();
   final _instructionsCtrl = TextEditingController();
   final _prescribedByCtrl = TextEditingController();
 
   MedicationFrequencyType _frequencyType = MedicationFrequencyType.daily;
-  final List<TimeOfDay> _times = [const TimeOfDay(hour: 8, minute: 0)];
+  final List<TimeOfDay> _times = [ _defaultReminderTime ];
   DateTime? _startDate;
   DateTime? _endDate;
   bool _submitting = false;
@@ -60,8 +67,8 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? (_startDate ?? now) : (_endDate ?? now),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      firstDate: DateTime(_minDateYear),
+      lastDate: DateTime(_maxDateYear),
       builder: (context, child) => Theme(
         data: ThemeData.light().copyWith(
           colorScheme: const ColorScheme.light(primary: AppColors.primary),
@@ -81,35 +88,33 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Chọn ngày';
+    if (date == null) return _selectDateLabel;
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
+  void _showErrorSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     if (_nameCtrl.text.trim().isEmpty || _dosageCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập tên thuốc và liều lượng'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorSnack('Vui lòng nhập tên thuốc và liều lượng');
       return;
     }
 
     final userId = context.read<AuthBloc>().state.user.id;
     if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Không xác định được tài khoản. Vui lòng đăng nhập lại.',
-          ),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorSnack('Không xác định được tài khoản. Vui lòng đăng nhập lại.');
       return;
     }
 
@@ -153,31 +158,21 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
     bloc.add(AddMedication(medication: medication));
     try {
       await bloc.stream
-          .timeout(const Duration(seconds: 45))
+          .timeout(_submitTimeout)
           .firstWhere(
         (s) =>
             s.medications.length > countBefore || s.errorMessage != null,
       );
     } on TimeoutException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hết thời gian chờ. Kiểm tra kết nối và thử lại.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorSnack('Hết thời gian chờ. Kiểm tra kết nối và thử lại.');
       return;
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
     if (!mounted) return;
     if (bloc.state.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(bloc.state.errorMessage!),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorSnack(bloc.state.errorMessage!);
       return;
     }
     if (mounted) Navigator.of(context).pop();
@@ -195,37 +190,22 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 440,
+          maxWidth: 500,
           maxHeight: mq.size.height * 0.88,
         ),
         child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Thêm thuốc mới',
-                        style: AppTextStyles.h4,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                      color: AppColors.textGrey,
-                      tooltip: 'Đóng',
-                    ),
-                  ],
-                ),
+              MedicationDialogHeader(
+                title: 'Thêm thuốc mới',
+                subtitle: 'Điền thông tin cơ bản và lịch nhắc uống mỗi ngày.',
+                onClose: () => Navigator.of(context).pop(),
               ),
               const Divider(height: 1),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+                  padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + bottomInset),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -238,90 +218,98 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                       _buildLabel('Tần suất'),
                       _buildFrequencyDropdown(),
                       const SizedBox(height: 12),
-                      _buildLabel('Thời gian uống'),
-                      ..._times.asMap().entries.map((e) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
+                      MedicationSectionCard(
+                        title: 'Lịch uống',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Thời gian uống'),
+                            ..._times.asMap().entries.map((e) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => _pickTime(e.key),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 14, vertical: 14),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.inputBackground,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.access_time,
+                                                    size: 18, color: AppColors.textGrey),
+                                                const SizedBox(width: 8),
+                                                Text(_formatTime(e.value),
+                                                    style: AppTextStyles.bodyMedium),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (_times.length > 1) ...[
+                                        const SizedBox(width: 8),
+                                        GestureDetector(
+                                          onTap: () =>
+                                              setState(() => _times.removeAt(e.key)),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.errorLight,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(Icons.close,
+                                                size: 18, color: AppColors.error),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                )),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  setState(() => _times.add(_defaultReminderTime)),
+                              icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
+                              label: const Text('Thêm giờ uống',
+                                  style: TextStyle(color: AppColors.primary)),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 0, vertical: 4),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
                               children: [
                                 Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => _pickTime(e.key),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.inputBackground,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.access_time,
-                                              size: 18, color: AppColors.textGrey),
-                                          const SizedBox(width: 8),
-                                          Text(_formatTime(e.value),
-                                              style: AppTextStyles.bodyMedium),
-                                        ],
-                                      ),
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLabel('Ngày bắt đầu'),
+                                      _buildDateButton(
+                                          label: _formatDate(_startDate),
+                                          onTap: () => _pickDate(isStart: true)),
+                                    ],
                                   ),
                                 ),
-                                if (_times.length > 1) ...[
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _times.removeAt(e.key)),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.errorLight,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.close,
-                                          size: 18, color: AppColors.error),
-                                    ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLabel('Ngày kết thúc'),
+                                      _buildDateButton(
+                                          label: _formatDate(_endDate),
+                                          onTap: () => _pickDate(isStart: false)),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ],
                             ),
-                          )),
-                      TextButton.icon(
-                        onPressed: () => setState(
-                            () => _times.add(const TimeOfDay(hour: 8, minute: 0))),
-                        icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-                        label: const Text('Thêm giờ uống',
-                            style: TextStyle(color: AppColors.primary)),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 0, vertical: 4),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel('Ngày bắt đầu'),
-                                _buildDateButton(
-                                    label: _formatDate(_startDate),
-                                    onTap: () => _pickDate(isStart: true)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel('Ngày kết thúc'),
-                                _buildDateButton(
-                                    label: _formatDate(_endDate),
-                                    onTap: () => _pickDate(isStart: false)),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 12),
                       _buildLabel('Hướng dẫn sử dụng'),
@@ -334,9 +322,9 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
+                        child: FilledButton(
                           onPressed: _submitting ? null : _submit,
-                          style: ElevatedButton.styleFrom(
+                          style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -386,7 +374,15 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
           fillColor: AppColors.inputBackground,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderSide: const BorderSide(color: AppColors.cardBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.cardBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -436,7 +432,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
               Expanded(
                 child: Text(
                   label,
-                  style: label == 'Chọn ngày'
+                  style: label == _selectDateLabel
                       ? AppTextStyles.caption
                       : AppTextStyles.bodySmall,
                   overflow: TextOverflow.ellipsis,

@@ -31,6 +31,11 @@ abstract class FamilyService {
   Future<GroupDetails> getGroupDetails({required String groupId, FamilyGroup? cachedGroup});
   Future<void> transferOwnership({required String groupId, required String newOwnerId});
   Future<void> removeMember({required String groupId, required String memberId});
+  Future<void> updateMemberPermissions({
+    required String groupId,
+    required String memberId,
+    required List<String> sharedMetrics,
+  });
   Future<List<IncomingInvitation>> getIncomingInvitations();
   Future<List<OutgoingInvitation>> getOutgoingInvitations();
 }

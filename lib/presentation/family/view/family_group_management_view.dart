@@ -2,6 +2,7 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/utils/family_state_helper.dart';
+import 'package:fe/core/utils/toast_utils.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
@@ -18,6 +19,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+
+const _kRefreshTimeout = Duration(seconds: 5);
+const _kDialogBarrierAlpha = 0.5;
+const _kEmptyStateHeightFactor = 0.6;
+
+Future<void> _dispatchAndAwaitFamilyRefresh(
+  BuildContext context,
+  FamilyEvent event,
+) async {
+  final bloc = context.read<FamilyBloc>();
+  bloc.add(event);
+  try {
+    await bloc.stream
+        .timeout(_kRefreshTimeout)
+        .firstWhere((s) => s.status != FamilyStatus.loading);
+  } catch (_) {
+    // Ignore timeout: RefreshIndicator can finish gracefully.
+  }
+}
 
 class FamilyGroupManagementView extends StatefulWidget {
   const FamilyGroupManagementView({super.key});
@@ -43,24 +63,12 @@ class _FamilyGroupManagementViewState
       final bloc = context.read<FamilyBloc>();
       final state = bloc.state;
       // Only fetch if not already loaded
-      if (state.status == FamilyStatus.initial || 
+      if (state.status == FamilyStatus.initial ||
           state.summary.groups.isEmpty) {
         bloc.add(const FetchFamilyGroups());
       }
-      // Preload other tabs data in background
-      _preloadTabData(bloc, state);
+      // Không preload lời mời ngay: tránh 3 request song song (groups + 2 invitation) làm chậm tạo nhóm / tab đầu. Hai tab kia tự fetch khi user mở (_onTabChanged).
     });
-  }
-
-  void _preloadTabData(FamilyBloc bloc, FamilyState state) {
-    // Preload incoming invitations if not loaded
-    if (state.incomingInvitations.isEmpty) {
-      bloc.add(const FetchIncomingInvitations());
-    }
-    // Preload outgoing invitations if not loaded
-    if (state.outgoingInvitations.isEmpty) {
-      bloc.add(const FetchOutgoingInvitations());
-    }
   }
 
   void _onTabChanged() {
@@ -102,19 +110,17 @@ class _FamilyGroupManagementViewState
       body: BlocListener<FamilyBloc, FamilyState>(
         listener: (context, state) {
           if (state.status == FamilyStatus.invitationAccepted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Đã chấp nhận lời mời thành công'),
-                backgroundColor: AppColors.primary,
-              ),
+            ToastUtils.showCustomToast(
+              context,
+              'Đã chấp nhận lời mời thành công',
+              ToastType.success,
             );
           }
           if (state.status == FamilyStatus.invitationDeclined) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Đã từ chối lời mời'),
-                backgroundColor: AppColors.textGrey,
-              ),
+            ToastUtils.showCustomToast(
+              context,
+              'Đã từ chối lời mời',
+              ToastType.info,
             );
             // Force refresh incoming invitations to update UI
             context.read<FamilyBloc>().add(const FetchIncomingInvitations());
@@ -207,7 +213,7 @@ class _FamilyGroupManagementViewState
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha:0.5),
+      barrierColor: Colors.black.withValues(alpha: _kDialogBarrierAlpha),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: bloc,
@@ -222,12 +228,10 @@ class _FamilyGroupManagementViewState
   void _copyGroupLink(BuildContext context, FamilyGroup group) {
     final link = 'https://healthapp.com/join/${group.id}';
     Clipboard.setData(ClipboardData(text: link));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã sao chép link nhóm'),
-        backgroundColor: AppColors.primary,
-        duration: Duration(seconds: 2),
-      ),
+    ToastUtils.showCustomToast(
+      context,
+      'Đã sao chép link nhóm',
+      ToastType.success,
     );
   }
 
@@ -285,51 +289,22 @@ class _MyGroupsTab extends StatelessWidget {
     required this.onEditPermissions,
   });
 
+  Future<void> _refreshGroups(BuildContext context) async {
+    await _dispatchAndAwaitFamilyRefresh(context, const FetchFamilyGroups());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
         child: RefreshIndicator(
-          onRefresh: () async {
-            context.read<FamilyBloc>().add(const FetchFamilyGroups());
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
+          onRefresh: () => _refreshGroups(context),
           child: groups.isEmpty
-              ? SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.6,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.group_outlined,
-                            size: 64,
-                            color: AppColors.textGrey.withValues(alpha:0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Chưa có nhóm nào',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.textGrey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Kéo xuống để làm mới',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textGrey.withValues(alpha:0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+              ? _RefreshableEmptyState(
+                  onRefresh: () => _refreshGroups(context),
+                  icon: Icons.group_outlined,
+                  title: 'Chưa có nhóm nào',
                 )
               : ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -337,7 +312,9 @@ class _MyGroupsTab extends StatelessWidget {
                     left: AppSize.p16,
                     right: AppSize.p16,
                     top: AppSize.p16,
-                    bottom: AppSize.p16 + MediaQuery.of(context).padding.bottom + 100,
+                    bottom: AppSize.p16 +
+                        MediaQuery.of(context).padding.bottom +
+                        AppSize.bottomTabSafeInset,
                   ),
                   itemCount: groups.length,
                   itemBuilder: (context, index) {
@@ -455,13 +432,15 @@ class _MyGroupsTab extends StatelessWidget {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.copy, size: 20),
-                          onPressed: () {},
+                          onPressed: null,
                           color: AppColors.textGrey,
+                          tooltip: 'Chỉ chủ nhóm mới có thể sao chép liên kết',
                         ),
                         IconButton(
                           icon: const Icon(Icons.share, size: 20),
-                          onPressed: () {},
+                          onPressed: null,
                           color: AppColors.textGrey,
+                          tooltip: 'Chỉ chủ nhóm mới có thể chỉnh sửa chia sẻ',
                         ),
                       ],
                     ),
@@ -510,6 +489,13 @@ class _MyGroupsTab extends StatelessWidget {
 class _IncomingInvitationsTab extends StatelessWidget {
   const _IncomingInvitationsTab();
 
+  Future<void> _refreshIncomingInvitations(BuildContext context) async {
+    await _dispatchAndAwaitFamilyRefresh(
+      context,
+      const FetchIncomingInvitations(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
@@ -529,62 +515,24 @@ class _IncomingInvitationsTab extends StatelessWidget {
           // Show empty state immediately if no data, don't wait for loading
           if (state.incomingInvitations.isEmpty && 
               state.status != FamilyStatus.loading) {
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<FamilyBloc>().add(const FetchIncomingInvitations());
-              await Future.delayed(const Duration(milliseconds: 500));
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.mail_outline,
-                        size: 64,
-                        color: AppColors.textGrey.withValues(alpha:0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Không có lời mời nào',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textGrey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Kéo xuống để làm mới',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textGrey.withValues(alpha:0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
+            return _RefreshableEmptyState(
+              onRefresh: () => _refreshIncomingInvitations(context),
+              icon: Icons.mail_outline,
+              title: 'Không có lời mời nào',
+            );
+          }
 
         return RefreshIndicator(
-          onRefresh: () async {
-            // Force refresh by clearing cache and fetching again
-            context.read<FamilyBloc>().add(const FetchIncomingInvitations());
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
+          onRefresh: () => _refreshIncomingInvitations(context),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.only(
               left: AppSize.p16,
               right: AppSize.p16,
               top: AppSize.p16,
-              bottom: AppSize.p16 + MediaQuery.of(context).padding.bottom + 100,
+              bottom: AppSize.p16 +
+                  MediaQuery.of(context).padding.bottom +
+                  AppSize.bottomTabSafeInset,
             ),
             itemCount: state.incomingInvitations.length,
             itemBuilder: (context, index) {
@@ -691,7 +639,8 @@ class _IncomingInvitationsTab extends StatelessWidget {
                     showDialog<void>(
                       context: context,
                       barrierDismissible: false,
-                      barrierColor: Colors.black.withValues(alpha:0.5),
+                      barrierColor:
+                          Colors.black.withValues(alpha: _kDialogBarrierAlpha),
                       builder: (dialogContext) {
                         return BlocProvider.value(
                           value: bloc,
@@ -734,6 +683,13 @@ class _IncomingInvitationsTab extends StatelessWidget {
 class _OutgoingInvitationsTab extends StatelessWidget {
   const _OutgoingInvitationsTab();
 
+  Future<void> _refreshOutgoingInvitations(BuildContext context) async {
+    await _dispatchAndAwaitFamilyRefresh(
+      context,
+      const FetchOutgoingInvitations(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<FamilyBloc, FamilyState>(
@@ -741,61 +697,24 @@ class _OutgoingInvitationsTab extends StatelessWidget {
         // Show empty state immediately if no data, don't wait for loading
         if (state.outgoingInvitations.isEmpty && 
             state.status != FamilyStatus.loading) {
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<FamilyBloc>().add(const FetchOutgoingInvitations());
-              await Future.delayed(const Duration(milliseconds: 500));
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.send_outlined,
-                        size: 64,
-                        color: AppColors.textGrey.withValues(alpha:0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Chưa có lời mời nào được gửi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textGrey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Kéo xuống để làm mới',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textGrey.withValues(alpha:0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          return _RefreshableEmptyState(
+            onRefresh: () => _refreshOutgoingInvitations(context),
+            icon: Icons.send_outlined,
+            title: 'Chưa có lời mời nào được gửi',
           );
         }
 
         return RefreshIndicator(
-          onRefresh: () async {
-            context.read<FamilyBloc>().add(const FetchOutgoingInvitations());
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
+          onRefresh: () => _refreshOutgoingInvitations(context),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.only(
               left: AppSize.p16,
               right: AppSize.p16,
               top: AppSize.p16,
-              bottom: AppSize.p16 + MediaQuery.of(context).padding.bottom + 100,
+              bottom: AppSize.p16 +
+                  MediaQuery.of(context).padding.bottom +
+                  AppSize.bottomTabSafeInset,
             ),
             itemCount: state.outgoingInvitations.length,
             itemBuilder: (context, index) {
@@ -944,5 +863,59 @@ class _OutgoingInvitationsTab extends StatelessWidget {
     );
   }
 
+}
+
+class _RefreshableEmptyState extends StatelessWidget {
+  const _RefreshableEmptyState({
+    required this.onRefresh,
+    required this.icon,
+    required this.title,
+  });
+
+  final Future<void> Function() onRefresh;
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * _kEmptyStateHeightFactor,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 64,
+                  color: AppColors.textGrey.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textGrey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Kéo xuống để làm mới',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textGrey.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 

@@ -26,10 +26,18 @@ class _SettingsViewState extends State<SettingsView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  final List<({IconData icon, String label})> _tabs = const [
+    (icon: Icons.person_outline, label: 'Hồ sơ'),
+    (icon: Icons.notifications_outlined, label: 'Thông báo'),
+    (icon: Icons.shield_outlined, label: 'Bảo mật'),
+    (icon: Icons.sync, label: 'Đồng bộ'),
+    (icon: Icons.settings_outlined, label: 'Chung'),
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
   }
 
   @override
@@ -40,17 +48,18 @@ class _SettingsViewState extends State<SettingsView>
 
   Widget _buildTab(IconData icon, String label) {
     return Tab(
-      height: 70,
+      height: 52,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 24),
-          const SizedBox(height: 6),
+          Icon(icon, size: 18),
+          const SizedBox(height: 4),
           Text(
             label,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11.5),
           ),
         ],
       ),
@@ -61,73 +70,93 @@ class _SettingsViewState extends State<SettingsView>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shadowColor: Colors.transparent,
-        title: const Text(
-          'Cài đặt',
-          style: AppTextStyles.h3,
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha:0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: false,
-              labelColor: Colors.white,
-              unselectedLabelColor: AppColors.textGrey,
-              indicator: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.cardBorder, width: 0.8),
                 ),
               ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              labelStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                height: 1.2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cài đặt',
+                    style: AppTextStyles.h3.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Quản lý hồ sơ, bảo mật và tuỳ chọn ứng dụng',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      dividerColor: Colors.transparent,
+                      indicator: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: AppColors.buttonShadow,
+                      ),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: AppColors.textGrey,
+                      labelStyle: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 3),
+                      tabs: [
+                        for (final t in _tabs)
+                          SizedBox(
+                            width: 98,
+                            child: _buildTab(t.icon, t.label),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
-                height: 1.2,
-              ),
-              labelPadding: EdgeInsets.zero,
-              tabs: [
-                _buildTab(Icons.person_outline, 'Hồ sơ'),
-                _buildTab(Icons.notifications_outlined, 'Thông báo'),
-                _buildTab(Icons.shield_outlined, 'Bảo mật'),
-                _buildTab(Icons.sync, 'Đồng bộ'),
-                _buildTab(Icons.settings_outlined, 'Chung'),
-              ],
             ),
-          ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                physics: const BouncingScrollPhysics(),
+                children: const [
+                  ProfileSettingsTab(),
+                  NotificationsSettingsTab(),
+                  PrivacySecurityTab(),
+                  HealthSyncTab(),
+                  GeneralSettingsTab(),
+                ],
+              ),
+            ),
+          ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        physics: const BouncingScrollPhysics(),
-        children: const [
-          ProfileSettingsTab(),
-          NotificationsSettingsTab(),
-          PrivacySecurityTab(),
-          HealthSyncTab(),
-          GeneralSettingsTab(),
-        ],
       ),
     );
   }

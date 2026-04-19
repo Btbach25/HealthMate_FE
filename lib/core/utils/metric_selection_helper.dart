@@ -5,6 +5,12 @@ import 'package:fe/core/utils/metric_helper.dart';
 /// Helper class for metric selection logic
 /// Reduces if-else complexity in metric selection dialogs
 class MetricSelectionHelper {
+  static const Set<String> _backendSupportedMetricTypes = {
+    'heart_rate',
+    'steps_count',
+    'calories_burned',
+  };
+
   /// Validates that at least one metric is selected
   static bool validateSelection(Set<MetricType> selectedMetrics) {
     return selectedMetrics.isNotEmpty;
@@ -32,12 +38,15 @@ class MetricSelectionHelper {
   /// Backend auth-service chỉ chấp nhận: heart_rate, steps_count, calories_burned.
   /// Lọc bỏ các loại khác và chuẩn hóa calories_burnt -> calories_burned trước khi gửi API.
   static List<String> filterMetricTypesForBackend(List<String> metricTypes) {
-    const allowed = {'heart_rate', 'steps_count', 'calories_burned'};
     return metricTypes
         .map((m) => m == 'calories_burnt' ? 'calories_burned' : m)
-        .where(allowed.contains)
+        .where(_backendSupportedMetricTypes.contains)
         .toSet()
         .toList();
+  }
+
+  static bool isMetricSupportedByBackend(MetricType metricType) {
+    return filterMetricTypesForBackend([metricType.value]).isNotEmpty;
   }
 
   /// Gets all available metrics

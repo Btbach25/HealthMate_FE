@@ -111,4 +111,15 @@ class FamilyRepository {
     required String memberId,
   }) =>
       _familyService.removeMember(groupId: groupId, memberId: memberId);
+
+  Future<void> updateMemberPermissions({
+    required String groupId,
+    required String memberId,
+    required List<String> sharedMetrics,
+  }) =>
+      _familyService.updateMemberPermissions(
+        groupId: groupId,
+        memberId: memberId,
+        sharedMetrics: sharedMetrics,
+      );
 }

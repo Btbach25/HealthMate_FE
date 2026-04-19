@@ -1,4 +1,5 @@
 import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
@@ -17,6 +18,79 @@ class ApiFamilyService implements FamilyService {
 
   ApiFamilyService({required ApiClient apiClient}) : _apiClient = apiClient;
 
+  List<String> _extractGlobalMetricTypesFromPermissions(dynamic rawPermissions) {
+    if (rawPermissions is Map<String, dynamic>) {
+      final global = rawPermissions['global'];
+      if (global is List) {
+        return global
+            .map((e) => e?.toString() ?? '')
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList();
+      }
+      return const [];
+    }
+    final rawList = rawPermissions is List ? rawPermissions : const [];
+    final metricTypes = <String>{};
+    for (final item in rawList) {
+      if (item is! Map<String, dynamic>) continue;
+      final metricType = item['metric_type']?.toString() ?? '';
+      final sharedWith = item['shared_with_user_id']?.toString();
+      if (metricType.isEmpty) continue;
+      if (sharedWith == null || sharedWith.isEmpty || sharedWith == 'null') {
+        metricTypes.add(metricType);
+      }
+    }
+    return metricTypes.toList();
+  }
+
+  List<MetricType> _toMetricTypes(List<String> metricTypes) {
+    final parsed = <MetricType>[];
+    for (final metric in metricTypes) {
+      try {
+        parsed.add(MetricType.fromValue(metric));
+      } catch (_) {
+        // Ignore metric types FE has not mapped yet.
+      }
+    }
+    return parsed;
+  }
+
+  List<String> _extractSpecificMetricTypesFromPermissions(
+    dynamic rawPermissions,
+    String targetUserId,
+  ) {
+    if (rawPermissions is Map<String, dynamic>) {
+      final specific = rawPermissions['specific'];
+      if (specific is! List) return const [];
+      final metricTypes = <String>{};
+      for (final item in specific) {
+        if (item is! Map<String, dynamic>) continue;
+        final userId = item['user_id']?.toString() ?? '';
+        if (userId != targetUserId) continue;
+        final metrics = item['metrics'];
+        if (metrics is! List) continue;
+        for (final metric in metrics) {
+          final metricType = metric?.toString() ?? '';
+          if (metricType.isNotEmpty) metricTypes.add(metricType);
+        }
+      }
+      return metricTypes.toList();
+    }
+    final rawList = rawPermissions is List ? rawPermissions : const [];
+    final metricTypes = <String>{};
+    for (final item in rawList) {
+      if (item is! Map<String, dynamic>) continue;
+      final metricType = item['metric_type']?.toString() ?? '';
+      final sharedWith = item['shared_with_user_id']?.toString() ?? '';
+      if (metricType.isEmpty || sharedWith.isEmpty) continue;
+      if (sharedWith == targetUserId) {
+        metricTypes.add(metricType);
+      }
+    }
+    return metricTypes.toList();
+  }
+
   @override
   Future<FamilyGroupSummary> getFamilyGroups() async {
     try {
@@ -24,7 +98,29 @@ class ApiFamilyService implements FamilyService {
         ApiEndpoints.groups,
         parser: (data) => data is List ? data : [],
       );
-      return GroupApiMapper.toFamilyGroupSummary(list);
+      final summary = GroupApiMapper.toFamilyGroupSummary(list);
+
+      final hydratedGroups = await Future.wait(
+        summary.groups.map((group) async {
+          try {
+            final permissionsRaw = await _apiClient.get<dynamic>(
+              ApiEndpoints.groupPermissions(group.id),
+              parser: (data) => data,
+            );
+            final globalMetricTypes =
+                _extractGlobalMetricTypesFromPermissions(permissionsRaw);
+            final parsed = _toMetricTypes(globalMetricTypes);
+            if (parsed.isEmpty) return group;
+            return group.copyWith(sharedMetrics: parsed);
+          } catch (_) {
+            // Some roles/groups may not allow reading permissions.
+            // Keep existing mapped metrics as fallback.
+            return group;
+          }
+        }),
+      );
+
+      return summary.copyWith(groups: hydratedGroups);
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -47,7 +143,7 @@ class ApiFamilyService implements FamilyService {
         body: body,
         parser: (d) => d as Map<String, dynamic>,
       );
-      final group = GroupApiMapper.toFamilyGroup(data);
+      var group = GroupApiMapper.toFamilyGroup(data);
       final metricTypes = MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
       if (metricTypes.isNotEmpty) {
         await _apiClient.put<void>(
@@ -55,6 +151,16 @@ class ApiFamilyService implements FamilyService {
           body: {'metric_types': metricTypes},
           parser: (_) {},
         );
+        // POST /groups thường chưa phản ánh permissions vừa PUT — merge để list/detail khớp ngay, tránh cảm giác “chậm / sai” tới lần GET sau.
+        final parsed = <MetricType>[];
+        for (final s in metricTypes) {
+          try {
+            parsed.add(MetricType.fromValue(s));
+          } catch (_) {}
+        }
+        if (parsed.isNotEmpty) {
+          group = group.copyWith(sharedMetrics: parsed);
+        }
       }
       return group;
     } on ApiException {
@@ -74,15 +180,7 @@ class ApiFamilyService implements FamilyService {
     List<String>? sharedMetrics,
   }) async {
     try {
-      final body = <String, dynamic>{};
-      if (name != null) body['name'] = name;
-      if (body.isNotEmpty) {
-        await _apiClient.put<void>(
-          ApiEndpoints.groupById(groupId),
-          body: body,
-          parser: (_) {},
-        );
-      }
+      var permissionsUpdated = false;
       if (sharedMetrics != null && sharedMetrics.isNotEmpty) {
         final metricTypes = MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
         if (metricTypes.isNotEmpty) {
@@ -91,6 +189,27 @@ class ApiFamilyService implements FamilyService {
             body: {'metric_types': metricTypes},
             parser: (_) {},
           );
+          permissionsUpdated = true;
+        }
+      }
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name;
+      if (body.isNotEmpty) {
+        try {
+          await _apiClient.put<void>(
+            ApiEndpoints.groupById(groupId),
+            body: body,
+            parser: (_) {},
+          );
+        } on ServerException catch (e) {
+          if (permissionsUpdated) {
+            throw UnknownException(
+              message:
+                  'Đã lưu quyền chia sẻ, nhưng đổi tên nhóm đang lỗi phía máy chủ. Vui lòng thử đổi tên lại sau.',
+              originalError: e,
+            );
+          }
+          rethrow;
         }
       }
     } on ApiException {
@@ -231,8 +350,58 @@ class ApiFamilyService implements FamilyService {
           .whereType<Map<String, dynamic>>()
           .map((e) => GroupApiMapper.toFamilyMember(e, groupId))
           .toList();
-      final groupWithCount = group.copyWith(memberCount: members.length);
-      return GroupDetails(group: groupWithCount, members: members);
+
+      // FE-side effective permissions:
+      // - BE may return mixed global + specific rows.
+      // - We derive global set once, then compute per-member effective set.
+      final globalPermissionsRaw = await _apiClient.get<dynamic>(
+        ApiEndpoints.groupPermissions(groupId),
+        parser: (data) => data,
+      );
+      final globalMetricTypes =
+          _extractGlobalMetricTypesFromPermissions(globalPermissionsRaw);
+      final globalMetricTypeSet = globalMetricTypes.toSet();
+      final globalMetricsParsed = _toMetricTypes(globalMetricTypes);
+
+      final effectiveMembers = await Future.wait(
+        members.map((member) async {
+          final memberPermissionsRaw = await _apiClient.get<dynamic>(
+            ApiEndpoints.groupPermissions(groupId),
+            queryParameters: {'target_user_id': member.userId},
+            parser: (data) => data,
+          );
+
+          final memberGlobalMetricTypes =
+              _extractGlobalMetricTypesFromPermissions(memberPermissionsRaw);
+          final effectiveGlobalSet = memberGlobalMetricTypes.isNotEmpty
+              ? memberGlobalMetricTypes.toSet()
+              : globalMetricTypeSet;
+
+          final specificMetricTypes = _extractSpecificMetricTypesFromPermissions(
+            memberPermissionsRaw,
+            member.userId,
+          ).toSet();
+
+          // Default-open mode:
+          // - No specific rules for this member => inherits global.
+          // - Has specific rules => effective = global ∩ specific.
+          final effectiveMetricTypes = specificMetricTypes.isEmpty
+              ? effectiveGlobalSet
+              : effectiveGlobalSet.intersection(specificMetricTypes);
+
+          final parsed = _toMetricTypes(effectiveMetricTypes.toList());
+          return member.copyWith(
+            sharedMetrics: parsed,
+          );
+        }),
+      );
+
+      final groupWithCount = group.copyWith(
+        memberCount: members.length,
+        sharedMetrics:
+            globalMetricsParsed.isNotEmpty ? globalMetricsParsed : group.sharedMetrics,
+      );
+      return GroupDetails(group: groupWithCount, members: effectiveMembers);
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -386,6 +555,33 @@ class ApiFamilyService implements FamilyService {
     } catch (e) {
       throw UnknownException(
         message: 'Lỗi khi xóa thành viên khỏi nhóm.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> updateMemberPermissions({
+    required String groupId,
+    required String memberId,
+    required List<String> sharedMetrics,
+  }) async {
+    try {
+      final metricTypes =
+          MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
+      await _apiClient.put<void>(
+        ApiEndpoints.groupPermissions(groupId),
+        body: {
+          'target_user_id': memberId,
+          'metric_types': metricTypes,
+        },
+        parser: (_) {},
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi cập nhật quyền chia sẻ cho thành viên.',
         originalError: e,
       );
     }

@@ -31,7 +31,7 @@ class MetricCheckbox extends StatelessWidget {
         padding: const EdgeInsets.all(AppSize.p16),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
+              ? AppColors.primaryContainer
               : Colors.white,
           borderRadius: BorderRadius.circular(AppSize.r12),
           border: Border.all(
@@ -76,8 +76,12 @@ class MetricCheckbox extends StatelessWidget {
                   fontWeight: isSelected
                       ? FontWeight.w600
                       : FontWeight.normal,
-                  color: AppColors.textBlack,
+                  color: isSelected
+                      ? AppColors.primaryDark
+                      : AppColors.textBlack,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (showCheckIcon && isSelected) ...[

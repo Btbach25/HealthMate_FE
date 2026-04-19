@@ -182,7 +182,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Chọn loại dữ liệu sức khỏe mà thành viên này có thể xem',
+                  'Chọn loại dữ liệu sức khỏe mà thành viên này có thể xem (hiện hỗ trợ: nhịp tim, bước chân, calo)',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.textGrey.withValues(alpha:0.8),
@@ -197,6 +197,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                       spacing: AppSize.spacing12,
                       runSpacing: AppSize.spacing12,
                       children: MetricHelper.availableMetrics
+                          .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
                           .map(
                             (metric) => SizedBox(
                               width: itemWidth,

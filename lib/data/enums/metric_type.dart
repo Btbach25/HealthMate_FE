@@ -33,6 +33,7 @@ enum MetricType {
       case 'steps_count':
         return stepsCount;
       case 'calories_burnt':
+      case 'calories_burned':
         return caloriesBurnt;
       case 'blood_pressure':
         return bloodPressure;

@@ -148,7 +148,7 @@ class _EmailInput extends StatelessWidget {
           context.read<AuthFormBloc>().add(EmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
       decoration: const InputDecoration(
-        hintText: 'Nhập email của bạn (vd: ban@email.com)',
+        hintText: 'Nhập email của bạn',
         prefixIcon: Icon(Icons.email_outlined),
       ),
     );
@@ -170,7 +170,7 @@ class _PasswordInputState extends State<_PasswordInput> {
           context.read<AuthFormBloc>().add(PasswordChanged(password)),
       obscureText: _isObscured,
       decoration: InputDecoration(
-        hintText: 'Nhập mật khẩu (admin)',
+        hintText: 'Nhập mật khẩu',
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(
           icon: Icon(

@@ -4,7 +4,7 @@ import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/user_service.dart';
 
-/// Implementation [UserService] gọi API Users qua [ApiClient].
+/// Implementation [UserService] goi API Users qua [ApiClient].
 class ApiUserService implements UserService {
   final ApiClient _apiClient;
 
@@ -22,19 +22,34 @@ class ApiUserService implements UserService {
       rethrow;
     } catch (e) {
       throw UnknownException(
-        message: 'Lỗi khi tải hồ sơ.',
+        message: 'Loi khi tai ho so.',
         originalError: e,
       );
     }
   }
 
   @override
-  Future<void> updateProfile({String? name, String? picture}) async {
+  Future<void> updateProfile({
+    required String name,
+    String? picture,
+    String? phone,
+    String? address,
+    String? gender,
+    String? birthday,
+    double? weight,
+    double? height,
+    String? bloodGroup,
+  }) async {
     try {
-      final body = <String, dynamic>{};
-      if (name != null) body['name'] = name;
+      final body = <String, dynamic>{'name': name};
       if (picture != null) body['picture'] = picture;
-      if (body.isEmpty) return;
+      if (phone != null) body['phone'] = phone;
+      if (address != null) body['address'] = address;
+      if (gender != null) body['gender'] = gender;
+      if (birthday != null) body['birthday'] = birthday;
+      if (weight != null) body['weight'] = weight;
+      if (height != null) body['height'] = height;
+      if (bloodGroup != null) body['blood_group'] = bloodGroup;
       await _apiClient.put<void>(
         ApiEndpoints.usersProfile,
         body: body,
@@ -44,7 +59,7 @@ class ApiUserService implements UserService {
       rethrow;
     } catch (e) {
       throw UnknownException(
-        message: 'Lỗi khi cập nhật hồ sơ.',
+        message: 'Loi khi cap nhat ho so.',
         originalError: e,
       );
     }
@@ -75,7 +90,7 @@ class ApiUserService implements UserService {
       rethrow;
     } catch (e) {
       throw UnknownException(
-        message: 'Lỗi khi tải danh sách người dùng.',
+        message: 'Loi khi tai danh sach nguoi dung.',
         originalError: e,
       );
     }

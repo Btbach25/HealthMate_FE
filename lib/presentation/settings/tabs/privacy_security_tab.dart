@@ -43,11 +43,13 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
     );
   }
 
-  Future<void> _updateSetting<T>(T Function(PrivacySecuritySettings) update) async {
+  Future<void> _updateSetting(
+    PrivacySecuritySettings Function(PrivacySecuritySettings) update,
+  ) async {
     await SettingsManagementHelper.updateSettingWithErrorHandling<PrivacySecuritySettings>(
       context: context,
       currentSettings: _settings,
-      update: update as PrivacySecuritySettings Function(PrivacySecuritySettings),
+      update: update,
       saveFunction: (settings) => _settingsService.savePrivacySecuritySettings(settings),
       onUpdate: (settings) {
         setState(() {
@@ -59,6 +61,12 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
           _settings = settings;
         });
       },
+    );
+  }
+
+  void _showComingSoonSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tính năng đang phát triển')),
     );
   }
 
@@ -121,15 +129,10 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                 icon: Icons.lock_outlined,
                 value: _settings.biometricAuth,
                 onChanged: (value) {
-                  // TODO: Implement biometric auth
                   _updateSetting(
                     (settings) => settings.copyWith(biometricAuth: value),
                   );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tính năng đang phát triển'),
-                    ),
-                  );
+                  _showComingSoonSnack();
                 },
               ),
               const Divider(height: 24),
@@ -159,7 +162,10 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
             ],
           ),
           
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+          SizedBox(
+            height: MediaQuery.of(context).padding.bottom +
+                AppSize.bottomTabSafeInset,
+          ),
         ],
       ),
     );

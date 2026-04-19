@@ -531,6 +531,15 @@ class MockFamilyService implements FamilyService {
   }
 
   @override
+  Future<void> updateMemberPermissions({
+    required String groupId,
+    required String memberId,
+    required List<String> sharedMetrics,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
+
+  @override
   Future<void> acceptInvitation({
     required String groupId,
     required List<String> sharedMetrics,

@@ -278,7 +278,10 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
             ],
           ),
           
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+          SizedBox(
+            height: MediaQuery.of(context).padding.bottom +
+                AppSize.bottomTabSafeInset,
+          ),
         ],
       ),
     );

@@ -18,6 +18,7 @@ import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:fe/data/services/api_medication_service.dart';
 import 'package:fe/data/services/api_stats_service.dart';
 import 'package:fe/data/services/device_health_service.dart';
+import 'package:fe/data/services/fcm_debug_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
 import 'package:fe/data/services/readiness_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
@@ -25,6 +26,7 @@ import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
@@ -38,14 +40,19 @@ import 'data/services/fcm_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('[Firebase] Skip background init: $e');
+      return;
+    }
+  }
   debugPrint('[FCM] Background message: ${message.messageId}');
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await initializeDateFormatting('vi_VN', null);
 
   // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
@@ -59,6 +66,33 @@ Future<void> main() async {
     // File .env không tồn tại, sử dụng giá trị mặc định từ code
     debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');
   }
+
+  // Web requires FirebaseOptions for default app.
+  // If not configured yet, keep app running without Firebase features.
+  final hasFirebaseWebConfig =
+      (dotenv.env['FIREBASE_API_KEY'] ?? '').isNotEmpty &&
+      (dotenv.env['FIREBASE_APP_ID'] ?? '').isNotEmpty &&
+      (dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '').isNotEmpty &&
+      (dotenv.env['FIREBASE_PROJECT_ID'] ?? '').isNotEmpty;
+  try {
+    if (Firebase.apps.isEmpty) {
+      if (kIsWeb && !hasFirebaseWebConfig) {
+        debugPrint(
+          '[Firebase] Missing web Firebase config in .env.$env, skip initializeApp().',
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
+    }
+  } catch (e) {
+    debugPrint('[Firebase] initializeApp failed, continue without Firebase: $e');
+  }
+  if (Firebase.apps.isNotEmpty) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
+
+  // Debug only: print FCM token for push notification testing.
+  await FcmDebugService.printTokenOnStartup();
 
   final localStorage = LocalStorageService();
 

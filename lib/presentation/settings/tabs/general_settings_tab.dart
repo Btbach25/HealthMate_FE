@@ -19,6 +19,14 @@ class GeneralSettingsTab extends StatefulWidget {
 }
 
 class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
+  static const List<String> _languageOptions = ['vi', 'en'];
+  static const List<String> _dateFormatOptions = [
+    'dd/mm/yyyy',
+    'mm/dd/yyyy',
+    'yyyy-mm-dd',
+  ];
+  static const List<String> _timeFormatOptions = ['24h', '12h'];
+
   final SettingsService _settingsService = SettingsService();
   GeneralSettings _settings = const GeneralSettings();
   bool _isLoading = true;
@@ -47,11 +55,13 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
     );
   }
 
-  Future<void> _updateSetting<T>(T Function(GeneralSettings) update) async {
+  Future<void> _updateSetting(
+    GeneralSettings Function(GeneralSettings) update,
+  ) async {
     await SettingsManagementHelper.updateSettingWithErrorHandling<GeneralSettings>(
       context: context,
       currentSettings: _settings,
-      update: update as GeneralSettings Function(GeneralSettings),
+      update: update,
       saveFunction: (settings) => _settingsService.saveGeneralSettings(settings),
       onUpdate: (settings) {
         setState(() {
@@ -63,6 +73,12 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
           _settings = settings;
         });
       },
+    );
+  }
+
+  void _showComingSoonSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tính năng đang phát triển')),
     );
   }
 
@@ -116,15 +132,10 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                         child: Switch(
                           value: _settings.darkMode,
                           onChanged: (value) {
-                            // TODO: Implement dark mode
                             _updateSetting(
                               (settings) => settings.copyWith(darkMode: value),
                             );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tính năng đang phát triển'),
-                              ),
-                            );
+                            _showComingSoonSnack();
                           },
                           activeTrackColor: AppColors.primary,
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -146,18 +157,13 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
               SettingsDropdown(
                 label: 'Ngôn ngữ',
                 value: _settings.language,
-                items: const ['vi', 'en'],
+                items: _languageOptions,
                 onChanged: (value) {
                   if (value != null) {
                     _updateSetting(
                       (settings) => settings.copyWith(language: value),
                     );
-                    // TODO: Implement language switching
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tính năng đang phát triển'),
-                      ),
-                    );
+                    _showComingSoonSnack();
                   }
                 },
               ),
@@ -165,7 +171,7 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
               SettingsDropdown(
                 label: 'Định dạng ngày',
                 value: _settings.dateFormat,
-                items: const ['dd/mm/yyyy', 'mm/dd/yyyy', 'yyyy-mm-dd'],
+                items: _dateFormatOptions,
                 onChanged: (value) {
                   if (value != null) {
                     _updateSetting(
@@ -178,7 +184,7 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
               SettingsDropdown(
                 label: 'Định dạng giờ',
                 value: _settings.timeFormat,
-                items: const ['24h', '12h'],
+                items: _timeFormatOptions,
                 onChanged: (value) {
                   if (value != null) {
                     _updateSetting(
@@ -234,7 +240,10 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
             ],
           ),
           
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+          SizedBox(
+            height: MediaQuery.of(context).padding.bottom +
+                AppSize.bottomTabSafeInset,
+          ),
         ],
       ),
     );

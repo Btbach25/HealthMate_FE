@@ -188,7 +188,10 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
             ],
           ),
           
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+          SizedBox(
+            height: MediaQuery.of(context).padding.bottom +
+                AppSize.bottomTabSafeInset,
+          ),
         ],
       ),
     );
