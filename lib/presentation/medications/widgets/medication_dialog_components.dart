@@ -8,7 +8,7 @@ class MedicationDialogHeader extends StatelessWidget {
     required this.title,
     required this.onClose,
     this.subtitle,
-    this.padding = const EdgeInsets.fromLTRB(16, 12, 6, 10),
+    this.padding = const EdgeInsets.fromLTRB(20, 16, 12, 14),
     this.closeEnabled = true,
   });
 
@@ -25,28 +25,56 @@ class MedicationDialogHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: 34,
+            width: 34,
+            decoration: BoxDecoration(
+              color: AppColors.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.medication_liquid_rounded,
+              size: 18,
+              color: AppColors.primaryDark,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.h4),
+                Text(
+                  title,
+                  style: AppTextStyles.h4.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    height: 1.25,
+                  ),
+                ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textGrey,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          IconButton(
-            onPressed: closeEnabled ? onClose : null,
-            icon: const Icon(Icons.close_rounded),
-            color: AppColors.textGrey,
-            tooltip: 'Đóng',
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.inputBackground,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              onPressed: closeEnabled ? onClose : null,
+              icon: const Icon(Icons.close_rounded),
+              color: AppColors.textGrey,
+              tooltip: 'Đóng',
+            ),
           ),
         ],
       ),
@@ -60,7 +88,7 @@ class MedicationSectionCard extends StatelessWidget {
     required this.child,
     this.title,
     this.margin = const EdgeInsets.only(bottom: 12),
-    this.padding = const EdgeInsets.fromLTRB(12, 10, 12, 12),
+    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 14),
   });
 
   final String? title;
@@ -74,9 +102,10 @@ class MedicationSectionCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.cardShadowList,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

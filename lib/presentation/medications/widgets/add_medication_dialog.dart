@@ -25,6 +25,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
   static const Duration _submitTimeout = Duration(seconds: 45);
   static const int _minDateYear = 2020;
   static const int _maxDateYear = 2030;
+  static const double _fieldRadius = 14;
 
   final _nameCtrl = TextEditingController();
   final _dosageCtrl = TextEditingController();
@@ -186,7 +187,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -202,22 +203,22 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                 subtitle: 'Điền thông tin cơ bản và lịch nhắc uống mỗi ngày.',
                 onClose: () => Navigator.of(context).pop(),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.cardBorder),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + bottomInset),
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 22 + bottomInset),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel('Tên thuốc *'),
                       _buildTextField(_nameCtrl, hint: 'Nhập tên thuốc'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _buildLabel('Liều lượng *'),
                       _buildTextField(_dosageCtrl, hint: 'VD: 40mg, 1 viên, 5ml'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _buildLabel('Tần suất'),
                       _buildFrequencyDropdown(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       MedicationSectionCard(
                         title: 'Lịch uống',
                         child: Column(
@@ -233,10 +234,16 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                                           onTap: () => _pickTime(e.key),
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 14, vertical: 14),
+                                              horizontal: 14,
+                                              vertical: 15,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: AppColors.inputBackground,
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: AppColors.surface,
+                                              borderRadius:
+                                                  BorderRadius.circular(_fieldRadius),
+                                              border: Border.all(
+                                                color: AppColors.cardBorder,
+                                              ),
                                             ),
                                             child: Row(
                                               children: [
@@ -259,7 +266,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
                                               color: AppColors.errorLight,
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(10),
                                             ),
                                             child: const Icon(Icons.close,
                                                 size: 18, color: AppColors.error),
@@ -273,14 +280,21 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                               onPressed: () =>
                                   setState(() => _times.add(_defaultReminderTime)),
                               icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-                              label: const Text('Thêm giờ uống',
-                                  style: TextStyle(color: AppColors.primary)),
+                              label: Text(
+                                'Thêm giờ uống',
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 4),
+                                  horizontal: 2,
+                                  vertical: 6,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Expanded(
@@ -311,11 +325,14 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _buildLabel('Hướng dẫn sử dụng'),
-                      _buildTextField(_instructionsCtrl,
-                          hint: 'VD: Uống sau ăn, tránh ánh nắng...'),
-                      const SizedBox(height: 12),
+                      _buildTextField(
+                        _instructionsCtrl,
+                        hint: 'VD: Uống sau ăn, tránh ánh nắng...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 14),
                       _buildLabel('Bác sĩ kê đơn'),
                       _buildTextField(_prescribedByCtrl,
                           hint: 'Tên bác sĩ (tùy chọn)'),
@@ -327,9 +344,10 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(_fieldRadius),
+                            ),
                             elevation: 0,
                           ),
                           child: _submitting
@@ -356,54 +374,74 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
   }
 
   Widget _buildLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: AppTextStyles.labelSmall),
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Text(
+          text,
+          style: AppTextStyles.labelMedium.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       );
 
   Widget _buildTextField(
     TextEditingController ctrl, {
     required String hint,
+    int maxLines = 1,
   }) =>
       TextField(
         controller: ctrl,
+        maxLines: maxLines,
         style: AppTextStyles.bodyMedium,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.caption,
+          hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
           filled: true,
-          fillColor: AppColors.inputBackground,
+          fillColor: AppColors.surface,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_fieldRadius),
             borderSide: const BorderSide(color: AppColors.cardBorder),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_fieldRadius),
             borderSide: const BorderSide(color: AppColors.cardBorder),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
+            borderRadius: BorderRadius.circular(_fieldRadius),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: maxLines > 1 ? 14 : 15,
+          ),
         ),
       );
 
   Widget _buildFrequencyDropdown() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: AppColors.inputBackground,
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(_fieldRadius),
+          border: Border.all(color: AppColors.cardBorder),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<MedicationFrequencyType>(
             value: _frequencyType,
             isExpanded: true,
             style: AppTextStyles.bodyMedium,
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppColors.textGrey,
+            ),
             items: MedicationFrequencyType.values
                 .map((t) => DropdownMenuItem(
                       value: t,
-                      child: Text(t.label),
+                      child: Text(
+                        t.label,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textBlack,
+                        ),
+                      ),
                     ))
                 .toList(),
             onChanged: (v) {
@@ -419,10 +457,11 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
         onTap: onTap,
         child: Container(
           padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
           decoration: BoxDecoration(
-            color: AppColors.inputBackground,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(_fieldRadius),
+            border: Border.all(color: AppColors.cardBorder),
           ),
           child: Row(
             children: [
@@ -433,8 +472,11 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
                 child: Text(
                   label,
                   style: label == _selectDateLabel
-                      ? AppTextStyles.caption
-                      : AppTextStyles.bodySmall,
+                      ? AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey)
+                      : AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textBlack,
+                          fontWeight: FontWeight.w500,
+                        ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
