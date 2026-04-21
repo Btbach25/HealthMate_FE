@@ -8,8 +8,34 @@ class StatsChartCard extends StatelessWidget {
   final MetricChart chart;
   const StatsChartCard({super.key, required this.chart});
 
+  // Aggregate data points by day (average per day)
+  List<({DateTime date, double value})> _aggregateByDay() {
+    final Map<String, List<double>> grouped = {};
+    final dateKey = DateFormat('yyyy-MM-dd');
+
+    for (final point in chart.points) {
+      final key = dateKey.format(point.time);
+      grouped.putIfAbsent(key, () => []).add(point.value);
+    }
+
+    final result = grouped.entries.map((e) {
+      final date = DateTime.parse(e.key);
+      final avg = e.value.reduce((a, b) => a + b) / e.value.length;
+      return (date: date, value: avg);
+    }).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final dailyData = _aggregateByDay();
+    final values = dailyData.map((d) => d.value).toList();
+    final minVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a < b ? a : b);
+    final maxVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a > b ? a : b);
+    final latestVal = chart.points.isEmpty ? 0.0 : chart.points.last.value;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -20,7 +46,7 @@ class StatsChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Header (Giữ nguyên)
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -49,157 +75,147 @@ class StatsChartCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-          // 2. Biểu đồ
-          AspectRatio(
-            aspectRatio: 1.7,
-            child: LineChart(
-              _buildChartData(),
+          // Summary row
+          if (chart.points.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Thấp nhất', minVal),
+                _buildSummaryItem('Mới nhất', latestVal, highlight: true),
+                _buildSummaryItem('Cao nhất', maxVal),
+              ],
             ),
-          ),
+
+          const SizedBox(height: 16),
+
+          // Bar chart
+          if (dailyData.isNotEmpty)
+            AspectRatio(
+              aspectRatio: 1.7,
+              child: BarChart(_buildBarData(dailyData, maxVal)),
+            ),
         ],
       ),
     );
   }
 
-  LineChartData _buildChartData() {
-    if (chart.points.isEmpty) {
-      return LineChartData();
-    }
+  Widget _buildSummaryItem(String label, double value, {bool highlight = false}) {
+    return Column(
+      children: [
+        Text(
+          value.toStringAsFixed(0),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: highlight ? chart.lineColor : AppColors.textGrey,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$label (${chart.unit})',
+          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+        ),
+      ],
+    );
+  }
 
-    // --- XỬ LÝ DỮ LIỆU (Giữ nguyên logic của bạn) ---
-    final spots = chart.points.map((point) {
-      return FlSpot(point.time.millisecondsSinceEpoch.toDouble(), point.value);
+  BarChartData _buildBarData(
+    List<({DateTime date, double value})> dailyData,
+    double maxVal,
+  ) {
+    final barGroups = dailyData.asMap().entries.map((entry) {
+      return BarChartGroupData(
+        x: entry.key,
+        barRods: [
+          BarChartRodData(
+            toY: entry.value.value,
+            color: chart.lineColor,
+            width: _barWidth(dailyData.length),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: maxVal * 1.15,
+              color: chart.lineColor.withValues(alpha: 0.07),
+            ),
+          ),
+        ],
+      );
     }).toList();
 
-    final minY = chart.points.map((p) => p.value).reduce((a, b) => a < b ? a : b);
-    final maxY = chart.points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
+    // Show x-axis labels: up to 7 labels evenly spaced
+    final labelStep = (dailyData.length / 6).ceil().clamp(1, dailyData.length);
 
-    double minX = spots.first.x;
-    double maxX = spots.last.x;
-
-    if (spots.length > 1) {
-      final span = spots.last.x - spots.first.x;
-      final padding = span * 0.1;
-      minX -= padding;
-      maxX += padding;
-    } else {
-      const oneDay = 86400000;
-      minX -= oneDay;
-      maxX += oneDay;
-    }
-
-    // --- STYLE GRADIENT (Lấy cảm hứng từ Sample 2) ---
-    // Tạo gradient từ màu chính của chart (ví dụ: chart.lineColor -> màu nhạt hơn của nó)
-    // Nếu bạn muốn màu cố định như sample thì thay list này bằng [AppColors.contentColorCyan, AppColors.contentColorBlue]
-    final List<Color> gradientColors = [
-      chart.lineColor,
-      chart.lineColor.withValues(alpha:0.5),
-    ];
-
-    return LineChartData(
-      clipData: const FlClipData.none(),
-      
-      // --- INTERACTION (Giữ nguyên logic Tooltip của bạn) ---
-      lineTouchData: LineTouchData(
-        handleBuiltInTouches: true,
-        touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (LineBarSpot spot) => Colors.white.withValues(alpha: 0.9),
-          tooltipBorder: BorderSide(color: chart.lineColor, width: 2),
-          tooltipBorderRadius: BorderRadius.circular(8),
-          getTooltipItems: (List<LineBarSpot> touchedSpots) {
-            return touchedSpots.map((barSpot) {
-              final point = chart.points[barSpot.spotIndex];
-              final date = DateFormat('dd/MM/yyyy').format(point.time);
-              return LineTooltipItem(
-                'Ngày: $date\n',
-                const TextStyle(color: AppColors.textBlack, fontSize: 12),
-                children: [
-                  TextSpan(
-                    text: '${chart.title.split(' ')[0]}: ${point.value.toStringAsFixed(0)} ${chart.unit}',
-                    style: TextStyle(
-                      color: chart.lineColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-                textAlign: TextAlign.left,
-              );
-            }).toList();
-          },
+    return BarChartData(
+      maxY: maxVal * 1.15,
+      barGroups: barGroups,
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: maxVal * 0.5,
+        getDrawingHorizontalLine: (_) => FlLine(
+          color: AppColors.cardBorder,
+          strokeWidth: 1,
+          dashArray: [4, 6],
         ),
       ),
-
-      // --- AXIS & GRID ---
-      gridData: FlGridData(
-        show: false, // Sample có grid, nhưng chart nhỏ (Card) thì nên tắt cho thoáng
-        drawVerticalLine: false,
-      ),
       borderData: FlBorderData(show: false),
-
       titlesData: FlTitlesData(
-        show: true,
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 30,
-            interval: (maxX - minX) / 4, // Chia trục X làm 4 khoảng
-            getTitlesWidget: (double value, TitleMeta meta) {
-              final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-              // Chỉ hiển thị label nếu không quá sát lề
-              if (value == minX || value == maxX) return const SizedBox.shrink(); 
-              
+            reservedSize: 28,
+            getTitlesWidget: (value, meta) {
+              final index = value.toInt();
+              if (index % labelStep != 0) return const SizedBox.shrink();
+              if (index >= dailyData.length) return const SizedBox.shrink();
               return SideTitleWidget(
                 meta: meta,
-                space: 8,
+                space: 4,
                 child: Text(
-                  DateFormat('d MMM', 'vi').format(date),
+                  DateFormat('d/M').format(dailyData[index].date),
                   style: const TextStyle(color: AppColors.textGrey, fontSize: 10),
                 ),
               );
             },
           ),
         ),
-        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
-
-      minX: minX,
-      maxX: maxX,
-      minY: minY - (maxY - minY) * 0.1, // Thêm padding dưới một chút
-      maxY: maxY + (maxY - minY) * 0.1, // Thêm padding trên một chút
-
-      // --- LINE DATA (ÁP DỤNG STYLE SAMPLE 2) ---
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true, // Đường cong mềm mại
-          
-          // 1. Thay color bằng gradient
-          gradient: LinearGradient(
-            colors: gradientColors,
-          ),
-          
-          barWidth: 5, // Tăng độ dày line lên 5 như sample
-          isStrokeCapRound: true,
-          dotData: const FlDotData(show: false),
-          
-          // 2. Thêm hiệu ứng đổ màu bên dưới (Below Bar Data)
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: gradientColors
-                  .map((color) => color.withValues(alpha: 0.3)) // Độ trong suốt giảm dần
-                  .toList(),
-            ),
-          ),
+      barTouchData: BarTouchData(
+        touchTooltipData: BarTouchTooltipData(
+          getTooltipColor: (_) => Colors.white.withValues(alpha: 0.95),
+          tooltipBorder: BorderSide(color: chart.lineColor, width: 1.5),
+          tooltipBorderRadius: BorderRadius.circular(8),
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            final day = dailyData[group.x];
+            return BarTooltipItem(
+              '${DateFormat('dd/MM/yyyy').format(day.date)}\n',
+              const TextStyle(color: AppColors.textBlack, fontSize: 11),
+              children: [
+                TextSpan(
+                  text: '${rod.toY.toStringAsFixed(0)} ${chart.unit}',
+                  style: TextStyle(
+                    color: chart.lineColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-      ],
+      ),
     );
+  }
+
+  double _barWidth(int count) {
+    if (count <= 7) return 18;
+    if (count <= 14) return 12;
+    if (count <= 30) return 7;
+    return 4;
   }
 }

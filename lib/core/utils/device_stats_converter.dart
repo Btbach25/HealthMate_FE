@@ -43,7 +43,7 @@ class DeviceStatsConverter {
       HealthDataType.STEPS,
       'steps_count',
       'Số bước chân',
-      'bước',
+      'bước/ngày',
       'steps',
       true,
     );
@@ -142,13 +142,15 @@ class DeviceStatsConverter {
     for (final p in pts) {
       total += _numericValue(p) ?? 0;
     }
+    final uniqueDays = pts.map((p) => DateTime(p.dateFrom.year, p.dateFrom.month, p.dateFrom.day)).toSet();
+    final avgPerDay = uniqueDays.isEmpty ? total : total / uniqueDays.length;
 
     return MetricSummary(
       id: id,
       title: title,
       unit: unit,
       iconName: icon,
-      latestValue: total,
+      latestValue: avgPerDay,
       lastUpdate: pts.last.dateFrom,
       readingCount: pts.length,
       trendPercentage: null,
