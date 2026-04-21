@@ -172,14 +172,22 @@ class ApiStatsService implements StatsService {
         .map((p) => DateTime.parse(p['timestamp'] as String))
         .toList();
 
-    final latest = values.last;
     final lastUpdate = timestamps.last;
+
+    final double displayValue;
+    if (metricType == 'steps_count') {
+      final uniqueDays = timestamps.map((t) => DateTime(t.year, t.month, t.day)).toSet();
+      final total = values.reduce((a, b) => a + b);
+      displayValue = uniqueDays.isEmpty ? 0 : total / uniqueDays.length;
+    } else {
+      displayValue = values.last;
+    }
 
     double? trend;
     if (values.length >= 2) {
       final first = values.first;
       if (first != 0) {
-        trend = ((latest - first) / first) * 100;
+        trend = ((displayValue - first) / first) * 100;
       }
     }
 
@@ -188,11 +196,11 @@ class ApiStatsService implements StatsService {
       title: _metricTitle(metricType),
       unit: _metricUnit(metricType),
       iconName: _metricIcon(metricType),
-      latestValue: latest,
+      latestValue: displayValue,
       lastUpdate: lastUpdate,
       readingCount: values.length,
       trendPercentage: trend,
-      status: _computeStatus(metricType, latest),
+      status: _computeStatus(metricType, displayValue),
       isIncreaseGood: _isIncreaseGood(metricType),
     );
   }
@@ -219,7 +227,7 @@ class ApiStatsService implements StatsService {
       case 'heart_rate':
         return 'bpm';
       case 'steps_count':
-        return 'bước';
+        return 'bước/ngày';
       case 'calories_burned':
         return 'kcal';
       case 'blood_pressure':
