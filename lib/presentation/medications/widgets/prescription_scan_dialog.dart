@@ -1082,7 +1082,9 @@ class _PlanItemCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               value: entry.includeInSchedule,
-              activeThumbColor: AppColors.primary,
+              thumbColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected) ? AppColors.primary : null,
+              ),
               onChanged: onIncludeChanged,
             ),
           ],

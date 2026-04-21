@@ -55,7 +55,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   String? _selectedGender;
   DateTime? _selectedBirthday;
   String? _selectedBloodGroup;
-  List<String> _allergies = [];
+  final List<String> _allergies = [];
   bool _isLoading = false;
   List<String> _filteredAllergies = [];
   bool _showAllergySuggestions = false;
