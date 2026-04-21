@@ -10,6 +10,7 @@ enum FamilyStatus {
   groupDetailsLoaded,
   memberInvited,
   memberRemoved,
+  memberPermissionsUpdated,
   ownershipTransferred,
   groupLeft,
   invitationsLoaded,

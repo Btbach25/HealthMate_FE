@@ -237,6 +237,22 @@ POST /auth/password
 
 ---
 
+### 1.9 Device token / push token
+
+Trong `storage-service` hiện tại **chưa có API riêng** để đăng ký hoặc lưu `device token` / `FCM token` cho user.
+
+Các route public qua gateway của `storage-service` hiện chỉ có:
+- `GET /metrics/charts`
+- `POST /metrics/readiness`
+
+> Luồng hiện có chỉ dùng:
+> - `access_token` / `refresh_token` cho các API REST
+> - `token` query string cho WebSocket realtime
+
+Nếu sau này bổ sung push notification, nên thêm một endpoint riêng, ví dụ `POST /users/device-token`, để frontend gửi token thiết bị sau khi đăng nhập.
+
+---
+
 ## 2. User APIs
 
 Base path: `/users/*`

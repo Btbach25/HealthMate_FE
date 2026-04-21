@@ -31,6 +31,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<AcceptInvitation>(_onAcceptInvitation);
     on<DeclineInvitation>(_onDeclineInvitation);
     on<RemoveMember>(_onRemoveMember);
+    on<UpdateMemberPermissions>(_onUpdateMemberPermissions);
     on<ResetFamily>(_onResetFamily);
   }
 
@@ -562,6 +563,30 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           errorMessage: UserFacingError.message(e),
         ),
       );
+    }
+  }
+
+  Future<void> _onUpdateMemberPermissions(
+    UpdateMemberPermissions event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _familyRepository.updateMemberPermissions(
+        groupId: event.groupId,
+        memberId: event.memberId,
+        sharedMetrics: event.sharedMetrics,
+      );
+      emit(state.copyWith(
+        status: FamilyStatus.memberPermissionsUpdated,
+        errorMessage: null,
+      ));
+      add(FetchGroupDetails(groupId: event.groupId));
+    } catch (e) {
+      emit(state.copyWith(
+        status: FamilyStatus.error,
+        errorMessage: UserFacingError.message(e),
+      ));
     }
   }
 }

@@ -231,7 +231,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                   const SizedBox(height: AppSize.spacing4),
                 ],
                   Text(
-                    'Chọn các chỉ số sức khỏe bạn muốn chia sẻ với nhóm',
+                    'Chọn các chỉ số sức khỏe bạn muốn chia sẻ với nhóm (hiện hỗ trợ: nhịp tim, bước chân, calo)',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textGrey,
                     ),
@@ -245,6 +245,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                         spacing: AppSize.spacing12,
                         runSpacing: AppSize.spacing12,
                         children: MetricHelper.availableMetrics
+                            .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
                             .map(
                               (metric) => SizedBox(
                                 width: itemWidth,

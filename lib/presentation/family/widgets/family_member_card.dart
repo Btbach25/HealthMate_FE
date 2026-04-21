@@ -21,6 +21,8 @@ class FamilyMemberCard extends StatelessWidget {
   final VoidCallback? onViewMetrics;
   /// Bấm "Theo dõi" (nếu null thì hiện SnackBar "đang phát triển").
   final VoidCallback? onFollow;
+  /// Bấm "Chỉnh quyền" cho thành viên (chỉ chủ nhóm).
+  final VoidCallback? onEditPermissions;
 
   const FamilyMemberCard({
     super.key,
@@ -31,6 +33,7 @@ class FamilyMemberCard extends StatelessWidget {
     this.isCurrentUser = false,
     this.onViewMetrics,
     this.onFollow,
+    this.onEditPermissions,
   });
 
 
@@ -41,6 +44,14 @@ class FamilyMemberCard extends StatelessWidget {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final statusColor = member.healthStatus.color;
     final statusBgColor = member.healthStatus.backgroundColor;
+    final isSelfCard = isCurrentUser;
+    final showEditPermissions = onEditPermissions != null && !isSelfCard;
+    final secondaryLabel = isSelfCard
+        ? 'Đã chia sẻ'
+        : (showEditPermissions ? 'Chỉnh quyền' : 'Theo dõi');
+    final secondaryIcon = isSelfCard
+        ? Icons.share_outlined
+        : (showEditPermissions ? Icons.tune_rounded : Icons.favorite_outline);
 
     return Container(
       padding: const EdgeInsets.all(AppSize.p20),
@@ -258,7 +269,21 @@ class FamilyMemberCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    if (onFollow != null) {
+                    if (isSelfCard) {
+                      if (onViewMetrics != null) {
+                        onViewMetrics!();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Bạn đang chia sẻ các chỉ số đã chọn trong nhóm'),
+                            backgroundColor: AppColors.primary,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } else if (showEditPermissions) {
+                      onEditPermissions!();
+                    } else if (onFollow != null) {
                       onFollow!();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -270,8 +295,8 @@ class FamilyMemberCard extends StatelessWidget {
                       );
                     }
                   },
-                  icon: const Icon(Icons.favorite_outline, size: 18),
-                  label: const Text('Theo dõi'),
+                  icon: Icon(secondaryIcon, size: 18),
+                  label: Text(secondaryLabel),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textBlack,
                     side: const BorderSide(color: AppColors.cardBorder),

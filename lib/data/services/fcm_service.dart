@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:fe/core/config/api_base_url.dart';
 import 'package:fe/core/routing/app_router.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
@@ -104,12 +105,14 @@ class FcmService {
 
   /// Gọi sau khi login thành công để đảm bảo token đã được gửi lên BE.
   Future<void> registerCurrentToken() async {
+    if (kIsWeb || Firebase.apps.isEmpty) return;
     final token = await FirebaseMessaging.instance.getToken();
     if (token != null) await _registerToken(token);
   }
 
   /// Gọi khi logout: xóa token khỏi Firebase (token cũ thành stale, login sau sẽ tạo token mới).
   Future<void> unregisterToken() async {
+    if (kIsWeb || Firebase.apps.isEmpty) return;
     try {
       await FirebaseMessaging.instance.deleteToken();
       debugPrint('[FCM] Token deleted (will refresh on next login)');

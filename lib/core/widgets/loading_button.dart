@@ -32,43 +32,52 @@ class LoadingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = SizedBox(
-      width: width ?? double.infinity,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppColors.primary,
-          foregroundColor: foregroundColor ?? Colors.white,
-          disabledBackgroundColor: disabledBackgroundColor ??
-              (backgroundColor ?? AppColors.primary).withValues(alpha: 0.6),
-          padding: padding ??
-              const EdgeInsets.symmetric(vertical: AppSize.p16),
-          shape: RoundedRectangleBorder(
-            borderRadius: borderRadius ?? BorderRadius.circular(12),
-          ),
+    final button = ElevatedButton(
+      onPressed: isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor ?? AppColors.primary,
+        foregroundColor: foregroundColor ?? Colors.white,
+        disabledBackgroundColor: disabledBackgroundColor ??
+            (backgroundColor ?? AppColors.primary).withValues(alpha: 0.6),
+        padding: padding ?? const EdgeInsets.symmetric(vertical: AppSize.p16),
+        shape: RoundedRectangleBorder(
+          borderRadius: borderRadius ?? BorderRadius.circular(12),
         ),
-        child: isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : icon != null
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 20),
-                      const SizedBox(width: 8),
-                      Text(text),
-                    ],
-                  )
-                : Text(text),
       ),
+      child: isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : icon != null
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 20),
+                    const SizedBox(width: 8),
+                    Text(text),
+                  ],
+                )
+              : Text(text),
     );
 
-    return button;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resolvedWidth = width;
+        if (resolvedWidth != null) {
+          return SizedBox(width: resolvedWidth, child: button);
+        }
+        if (constraints.hasBoundedWidth) {
+          return SizedBox(width: double.infinity, child: button);
+        }
+        // In unbounded-width parents (e.g. inside Row), let the button
+        // size itself naturally to avoid infinite-width constraints.
+        return button;
+      },
+    );
   }
 }

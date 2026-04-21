@@ -165,4 +165,19 @@ class RemoveMember extends FamilyEvent {
   List<Object?> get props => [groupId, memberId];
 }
 
+class UpdateMemberPermissions extends FamilyEvent {
+  final String groupId;
+  final String memberId;
+  final List<String> sharedMetrics;
+
+  const UpdateMemberPermissions({
+    required this.groupId,
+    required this.memberId,
+    required this.sharedMetrics,
+  });
+
+  @override
+  List<Object?> get props => [groupId, memberId, sharedMetrics];
+}
+
 

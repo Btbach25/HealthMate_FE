@@ -32,4 +32,7 @@ class ApiEndpoints {
 
   // ---------- Medications (storage-service qua gateway, Bearer) ----------
   static const String medications = '/medications';
+
+  // ---------- OCR (ocr-service qua api-gateway; Bearer bắt buộc — route nằm trong nhóm JWT) ----------
+  static const String ocrPrescriptionParse = '/ocr/prescriptions/parse';
 }

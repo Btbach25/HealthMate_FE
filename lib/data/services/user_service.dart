@@ -1,13 +1,25 @@
 import 'package:fe/data/models/user/user.dart';
 
-/// Service gọi API Users (profile, list).
+/// Service goi API Users (profile, list).
 abstract class UserService {
-  /// Lấy profile user hiện tại. GET /users/profile
+  /// Lay profile user hien tai. GET /users/profile
   Future<User> getProfile();
 
-  /// Cập nhật profile. PUT /users/profile body { name?, picture? }
-  Future<void> updateProfile({String? name, String? picture});
+  /// Cap nhat profile. PUT /users/profile (email khong doi qua API nay).
+  /// [gender] gui len BE: `male` | `female` | `other`.
+  /// [birthday] `yyyy-MM-dd` hoac `''` de xoa ngay sinh tren server.
+  Future<void> updateProfile({
+    required String name,
+    String? picture,
+    String? phone,
+    String? address,
+    String? gender,
+    String? birthday,
+    double? weight,
+    double? height,
+    String? bloodGroup,
+  });
 
-  /// Danh sách users (tìm kiếm). GET /users?search=&limit=&offset=
+  /// Danh sach users (tim kiem). GET /users?search=&limit=&offset=
   Future<List<User>> listUsers({String? search, int? limit, int? offset});
 }

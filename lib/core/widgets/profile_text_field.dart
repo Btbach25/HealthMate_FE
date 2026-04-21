@@ -10,10 +10,13 @@ class ProfileTextField extends StatelessWidget {
   final String label;
   final IconData? icon;
   final bool enabled;
+  final bool readOnly;
   final TextInputType? keyboardType;
   final String? suffixText;
   final String? hintText;
   final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onTap;
 
   const ProfileTextField({
     super.key,
@@ -21,28 +24,47 @@ class ProfileTextField extends StatelessWidget {
     required this.label,
     this.icon,
     this.enabled = true,
+    this.readOnly = false,
     this.keyboardType,
     this.suffixText,
     this.hintText,
     this.validator,
+    this.onChanged,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = enabled ? AppColors.textBlack : AppColors.textSecondary;
+
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      readOnly: readOnly,
       keyboardType: keyboardType,
-      style: AppTextStyles.bodyMedium,
+      style: AppTextStyles.bodyMedium.copyWith(
+        color: textColor,
+        fontWeight: enabled ? FontWeight.w400 : FontWeight.w500,
+      ),
+      onChanged: onChanged,
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
+        hintStyle: AppTextStyles.bodyMedium.copyWith(
+          color: enabled ? AppColors.textGrey : AppColors.textSecondary,
+          fontWeight: enabled ? FontWeight.w400 : FontWeight.w500,
+        ),
+        labelStyle: AppTextStyles.labelMedium.copyWith(
+          color: enabled ? AppColors.textGrey : AppColors.textSecondary,
+          fontWeight: enabled ? FontWeight.w500 : FontWeight.w600,
+        ),
         prefixIcon: icon != null 
             ? Icon(icon, color: AppColors.primary.withValues(alpha: 0.7))
             : null,
         suffixText: suffixText,
         filled: true,
-        fillColor: enabled ? AppColors.inputBackground : AppColors.surfaceVariant,
+        fillColor: enabled ? AppColors.inputBackground : AppColors.inputBackground,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSize.r12),
           borderSide: BorderSide(color: AppColors.inputBorder),
@@ -57,7 +79,10 @@ class ProfileTextField extends StatelessWidget {
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSize.r12),
-          borderSide: BorderSide(color: AppColors.inputBorder),
+          borderSide: BorderSide(
+            color: AppColors.inputBorder.withValues(alpha: 0.85),
+            width: 1.2,
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSize.p16,

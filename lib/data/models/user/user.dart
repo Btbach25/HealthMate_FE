@@ -15,6 +15,13 @@ class User extends Equatable {
   final LoginProvider provider;
   final String? googleId;
   final String? passwordHash;
+  final String? phone;
+  final String? address;
+  final String? gender;
+  final String? birthday;
+  final double? weight;
+  final double? height;
+  final String? bloodGroup;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -28,6 +35,13 @@ class User extends Equatable {
     required this.provider,
     this.googleId,
     this.passwordHash,
+    this.phone,
+    this.address,
+    this.gender,
+    this.birthday,
+    this.weight,
+    this.height,
+    this.bloodGroup,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -59,6 +73,13 @@ class User extends Equatable {
       provider: LoginProvider.fromValue(cvToStringOrNull(json['provider'])),
       googleId: cvToStringOrNull(json['google_id']),
       passwordHash: cvToStringOrNull(json['password_hash'] ?? json['password']),
+      phone: cvToStringOrNull(json['phone']),
+      address: cvToStringOrNull(json['address']),
+      gender: cvToStringOrNull(json['gender']),
+      birthday: cvToStringOrNull(json['birthday']),
+      weight: cvToDoubleOrNull(json['weight']),
+      height: cvToDoubleOrNull(json['height']),
+      bloodGroup: cvToStringOrNull(json['blood_group']),
       createdAt: cvToDate(json['created_at'], defaultValue: DateTime(0)),
       updatedAt: cvToDate(json['updated_at'], defaultValue: DateTime(0)),
     );
@@ -75,6 +96,13 @@ class User extends Equatable {
       'provider': provider.value,
       'google_id': googleId,
       'password_hash': passwordHash,
+      'phone': phone,
+      'address': address,
+      'gender': gender,
+      'birthday': birthday,
+      'weight': weight,
+      'height': height,
+      'blood_group': bloodGroup,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -100,6 +128,13 @@ class User extends Equatable {
     LoginProvider? provider,
     String? googleId,
     String? passwordHash,
+    String? phone,
+    String? address,
+    String? gender,
+    String? birthday,
+    double? weight,
+    double? height,
+    String? bloodGroup,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -113,6 +148,13 @@ class User extends Equatable {
       provider: provider ?? this.provider,
       googleId: googleId ?? this.googleId,
       passwordHash: passwordHash ?? this.passwordHash,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      gender: gender ?? this.gender,
+      birthday: birthday ?? this.birthday,
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -120,7 +162,23 @@ class User extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, email, name, picture, role, status, 
-        provider, googleId, passwordHash, createdAt, updatedAt
+        id,
+        email,
+        name,
+        picture,
+        role,
+        status,
+        provider,
+        googleId,
+        passwordHash,
+        phone,
+        address,
+        gender,
+        birthday,
+        weight,
+        height,
+        bloodGroup,
+        createdAt,
+        updatedAt,
       ];
 }

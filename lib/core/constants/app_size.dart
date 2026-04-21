@@ -55,6 +55,7 @@ class AppSize {
 
   /// Cột nội dung + bottom nav trên web/desktop (tránh giãn full màn hình).
   static const double shellMaxWidth = 560.0;
+  static const double bottomTabSafeInset = 100.0;
   
   // Animation Durations
   static const Duration animationFast = Duration(milliseconds: 200);
