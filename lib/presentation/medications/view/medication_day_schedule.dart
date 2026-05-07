@@ -85,6 +85,7 @@ const kMedicationPeriodBandStyles =
 Map<MedicationSchedulePeriod, List<MedicationScheduleItem>>
     buildMedicationDaySchedule(List<Medication> medications) {
   final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
   final currentTime =
       '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
@@ -97,6 +98,16 @@ Map<MedicationSchedulePeriod, List<MedicationScheduleItem>>
 
   for (final med in medications) {
     if (!med.isActive) continue;
+    final start = DateTime.tryParse(med.startDate);
+    final end = med.endDate != null ? DateTime.tryParse(med.endDate!) : null;
+    if (start != null) {
+      final startDay = DateTime(start.year, start.month, start.day);
+      if (today.isBefore(startDay)) continue;
+    }
+    if (end != null) {
+      final endDay = DateTime(end.year, end.month, end.day);
+      if (today.isAfter(endDay)) continue;
+    }
     for (final reminder in med.reminders) {
       if (!reminder.isEnabled) continue;
 

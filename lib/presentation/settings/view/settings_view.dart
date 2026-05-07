@@ -24,6 +24,7 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView>
     with SingleTickerProviderStateMixin {
+  static const double _contentMaxWidth = 800;
   late TabController _tabController;
 
   final List<({IconData icon, String label})> _tabs = const [
@@ -71,8 +72,11 @@ class _SettingsViewState extends State<SettingsView>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+            child: Column(
+              children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
@@ -88,6 +92,7 @@ class _SettingsViewState extends State<SettingsView>
                   Text(
                     'Cài đặt',
                     style: AppTextStyles.h3.copyWith(
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -155,7 +160,9 @@ class _SettingsViewState extends State<SettingsView>
                 ],
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

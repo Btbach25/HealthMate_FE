@@ -6,6 +6,7 @@ import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/widgets/profile_text_field.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/user_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
@@ -55,7 +56,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   String? _selectedGender;
   DateTime? _selectedBirthday;
   String? _selectedBloodGroup;
-  List<String> _allergies = [];
+  final List<String> _allergies = [];
   bool _isLoading = false;
   List<String> _filteredAllergies = [];
   bool _showAllergySuggestions = false;
@@ -141,6 +142,19 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     } catch (_) {
       // Giữ data từ AuthBloc nếu API lỗi
     }
+    // Load allergies từ local storage (persist cross-session, không cần BE)
+    try {
+      final savedAllergies = await LocalStorageService().getAllergies();
+      if (mounted && savedAllergies.isNotEmpty) {
+        setState(() {
+          _allergies
+            ..clear()
+            ..addAll(savedAllergies);
+        });
+      }
+    } catch (_) {
+      // Không crash nếu storage lỗi — dùng list rỗng
+    }
   }
 
   @override
@@ -214,7 +228,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Can nang khong hop le'),
+              content: Text('Cân nặng không hợp lệ.'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -226,7 +240,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Chieu cao khong hop le'),
+              content: Text('Chiều cao không hợp lệ.'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -244,10 +258,13 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
         weight: w,
         height: h,
         bloodGroup: _selectedBloodGroup,
+        timezone: context.read<AuthBloc>().state.user.timezone,
       );
       final profile = await userService.getProfile();
       if (mounted) {
         context.read<AuthBloc>().add(AuthUserUpdated(profile));
+        // Persist allergies locally — không cần đợi kết quả
+        LocalStorageService().saveAllergies(List<String>.from(_allergies));
         setState(() {
           _isLoading = false;
           _isEditing = false;
@@ -281,6 +298,39 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     _loadUserData();
   }
 
+  Future<void> _pickBirthday() async {
+    final initial = (_selectedBirthday != null &&
+            !_selectedBirthday!.isAfter(DateTime.now()))
+        ? _selectedBirthday!
+        : DateTime(DateTime.now().year - 25, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Chọn ngày sinh',
+      cancelText: 'Huỷ',
+      confirmText: 'Xác nhận',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedBirthday = picked;
+        _birthdayDayPart = picked.day;
+        _birthdayMonthPart = picked.month;
+        _birthdayYearPart = picked.year;
+      });
+    }
+  }
+
+  void _clearBirthday() {
+    setState(() {
+      _selectedBirthday = null;
+      _birthdayDayPart = null;
+      _birthdayMonthPart = null;
+      _birthdayYearPart = null;
+    });
+  }
+
   void _onAllergySearchChanged(String query) {
     setState(() {
       _allergySearchQuery = query;
@@ -303,12 +353,22 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     if (trimmedAllergy.isNotEmpty && !_allergies.contains(trimmedAllergy)) {
       setState(() {
         _allergies.add(trimmedAllergy);
-        _customAllergyController.clear();
+        _resetCustomAllergyInput();
         _allergySearchQuery = '';
         _filteredAllergies = [];
         _showAllergySuggestions = false;
       });
     }
+  }
+
+  /// On Flutter web, clearing while IME composing can leave stale composing range.
+  /// Reset value explicitly to keep selection/composing in valid bounds.
+  void _resetCustomAllergyInput() {
+    _customAllergyController.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+      composing: TextRange.empty,
+    );
   }
 
   void _addCustomAllergy() {
@@ -330,7 +390,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           _allergies.add(trimmed);
         }
       }
-      _customAllergyController.clear();
+      _resetCustomAllergyInput();
       _allergySearchQuery = '';
       _filteredAllergies = [];
       _showAllergySuggestions = false;
@@ -411,16 +471,20 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                     ),
                   ),
                   if (!_isEditing)
-                    TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _isEditing = true;
-                        });
-                      },
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Chỉnh sửa'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
+                    Semantics(
+                      label: 'Chỉnh sửa hồ sơ',
+                      button: true,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _isEditing = true;
+                          });
+                        },
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Chỉnh sửa'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
                       ),
                     ),
                 ],
@@ -472,202 +536,76 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   },
                 ),
                 const SizedBox(height: AppSize.spacing16),
-                InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Ngày sinh',
-                    prefixIcon: const Icon(Icons.cake_outlined),
-                    suffixIcon: _isEditing
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_birthdayDayPart != null ||
-                                  _birthdayMonthPart != null ||
-                                  _birthdayYearPart != null)
-                                IconButton(
-                                  icon: const Icon(Icons.clear, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedBirthday = null;
-                                      _birthdayDayPart = null;
-                                      _birthdayMonthPart = null;
-                                      _birthdayYearPart = null;
-                                    });
-                                  },
-                                ),
-                            ],
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: _isEditing
-                        ? AppColors.inputBackground
-                        : AppColors.surfaceVariant,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSize.r12),
-                      borderSide: BorderSide(color: AppColors.inputBorder),
+                Semantics(
+                  label: 'Ngày sinh${_selectedBirthday != null ? ': ${_birthdayFormat.format(_selectedBirthday!)}' : ', chưa chọn'}',
+                  button: _isEditing,
+                  child: InkWell(
+                    onTap: _isEditing ? _pickBirthday : null,
+                    borderRadius: BorderRadius.circular(AppSize.r12),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Ngày sinh',
+                        prefixIcon: Icon(
+                          Icons.cake_outlined,
+                          color: _isEditing ? AppColors.primary : AppColors.textGrey,
+                        ),
+                        suffixIcon: _isEditing
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_selectedBirthday != null)
+                                    IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      color: AppColors.textGrey,
+                                      tooltip: 'Xóa ngày sinh',
+                                      onPressed: _clearBirthday,
+                                    ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 10),
+                                    child: Icon(
+                                      Icons.calendar_month_outlined,
+                                      size: 20,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: _isEditing
+                            ? AppColors.inputBackground
+                            : AppColors.surfaceVariant,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSize.r12),
+                          borderSide: BorderSide(color: AppColors.inputBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSize.r12),
+                          borderSide: BorderSide(color: AppColors.inputBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSize.r12),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSize.r12),
+                          borderSide: BorderSide(color: AppColors.inputBorder),
+                        ),
+                      ),
+                      child: Text(
+                        _selectedBirthday != null
+                            ? _birthdayFormat.format(_selectedBirthday!)
+                            : (_isEditing ? 'Nhấn để chọn ngày sinh' : 'Chưa cập nhật'),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: _selectedBirthday != null
+                              ? AppColors.textBlack
+                              : AppColors.textGrey,
+                        ),
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSize.r12),
-                      borderSide: BorderSide(color: AppColors.inputBorder),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSize.r12),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 2,
-                      ),
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSize.r12),
-                      borderSide: BorderSide(color: AppColors.inputBorder),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<int>(
-                          value: _birthdayDayPart,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                          ),
-                          items: [
-                            for (int d = 1; d <= 31; d++)
-                              DropdownMenuItem(
-                                value: d,
-                                child: Text(d.toString().padLeft(2, '0')),
-                              ),
-                          ],
-                          onChanged: _isEditing
-                              ? (value) => setState(() => _birthdayDayPart = value)
-                              : null,
-                          decoration: InputDecoration(
-                            hintText: 'dd',
-                            isDense: true,
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          '/',
-                          style: TextStyle(
-                            color: AppColors.textGrey,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<int>(
-                          value: _birthdayMonthPart,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                          ),
-                          items: [
-                            for (int m = 1; m <= 12; m++)
-                              DropdownMenuItem(
-                                value: m,
-                                child: Text(m.toString().padLeft(2, '0')),
-                              ),
-                          ],
-                          onChanged: _isEditing
-                              ? (value) => setState(() => _birthdayMonthPart = value)
-                              : null,
-                          decoration: InputDecoration(
-                            hintText: 'mm',
-                            isDense: true,
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          '/',
-                          style: TextStyle(
-                            color: AppColors.textGrey,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: DropdownButtonFormField<int>(
-                          value: _birthdayYearPart,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                          ),
-                          items: [
-                            for (int y = DateTime.now().year; y >= 1900; y--)
-                              DropdownMenuItem(value: y, child: Text('$y')),
-                          ],
-                          onChanged: _isEditing
-                              ? (value) => setState(() => _birthdayYearPart = value)
-                              : null,
-                          decoration: InputDecoration(
-                            hintText: 'yyyy',
-                            isDense: true,
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: AppColors.inputBorder),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (!_isEditing &&
-                          _birthdayDayPart == null &&
-                          _birthdayMonthPart == null &&
-                          _birthdayYearPart == null)
-                        Text(
-                          'dd/mm/yyyy',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textGrey,
-                          ),
-                        ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: AppSize.spacing16),
@@ -678,10 +616,35 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   enabled: _isEditing,
                   hintText: 'Nhập địa chỉ của bạn',
                 ),
+                const SizedBox(height: AppSize.spacing16),
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Múi giờ (timezone)',
+                    prefixIcon: const Icon(Icons.schedule_rounded),
+                    filled: true,
+                    fillColor: AppColors.surfaceVariant,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSize.r12),
+                      borderSide: BorderSide(color: AppColors.inputBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSize.r12),
+                      borderSide: BorderSide(color: AppColors.inputBorder),
+                    ),
+                  ),
+                  child: Text(
+                    user.timezone?.trim().isNotEmpty == true
+                        ? user.timezone!
+                        : 'Chưa đồng bộ',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                ),
               ],
             ),
             
-            const SizedBox(height: AppSize.spacing24),
+            const SizedBox(height: AppSize.spacing16),
             
             // Health Information Card
             SettingsCard(
@@ -767,7 +730,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
               ],
             ),
             
-            const SizedBox(height: AppSize.spacing24),
+            const SizedBox(height: AppSize.spacing16),
             
             // Allergies Card
             SettingsCard(
@@ -818,7 +781,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                                     ? IconButton(
                                         icon: const Icon(Icons.clear, size: 18),
                                         onPressed: () {
-                                          _customAllergyController.clear();
+                                          _resetCustomAllergyInput();
                                           setState(() {
                                             _allergySearchQuery = '';
                                             _filteredAllergies = [];
@@ -946,72 +909,81 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
               ],
             ),
             
-            const SizedBox(height: AppSize.spacing24),
+            const SizedBox(height: AppSize.spacing16),
             
             // Action Buttons
             if (_isEditing)
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isLoading ? null : _handleCancel,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textGrey,
-                        side: BorderSide(color: AppColors.cardBorder),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Semantics(
+                      label: 'Hủy chỉnh sửa hồ sơ',
+                      button: true,
+                      child: OutlinedButton(
+                        onPressed: _isLoading ? null : _handleCancel,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.textGrey,
+                          side: BorderSide(color: AppColors.cardBorder),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Hủy',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        child: const Text(
+                          'Hủy',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: AppColors.buttonShadow,
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                    child: Semantics(
+                      label: 'Lưu thay đổi hồ sơ',
+                      button: true,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: AppColors.buttonShadow,
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.save, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Lưu thay đổi',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSave,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
-                                ],
-                              ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Lưu thay đổi',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                   ),

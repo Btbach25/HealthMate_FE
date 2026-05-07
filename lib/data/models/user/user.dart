@@ -22,6 +22,7 @@ class User extends Equatable {
   final double? weight;
   final double? height;
   final String? bloodGroup;
+  final String? timezone;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -42,6 +43,7 @@ class User extends Equatable {
     this.weight,
     this.height,
     this.bloodGroup,
+    this.timezone,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -80,6 +82,7 @@ class User extends Equatable {
       weight: cvToDoubleOrNull(json['weight']),
       height: cvToDoubleOrNull(json['height']),
       bloodGroup: cvToStringOrNull(json['blood_group']),
+      timezone: cvToStringOrNull(json['timezone']),
       createdAt: cvToDate(json['created_at'], defaultValue: DateTime(0)),
       updatedAt: cvToDate(json['updated_at'], defaultValue: DateTime(0)),
     );
@@ -103,6 +106,7 @@ class User extends Equatable {
       'weight': weight,
       'height': height,
       'blood_group': bloodGroup,
+      'timezone': timezone,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -135,6 +139,7 @@ class User extends Equatable {
     double? weight,
     double? height,
     String? bloodGroup,
+    String? timezone,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -155,6 +160,7 @@ class User extends Equatable {
       weight: weight ?? this.weight,
       height: height ?? this.height,
       bloodGroup: bloodGroup ?? this.bloodGroup,
+      timezone: timezone ?? this.timezone,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -178,6 +184,7 @@ class User extends Equatable {
         weight,
         height,
         bloodGroup,
+        timezone,
         createdAt,
         updatedAt,
       ];

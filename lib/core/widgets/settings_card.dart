@@ -2,8 +2,9 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable card widget for settings tabs
-/// Provides consistent styling and structure
+/// Reusable card widget for settings tabs.
+/// Icon gets a soft primary-container background; a Divider separates the
+/// header row from children for visual clarity.
 class SettingsCard extends StatelessWidget {
   final IconData? icon;
   final String title;
@@ -39,27 +40,39 @@ class SettingsCard extends StatelessWidget {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Icon(icon, color: AppColors.primary, size: 18),
+                ),
+                const SizedBox(width: 10),
               ],
-              Text(
-                title,
-                style: AppTextStyles.labelLarge.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textBlack,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.labelLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textBlack,
+                  ),
                 ),
               ),
               if (trailing != null) ...[
-                const Spacer(),
+                const SizedBox(width: 8),
                 trailing!,
               ],
             ],
           ),
-          const SizedBox(height: 20),
-          ...children,
+          if (children.isNotEmpty) ...[
+            const Divider(height: 28, thickness: 0.8, color: AppColors.cardBorder),
+            ...children,
+          ],
         ],
       ),
     );
   }
 }
-

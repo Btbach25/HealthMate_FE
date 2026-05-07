@@ -15,6 +15,7 @@ class FamilyMember extends Equatable {
   final DateTime? lastUpdated;
   final List<String> healthConditions; // Huyết áp cao, Tiểu đường, etc.
   final List<MetricType> sharedMetrics;
+  final bool medicationReminderShareAllowed;
   final DateTime createdAt;
 
   const FamilyMember({
@@ -30,6 +31,7 @@ class FamilyMember extends Equatable {
     this.lastUpdated,
     this.healthConditions = const [],
     required this.sharedMetrics,
+    this.medicationReminderShareAllowed = false,
     required this.createdAt,
   });
 
@@ -53,6 +55,8 @@ class FamilyMember extends Equatable {
         json['shared_metrics'],
         (e) => MetricType.fromValue(cvToString(e)),
       ),
+      medicationReminderShareAllowed:
+          json['medication_reminder_share_allowed'] == true,
       createdAt: cvToDateRequired(json['created_at']),
     );
   }
@@ -71,6 +75,7 @@ class FamilyMember extends Equatable {
       'last_updated': lastUpdated?.toIso8601String(),
       'health_conditions': healthConditions,
       'shared_metrics': sharedMetrics.map((e) => e.value).toList(),
+      'medication_reminder_share_allowed': medicationReminderShareAllowed,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -99,6 +104,7 @@ class FamilyMember extends Equatable {
     DateTime? lastUpdated,
     List<String>? healthConditions,
     List<MetricType>? sharedMetrics,
+    bool? medicationReminderShareAllowed,
     DateTime? createdAt,
   }) {
     return FamilyMember(
@@ -114,6 +120,8 @@ class FamilyMember extends Equatable {
       lastUpdated: lastUpdated ?? this.lastUpdated,
       healthConditions: healthConditions ?? this.healthConditions,
       sharedMetrics: sharedMetrics ?? this.sharedMetrics,
+      medicationReminderShareAllowed:
+          medicationReminderShareAllowed ?? this.medicationReminderShareAllowed,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -132,6 +140,7 @@ class FamilyMember extends Equatable {
         lastUpdated,
         healthConditions,
         sharedMetrics,
+        medicationReminderShareAllowed,
         createdAt,
       ];
 }

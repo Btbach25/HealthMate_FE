@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:fe/core/config/api_base_url.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
+import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/data/enums/metric_status.dart';
 import 'package:fe/data/models/details/chart_data_point.dart';
 import 'package:fe/data/models/details/metric_chart.dart';
@@ -93,7 +94,9 @@ class ApiStatsService implements StatsService {
     String range = '7d',
     List<String>? filterMetricTypes,
   }) async {
-    final typesToFetch = filterMetricTypes ?? _metricTypes;
+    final rawTypes = filterMetricTypes ?? _metricTypes;
+    final typesToFetch =
+        rawTypes.map(MetricSelectionHelper.toBackendMetricName).toList();
     final results = await Future.wait(
       typesToFetch.map((m) => _fetchPoints(userId, m, range)),
     );

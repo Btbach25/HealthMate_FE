@@ -54,7 +54,7 @@ abstract class ApiClient {
         return parser(data);
       } catch (e) {
         throw UnknownException(
-          message: 'Lỗi khi xử lý phản hồi từ máy chủ.',
+          message: 'Không đọc được dữ liệu trả về. Vui lòng thử lại sau.',
           originalError: e,
         );
       }
@@ -170,7 +170,7 @@ abstract class ApiClient {
         (errorString.contains('blocked') && errorString.contains('policy'))) {
       return UnknownException(
         message:
-            'Không kết nối được tới máy chủ từ trình duyệt. '
+            'Ứng dụng không kết nối được từ trình duyệt. '
             'Hãy tải lại trang, kiểm tra mạng hoặc thử lại sau.',
         originalError: error,
       );

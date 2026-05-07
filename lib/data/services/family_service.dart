@@ -1,13 +1,23 @@
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
+import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
 
 abstract class FamilyService {
   Future<FamilyGroupSummary> getFamilyGroups();
-  Future<FamilyGroup> createGroup({required String name, required List<String> sharedMetrics});
-  Future<void> updateGroup({required String groupId, String? name, List<String>? sharedMetrics});
+  Future<FamilyGroup> createGroup({
+    required String name,
+    required List<String> sharedMetrics,
+    bool enableMedicationReminderShare = false,
+  });
+  Future<void> updateGroup({
+    required String groupId,
+    String? name,
+    List<String>? sharedMetrics,
+    bool? enableMedicationReminderShare,
+  });
   Future<void> deleteGroup({required String groupId});
   Future<void> leaveGroup({required String groupId});
   Future<void> inviteMember({
@@ -35,9 +45,27 @@ abstract class FamilyService {
     required String groupId,
     required String memberId,
     required List<String> sharedMetrics,
+    bool? allowMedicationReminderShare,
   });
   Future<List<IncomingInvitation>> getIncomingInvitations();
   Future<List<OutgoingInvitation>> getOutgoingInvitations();
+  /// Lấy danh sách thành viên cho người được mời (chưa accept). BE cho phép gọi GET /groups/:id/members.
+  Future<List<FamilyMember>> getGroupMembersForInvitee({required String groupId});
+
+  /// Owner only: GET /groups/:id/pending-approvals
+  Future<List<OutgoingInvitation>> getPendingApprovals({required String groupId});
+
+  /// Owner only: POST /groups/:id/approve/:memberId
+  Future<void> approveJoinRequest({
+    required String groupId,
+    required String memberId,
+  });
+
+  /// Owner only: POST /groups/:id/reject-approval/:memberId
+  Future<void> rejectJoinRequest({
+    required String groupId,
+    required String memberId,
+  });
 }
 
 

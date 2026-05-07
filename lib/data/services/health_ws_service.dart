@@ -1,10 +1,26 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:fe/core/config/api_base_url.dart';
+import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+
+/// Sự kiện chỉ số realtime khi đang subscribe theo thành viên nhóm (payload từ realtime-service).
+class FamilyMetricWatchEvent {
+  final String ownerUserId;
+  final String metricType;
+  final double value;
+  final DateTime timestamp;
+
+  const FamilyMetricWatchEvent({
+    required this.ownerUserId,
+    required this.metricType,
+    required this.value,
+    required this.timestamp,
+  });
+}
 
 /// Service upload dữ liệu sức khỏe lên BE qua WebSocket.
 /// Giữ kết nối persistent, tự reconnect khi bị đứt.
@@ -16,8 +32,18 @@ class HealthWsService {
       : _onRefresh = onRefresh;
 
   WebSocketChannel? _channel;
+  StreamSubscription<dynamic>? _socketSubscription;
   bool _connected = false;
   String? _userId;
+
+  final StreamController<FamilyMetricWatchEvent> _watchController =
+      StreamController<FamilyMetricWatchEvent>.broadcast();
+
+  /// Luồng chỉ số đã lọc (mọi target); UI tự lọc theo `ownerUserId`.
+  Stream<FamilyMetricWatchEvent> get watchStream => _watchController.stream;
+
+  /// BE realtime-service giới hạn ~512 byte / tin nhắn client → gửi subscribe theo lô nhỏ.
+  static const int _maxSubscribeItemsPerMessage = 2;
 
   String get _wsBaseUrl {
     final httpBase = resolveApiBaseUrl();
@@ -72,6 +98,9 @@ class HealthWsService {
 
   Future<void> _tryConnect(String token) async {
     try {
+      await _socketSubscription?.cancel();
+      _socketSubscription = null;
+
       final uri = Uri.parse('$_wsBaseUrl/ws?token=$token');
       _channel = WebSocketChannel.connect(uri);
       await _channel!.ready;
@@ -87,8 +116,8 @@ class HealthWsService {
         );
       }
 
-      _channel!.stream.listen(
-        (_) {},
+      _socketSubscription = _channel!.stream.listen(
+        _handleIncoming,
         onError: (_) => _onDisconnected(),
         onDone: _onDisconnected,
       );
@@ -99,10 +128,123 @@ class HealthWsService {
     }
   }
 
+  void _handleIncoming(dynamic data) {
+    if (data is! String) return;
+    try {
+      final decoded = jsonDecode(data);
+      if (decoded is! Map<String, dynamic>) return;
+      final type = decoded['type'] as String?;
+      if (type != 'metric') return;
+      final rawPayload = decoded['payload'];
+      if (rawPayload is! Map<String, dynamic>) return;
+      final owner = rawPayload['user_id'] as String?;
+      final metric = rawPayload['metric_type'] as String?;
+      final value = rawPayload['value'];
+      final tsRaw = rawPayload['timestamp'];
+      if (owner == null || metric == null || value is! num) return;
+      DateTime ts;
+      if (tsRaw is String) {
+        ts = DateTime.tryParse(tsRaw) ?? DateTime.now().toUtc();
+      } else {
+        ts = DateTime.now().toUtc();
+      }
+      _watchController.add(
+        FamilyMetricWatchEvent(
+          ownerUserId: owner,
+          metricType: metric,
+          value: value.toDouble(),
+          timestamp: ts,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[HealthWs] Parse incoming: $e');
+    }
+  }
+
   void _onDisconnected() {
     _connected = false;
+    _socketSubscription?.cancel();
+    _socketSubscription = null;
     _channel = null;
     debugPrint('[HealthWs] Disconnected');
+  }
+
+  /// Subscribe nhiều chỉ số của một thành viên trong nhóm (đã kiểm tra quyền phía BE).
+  Future<void> subscribeFamilyMemberMetrics({
+    required String targetUserId,
+    required String groupId,
+    required List<String> metricTypeValues,
+  }) async {
+    if (kIsWeb) return;
+    if (!_connected) await connect();
+    if (!_connected || _channel == null) return;
+
+    final names = MetricSelectionHelper.filterMetricTypesForBackend(
+      metricTypeValues,
+    );
+    if (names.isEmpty) return;
+
+    for (var i = 0; i < names.length; i += _maxSubscribeItemsPerMessage) {
+      final end = (i + _maxSubscribeItemsPerMessage > names.length)
+          ? names.length
+          : i + _maxSubscribeItemsPerMessage;
+      final batch = names.sublist(i, end);
+      final items = batch
+          .map(
+            (m) => {
+              'target_user_id': targetUserId,
+              'metric_type': m,
+              'group_id': groupId,
+            },
+          )
+          .toList();
+      try {
+        _channel!.sink.add(jsonEncode({'action': 'subscribe', 'items': items}));
+      } catch (e) {
+        debugPrint('[HealthWs] subscribe send error: $e');
+        _onDisconnected();
+        break;
+      }
+    }
+  }
+
+  Future<void> unsubscribeFamilyMemberMetrics({
+    required String targetUserId,
+    required String groupId,
+    required List<String> metricTypeValues,
+  }) async {
+    if (kIsWeb) return;
+    if (!_connected || _channel == null) return;
+
+    final names = MetricSelectionHelper.filterMetricTypesForBackend(
+      metricTypeValues,
+    );
+    if (names.isEmpty) return;
+
+    for (var i = 0; i < names.length; i += _maxSubscribeItemsPerMessage) {
+      final end = (i + _maxSubscribeItemsPerMessage > names.length)
+          ? names.length
+          : i + _maxSubscribeItemsPerMessage;
+      final batch = names.sublist(i, end);
+      final items = batch
+          .map(
+            (m) => {
+              'target_user_id': targetUserId,
+              'metric_type': m,
+              'group_id': groupId,
+            },
+          )
+          .toList();
+      try {
+        _channel!.sink.add(
+          jsonEncode({'action': 'unsubscribe', 'items': items}),
+        );
+      } catch (e) {
+        debugPrint('[HealthWs] unsubscribe send error: $e');
+        _onDisconnected();
+        break;
+      }
+    }
   }
 
   /// Gửi các metric mới nhất từ danh sách data points.
@@ -144,6 +286,8 @@ class HealthWsService {
   }
 
   Future<void> disconnect() async {
+    await _socketSubscription?.cancel();
+    _socketSubscription = null;
     await _channel?.sink.close();
     _connected = false;
     _channel = null;

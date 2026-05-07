@@ -2,6 +2,7 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
+import 'package:fe/presentation/medications/widgets/medication_share_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -42,6 +43,22 @@ class ManageMedicationsDialog extends StatelessWidget {
     }
   }
 
+  Future<void> _openShareDialog(BuildContext context, Medication med) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => MedicationShareDialog(medication: med),
+    );
+    if (ok == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã cập nhật chia sẻ nhắc thuốc'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final maxH = MediaQuery.sizeOf(context).height * 0.72;
@@ -75,7 +92,7 @@ class ManageMedicationsDialog extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    'Xóa thuốc khi đổi đơn hoặc không còn dùng.',
+                    'Quản lý chia sẻ nhắc thuốc (icon nhóm) hoặc xóa thuốc khi không còn dùng.',
                     style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: 16),
@@ -136,16 +153,36 @@ class ManageMedicationsDialog extends StatelessWidget {
                                           color: AppColors.primary,
                                         ),
                                       )
-                                    : IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline_rounded,
-                                          color: AppColors.error,
-                                        ),
-                                        tooltip: 'Xóa khỏi lịch',
-                                        onPressed: busy
-                                            ? null
-                                            : () =>
-                                                _confirmDelete(context, med),
+                                    : Wrap(
+                                        spacing: 2,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.group_add_outlined,
+                                              color: AppColors.primary,
+                                            ),
+                                            tooltip: 'Chia sẻ nhắc thuốc',
+                                            onPressed: busy
+                                                ? null
+                                                : () => _openShareDialog(
+                                                    context,
+                                                    med,
+                                                  ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              color: AppColors.error,
+                                            ),
+                                            tooltip: 'Xóa khỏi lịch',
+                                            onPressed: busy
+                                                ? null
+                                                : () => _confirmDelete(
+                                                    context,
+                                                    med,
+                                                  ),
+                                          ),
+                                        ],
                                       ),
                               );
                             },

@@ -1,6 +1,7 @@
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
+import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
@@ -31,18 +32,25 @@ class FamilyRepository {
   Future<FamilyGroup> createGroup({
     required String name,
     required List<String> sharedMetrics,
+    bool enableMedicationReminderShare = false,
   }) =>
-      _familyService.createGroup(name: name, sharedMetrics: sharedMetrics);
+      _familyService.createGroup(
+        name: name,
+        sharedMetrics: sharedMetrics,
+        enableMedicationReminderShare: enableMedicationReminderShare,
+      );
 
   Future<void> updateGroup({
     required String groupId,
     String? name,
     List<String>? sharedMetrics,
+    bool? enableMedicationReminderShare,
   }) =>
       _familyService.updateGroup(
         groupId: groupId,
         name: name,
         sharedMetrics: sharedMetrics,
+        enableMedicationReminderShare: enableMedicationReminderShare,
       );
 
   Future<void> deleteGroup({required String groupId}) =>
@@ -106,6 +114,11 @@ class FamilyRepository {
   Future<List<OutgoingInvitation>> getOutgoingInvitations() =>
       _familyService.getOutgoingInvitations();
 
+  Future<List<FamilyMember>> getGroupMembersForInvitee({
+    required String groupId,
+  }) =>
+      _familyService.getGroupMembersForInvitee(groupId: groupId);
+
   Future<void> removeMember({
     required String groupId,
     required String memberId,
@@ -116,10 +129,29 @@ class FamilyRepository {
     required String groupId,
     required String memberId,
     required List<String> sharedMetrics,
+    bool? allowMedicationReminderShare,
   }) =>
       _familyService.updateMemberPermissions(
         groupId: groupId,
         memberId: memberId,
         sharedMetrics: sharedMetrics,
+        allowMedicationReminderShare: allowMedicationReminderShare,
       );
+
+  Future<List<OutgoingInvitation>> getPendingApprovals({
+    required String groupId,
+  }) =>
+      _familyService.getPendingApprovals(groupId: groupId);
+
+  Future<void> approveJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) =>
+      _familyService.approveJoinRequest(groupId: groupId, memberId: memberId);
+
+  Future<void> rejectJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) =>
+      _familyService.rejectJoinRequest(groupId: groupId, memberId: memberId);
 }

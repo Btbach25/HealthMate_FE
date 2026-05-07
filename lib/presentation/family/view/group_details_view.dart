@@ -5,7 +5,9 @@ import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
+import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
+import 'package:fe/data/models/group/outgoing_invitation.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/view/group_details_members.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -14,6 +16,7 @@ import 'package:fe/presentation/family/widgets/family_member_card.dart';
 import 'package:fe/presentation/family/widgets/add_member_modal.dart';
 import 'package:fe/presentation/family/widgets/family_member_metrics_dialog.dart';
 import 'package:fe/presentation/family/widgets/edit_member_permissions_dialog.dart';
+import 'package:fe/presentation/family/widgets/group_medication_share_dialog.dart';
 import 'package:fe/presentation/family/widgets/transfer_ownership_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -57,6 +60,24 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               const SnackBar(
                 content: Text('Đã xóa thành viên khỏi nhóm'),
                 backgroundColor: AppColors.primary,
+              ),
+            );
+          }
+          if (state.status == FamilyStatus.joinRequestApproved) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã duyệt yêu cầu, thành viên đã tham gia nhóm'),
+                backgroundColor: AppColors.primary,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          if (state.status == FamilyStatus.joinRequestRejected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đã từ chối yêu cầu tham gia'),
+                backgroundColor: AppColors.textGrey,
+                behavior: SnackBarBehavior.floating,
               ),
             );
           }
@@ -110,13 +131,33 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               );
             }
 
-            if ((state.status == FamilyStatus.groupDetailsLoaded ||
-                    state.status == FamilyStatus.memberInvited ||
-                    state.status == FamilyStatus.ownershipTransferred) &&
-                state.groupDetails != null &&
-                isCurrentGroup) {
+            if (state.groupDetails != null &&
+                isCurrentGroup &&
+                state.status != FamilyStatus.error &&
+                state.status != FamilyStatus.initial &&
+                state.status != FamilyStatus.loading) {
               final details = state.groupDetails!;
               final authUser = context.read<AuthBloc>().state.user;
+
+              void tryOpenMemberMetrics(FamilyMember member) {
+                if (member.sharedMetrics.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${member.name} chưa chia sẻ chỉ số trong nhóm hoặc bạn chưa được cấp quyền xem.',
+                      ),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+                FamilyMemberMetricsDialog.show(
+                  context: context,
+                  member: member,
+                  groupId: details.group.id,
+                );
+              }
               final isCurrentUserOwner =
                   authUser.id.isNotEmpty &&
                   sameUserId(details.group.ownerId, authUser.id);
@@ -144,41 +185,98 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                         const FamilyAppBar(),
                         const SizedBox(height: AppSize.spacing24),
                         // Navigation bar
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () => context.pop(),
-                              color: AppColors.textBlack,
-                            ),
-                            const SizedBox(width: 8),
-                            TextButton.icon(
-                              onPressed: () {
-                                context.push('/family');
-                              },
-                              icon: const Icon(Icons.people_outline, size: 18),
-                              label: const Text('Chọn nhóm khác'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.textBlack,
-                              ),
-                            ),
-                            const Spacer(),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                _showLeaveGroupDialog(context, details);
-                              },
-                              icon: const Icon(Icons.logout, size: 18),
-                              label: const Text('Rời nhóm'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.orange,
-                                side: const BorderSide(color: Colors.orange),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 360;
+                            if (compact) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.arrow_back),
+                                        onPressed: () => context.pop(),
+                                        color: AppColors.textBlack,
+                                      ),
+                                      Expanded(
+                                        child: TextButton.icon(
+                                          onPressed: () {
+                                            context.push('/family');
+                                          },
+                                          icon: const Icon(
+                                            Icons.people_outline,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Chọn nhóm khác'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: AppColors.textBlack,
+                                            alignment: Alignment.centerLeft,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        _showLeaveGroupDialog(context, details);
+                                      },
+                                      icon: const Icon(Icons.logout, size: 18),
+                                      label: const Text('Rời nhóm'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.orange,
+                                        side:
+                                            const BorderSide(color: Colors.orange),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back),
+                                  onPressed: () => context.pop(),
+                                  color: AppColors.textBlack,
                                 ),
-                              ),
-                            ),
-                          ],
+                                const SizedBox(width: 8),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    context.push('/family');
+                                  },
+                                  icon: const Icon(Icons.people_outline, size: 18),
+                                  label: const Text('Chọn nhóm khác'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.textBlack,
+                                  ),
+                                ),
+                                const Spacer(),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    _showLeaveGroupDialog(context, details);
+                                  },
+                                  icon: const Icon(Icons.logout, size: 18),
+                                  label: const Text('Rời nhóm'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.orange,
+                                    side: const BorderSide(color: Colors.orange),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: AppSize.spacing24),
                         // Title
@@ -223,6 +321,85 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           ),
                         ),
                         const SizedBox(height: AppSize.spacing24),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.medication_outlined,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: Text(
+                                      'Chia sẻ nhắc uống thuốc',
+                                      style: AppTextStyles.labelLarge,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        details.group.medicationSharingAllowed
+                                            ? () async {
+                                                final ok = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (_) => GroupMedicationShareDialog(
+                                                    groupId: details.group.id,
+                                                    members: details.members,
+                                                    currentUserId: authUser.id,
+                                                  ),
+                                                );
+                                                if (ok == true &&
+                                                    context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Đã cập nhật chia sẻ nhắc thuốc cho nhóm',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppColors.primary,
+                                                      behavior:
+                                                          SnackBarBehavior.floating,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            : null,
+                                    child: const Text('Quản lý tại đây'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                details.group.medicationSharingAllowed
+                                    ? 'Nhấn "Quản lý tại đây" để chọn từng loại thuốc và thành viên nhận nhắc. Chỉ thành viên đủ điều kiện theo quyền nhóm và quyền cá nhân mới xuất hiện.'
+                                    : 'Nhóm chưa bật chia sẻ nhắc uống thuốc. Hãy chỉnh quyền chung của nhóm trước, rồi mới thiết lập chia sẻ nhắc thuốc.',
+                                style: AppTextStyles.caption.copyWith(height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSize.spacing20),
+                        // Khu vực "Yêu cầu chờ duyệt" — chỉ chủ nhóm thấy.
+                        // Dữ liệu thực từ GET /groups/:id/pending-approvals.
+                        if (isCurrentUserOwner)
+                          _PendingApprovalsSection(
+                            groupId: details.group.id,
+                          ),
+                        if (isCurrentUserOwner)
+                          const SizedBox(height: AppSize.spacing20),
                         // Add member button
                         SizedBox(
                           width: double.infinity,
@@ -273,12 +450,8 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                     sameUserId(member.userId, details.group.ownerId),
                                 groupId: details.group.id,
                                 isCurrentUser: sameUserId(member.userId, authUser.id),
-                                onViewMetrics: () {
-                                  FamilyMemberMetricsDialog.show(
-                                    context: context,
-                                    member: member,
-                                  );
-                                },
+                                onViewMetrics: () => tryOpenMemberMetrics(member),
+                                onFollow: () => tryOpenMemberMetrics(member),
                                 onEditPermissions: isCurrentUserOwner &&
                                         !sameUserId(member.userId, authUser.id)
                                     ? () {
@@ -292,6 +465,8 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                                 member: member,
                                                 globalMetrics:
                                                     details.group.sharedMetrics,
+                                                groupMedicationReminderShareAllowed:
+                                                    details.group.medicationSharingAllowed,
                                               ),
                                             );
                                           },
@@ -323,13 +498,17 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
 
   void _showAddMemberModal(BuildContext context, String groupId) {
     final bloc = context.read<FamilyBloc>();
+    final allowedMetrics = bloc.state.groupDetails?.group.sharedMetrics ?? const [];
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return BlocProvider.value(
           value: bloc,
-          child: AddMemberModal(groupId: groupId),
+          child: AddMemberModal(
+            groupId: groupId,
+            groupAllowedMetrics: allowedMetrics,
+          ),
         );
       },
     );
@@ -406,6 +585,212 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
         context.read<FamilyBloc>().add(LeaveGroup(groupId: groupId));
         // Navigation will be handled by BlocListener
       },
+    );
+  }
+}
+
+/// Khu vực hiển thị yêu cầu đang chờ chủ nhóm duyệt.
+/// Dữ liệu từ GET /groups/:id/pending-approvals (dispatch FetchPendingApprovals khi mount).
+class _PendingApprovalsSection extends StatefulWidget {
+  final String groupId;
+
+  const _PendingApprovalsSection({required this.groupId});
+
+  @override
+  State<_PendingApprovalsSection> createState() =>
+      _PendingApprovalsSectionState();
+}
+
+class _PendingApprovalsSectionState extends State<_PendingApprovalsSection> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context
+          .read<FamilyBloc>()
+          .add(FetchPendingApprovals(groupId: widget.groupId));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<FamilyBloc, FamilyState>(
+      buildWhen: (p, c) =>
+          p.pendingApprovals != c.pendingApprovals ||
+          p.status != c.status,
+      builder: (context, state) {
+        final pendingList = state.pendingApprovals
+            .where((inv) => inv.groupId == widget.groupId)
+            .toList();
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.deepOrange.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(AppSize.r12),
+            border: Border.all(
+              color: Colors.deepOrange.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.hourglass_top_rounded,
+                      size: 18,
+                      color: Colors.deepOrange,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Yêu cầu chờ duyệt',
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                    if (pendingList.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrange,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${pendingList.length}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (pendingList.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                  child: Text(
+                    'Không có yêu cầu nào đang chờ duyệt.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                )
+              else
+                ...pendingList.map(
+                  (inv) => _PendingApprovalTile(
+                    invitation: inv,
+                    groupId: widget.groupId,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PendingApprovalTile extends StatelessWidget {
+  final OutgoingInvitation invitation;
+  final String groupId;
+
+  const _PendingApprovalTile({
+    required this.invitation,
+    required this.groupId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inviteeName = invitation.inviteeName.isNotEmpty
+        ? invitation.inviteeName
+        : invitation.inviteeEmail;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  inviteeName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textBlack,
+                  ),
+                ),
+                if (invitation.inviteeEmail.isNotEmpty &&
+                    invitation.inviteeName.isNotEmpty)
+                  Text(
+                    invitation.inviteeEmail,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            onPressed: () {
+              context.read<FamilyBloc>().add(
+                    ApproveJoinRequest(
+                      groupId: groupId,
+                      memberId: invitation.invitee?.id ?? '',
+                    ),
+                  );
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Duyệt', style: TextStyle(fontSize: 13)),
+          ),
+          const SizedBox(width: 6),
+          OutlinedButton(
+            onPressed: () {
+              context.read<FamilyBloc>().add(
+                    RejectJoinRequest(
+                      groupId: groupId,
+                      memberId: invitation.invitee?.id ?? '',
+                    ),
+                  );
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Từ chối', style: TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
     );
   }
 }

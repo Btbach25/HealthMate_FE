@@ -108,7 +108,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
               ),
               const Divider(height: 24),
               SettingsSwitchRow(
-                title: 'Push notifications',
+                title: 'Thông báo đẩy',
                 description: 'Nhận thông báo đẩy từ ứng dụng',
                 value: _settings.pushNotifications,
                 onChanged: (value) => _updateSetting(

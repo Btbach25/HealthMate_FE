@@ -13,6 +13,7 @@ class AppIcons {
   static const IconData heart = Icons.favorite_border;
   static const IconData weight = Icons.shopping_bag_outlined;
   static const IconData bloodPressure = Icons.show_chart;
+  static const IconData spo2 = Icons.bloodtype_outlined;
   static const IconData temperature = Icons.thermostat_outlined;
 
   static const IconData home = Icons.home_filled;

@@ -17,47 +17,76 @@ class HeroActionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryContainer,
-            AppColors.primaryContainer.withValues(alpha: 0.35),
-            AppColors.surface,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
-        boxShadow: AppColors.cardShadowList,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.h3.copyWith(letterSpacing: -0.3),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary, height: 1.45),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useVerticalLayout = constraints.maxWidth < 520;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primaryContainer,
+                AppColors.primaryContainer.withValues(alpha: 0.35),
+                AppColors.surface,
               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+            boxShadow: AppColors.cardShadowList,
           ),
-          const SizedBox(width: 12),
-          action,
-        ],
-      ),
+          child: useVerticalLayout
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _BannerText(title: title, subtitle: subtitle),
+                    const SizedBox(height: 12),
+                    action,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _BannerText(title: title, subtitle: subtitle),
+                    ),
+                    const SizedBox(width: 12),
+                    action,
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _BannerText extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _BannerText({
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTextStyles.h3.copyWith(letterSpacing: -0.3),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: AppTextStyles.bodySmall
+              .copyWith(color: AppColors.textSecondary, height: 1.45),
+        ),
+      ],
     );
   }
 }

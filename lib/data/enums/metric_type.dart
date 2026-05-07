@@ -3,6 +3,7 @@ enum MetricType {
   stepsCount,
   caloriesBurnt,
   bloodPressure,
+  spo2,
   weight,
   sleep,
   temperature;
@@ -17,6 +18,8 @@ enum MetricType {
         return 'calories_burnt';
       case MetricType.bloodPressure:
         return 'blood_pressure';
+      case MetricType.spo2:
+        return 'spo2';
       case MetricType.weight:
         return 'weight';
       case MetricType.sleep:
@@ -37,6 +40,8 @@ enum MetricType {
         return caloriesBurnt;
       case 'blood_pressure':
         return bloodPressure;
+      case 'spo2':
+        return spo2;
       case 'weight':
         return weight;
       case 'sleep':

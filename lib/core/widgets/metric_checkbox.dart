@@ -12,6 +12,7 @@ class MetricCheckbox extends StatelessWidget {
   final double? width;
   final bool showCheckbox;
   final bool showCheckIcon;
+  final bool enabled;
 
   const MetricCheckbox({
     super.key,
@@ -21,13 +22,16 @@ class MetricCheckbox extends StatelessWidget {
     this.width,
     this.showCheckbox = true,
     this.showCheckIcon = false,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final content = GestureDetector(
-      onTap: () => onChanged(!isSelected),
-      child: Container(
+    final content = Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: GestureDetector(
+        onTap: enabled ? () => onChanged(!isSelected) : null,
+        child: Container(
         padding: const EdgeInsets.all(AppSize.p16),
         decoration: BoxDecoration(
           color: isSelected
@@ -46,7 +50,7 @@ class MetricCheckbox extends StatelessWidget {
             if (showCheckbox) ...[
               Checkbox(
                 value: isSelected,
-                onChanged: (value) => onChanged(value ?? false),
+                onChanged: enabled ? (value) => onChanged(value ?? false) : null,
                 activeColor: AppColors.primary,
               ),
               const SizedBox(width: 12),
@@ -94,6 +98,7 @@ class MetricCheckbox extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
 

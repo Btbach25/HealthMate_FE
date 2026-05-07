@@ -79,6 +79,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
   final Set<MetricType> _selectedMetrics = {};
   String? _metricsError;
   bool _isLoading = false;
+  bool _allowMedicationReminderShare = false;
 
   @override
   void dispose() {
@@ -123,6 +124,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
           CreateGroup(
             name: _nameController.text.trim(),
             sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+            enableMedicationReminderShare: _allowMedicationReminderShare,
           ),
         );
   }
@@ -217,7 +219,7 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                   ),
                   const SizedBox(height: AppSize.spacing24),
                   const Text(
-                    'Quyền truy cập dữ liệu',
+                    'Chia sẻ chỉ số trong nhóm',
                     style: AppTextStyles.labelLarge,
                   ),
                   const SizedBox(height: AppSize.spacing8),
@@ -231,7 +233,8 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                   const SizedBox(height: AppSize.spacing4),
                 ],
                   Text(
-                    'Chọn các chỉ số sức khỏe bạn muốn chia sẻ với nhóm (hiện hỗ trợ: nhịp tim, bước chân, calo)',
+                    'Chọn thông tin sức khỏe bạn đồng ý cho cả nhóm biết. '
+                    'Sau khi tạo nhóm, bạn vẫn có thể chỉnh lại quyền xem cho từng thành viên.',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textGrey,
                     ),
@@ -271,9 +274,39 @@ class _CreateGroupFormState extends State<CreateGroupForm>
                                 ),
                               ),
                             )
-                            .toList(),
+                            .toList()
+                          ..add(
+                            SizedBox(
+                              width: itemWidth,
+                              child: _MedicationPermissionTile(
+                                selected: _allowMedicationReminderShare,
+                                onTap: () {
+                                  setState(() {
+                                    _allowMedicationReminderShare =
+                                        !_allowMedicationReminderShare;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
                       );
                     },
+                  ),
+                  const SizedBox(height: AppSize.spacing12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.cardBorder),
+                    ),
+                    child: Text(
+                      _allowMedicationReminderShare
+                          ? 'Đã bật chia sẻ nhắc uống thuốc cho nhóm. Sau khi tạo nhóm, bạn có thể chọn từng loại thuốc và người được nhận nhắc ở tab Thuốc.'
+                          : 'Bật mục này nếu bạn muốn sau này chia sẻ lịch nhắc uống thuốc cho từng thành viên trong nhóm.',
+                      style: AppTextStyles.caption.copyWith(height: 1.4),
+                    ),
                   ),
                   const SizedBox(height: AppSize.spacing24),
                   if (buildInlineMessage() != null) ...[
@@ -304,6 +337,71 @@ class _CreateGroupFormState extends State<CreateGroupForm>
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _MedicationPermissionTile extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MedicationPermissionTile({
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSize.p16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryContainer : Colors.white,
+          borderRadius: BorderRadius.circular(AppSize.r12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.cardBorder,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.primary : AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.medication_outlined,
+                color: selected ? Colors.white : AppColors.textGrey,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Nhắc nhở uống thuốc',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? AppColors.primaryDark : AppColors.textBlack,
+                ),
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.check_circle,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -35,7 +35,7 @@ class TimeoutException extends ApiException {
 /// Server errors (5xx)
 class ServerException extends ApiException {
   const ServerException({
-    super.message = 'Lỗi máy chủ. Vui lòng thử lại sau.',
+    super.message = 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau.',
     super.statusCode,
     super.originalError,
   });

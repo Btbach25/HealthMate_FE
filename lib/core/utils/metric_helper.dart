@@ -19,6 +19,11 @@ class MetricHelper {
       icon: AppIcons.bloodPressure,
     ),
     MetricOption(
+      type: MetricType.spo2,
+      label: 'SpO2',
+      icon: AppIcons.spo2,
+    ),
+    MetricOption(
       type: MetricType.weight,
       label: 'Cân nặng',
       icon: AppIcons.weight,

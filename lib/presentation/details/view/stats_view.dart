@@ -104,7 +104,7 @@ class _StatsViewState extends State<StatsView>
                           Icon(Icons.monitor_heart_outlined, size: 48, color: AppColors.textGrey),
                           SizedBox(height: 12),
                           Text(
-                            'Chưa có dữ liệu sức khỏe từ máy chủ.\nKéo xuống để tải lại.',
+                            'Chưa có số liệu để hiển thị.\nKéo xuống để tải lại.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AppColors.textGrey),
                           ),

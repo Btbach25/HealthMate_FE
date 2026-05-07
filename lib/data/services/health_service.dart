@@ -32,7 +32,7 @@ class HealthService {
     final now = DateTime.now();
 
     if (hrValue == null && bpValue == null) {
-      throw Exception('Không lấy được dữ liệu sức khỏe từ máy chủ');
+      throw Exception('Chưa lấy được dữ liệu sức khỏe trên tài khoản.');
     }
 
     return HealthOverview(

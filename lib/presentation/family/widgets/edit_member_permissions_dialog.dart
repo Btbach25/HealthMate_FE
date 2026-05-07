@@ -16,12 +16,14 @@ class EditMemberPermissionsDialog extends StatefulWidget {
   final String groupId;
   final FamilyMember member;
   final List<MetricType> globalMetrics;
+  final bool groupMedicationReminderShareAllowed;
 
   const EditMemberPermissionsDialog({
     super.key,
     required this.groupId,
     required this.member,
     required this.globalMetrics,
+    required this.groupMedicationReminderShareAllowed,
   });
 
   @override
@@ -34,6 +36,7 @@ class _EditMemberPermissionsDialogState
   final Set<MetricType> _selectedMetrics = {};
   late final List<MetricOption> _supportedMetrics;
   bool _isLoading = false;
+  bool _allowMedicationReminderShare = false;
 
   @override
   void initState() {
@@ -52,27 +55,22 @@ class _EditMemberPermissionsDialogState
     if (_selectedMetrics.isEmpty && allowedByGroup.isNotEmpty) {
       _selectedMetrics.addAll(allowedByGroup);
     }
+    _allowMedicationReminderShare =
+        widget.member.medicationReminderShareAllowed;
   }
 
   void _handleSave() {
     if (_isLoading) return;
-    if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(MetricSelectionHelper.getValidationErrorMessage()),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
     context.read<FamilyBloc>().add(
           UpdateMemberPermissions(
             groupId: widget.groupId,
             memberId: widget.member.userId,
             sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+            allowMedicationReminderShare:
+                widget.groupMedicationReminderShareAllowed
+                    ? _allowMedicationReminderShare
+                    : false,
           ),
         );
   }
@@ -154,7 +152,7 @@ class _EditMemberPermissionsDialogState
                         border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: const Text(
-                        'Chỉ chọn trong phạm vi quyền nhóm đã cho phép (hiện hỗ trợ: nhịp tim, bước chân, calo).',
+                        'Chỉ chọn trong phạm vi nhóm đã cho phép. Phần chia sẻ nhắc thuốc ở tab Thuốc cũng tuân theo quyền bạn đặt tại đây.',
                         style: AppTextStyles.caption,
                       ),
                     ),
@@ -182,6 +180,63 @@ class _EditMemberPermissionsDialogState
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: AppSize.spacing12),
+                    InkWell(
+                      onTap: widget.groupMedicationReminderShareAllowed
+                          ? () => setState(() {
+                                _allowMedicationReminderShare =
+                                    !_allowMedicationReminderShare;
+                              })
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 180,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _allowMedicationReminderShare
+                              ? AppColors.primaryContainer
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _allowMedicationReminderShare
+                                ? AppColors.primary
+                                : AppColors.cardBorder,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.medication_outlined,
+                              size: 18,
+                              color: _allowMedicationReminderShare
+                                  ? AppColors.primary
+                                  : AppColors.textGrey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(child: Text('Nhắc thuốc')),
+                            Icon(
+                              _allowMedicationReminderShare
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              size: 18,
+                              color: _allowMedicationReminderShare
+                                  ? AppColors.primary
+                                  : AppColors.textLight,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (!widget.groupMedicationReminderShareAllowed) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Nhóm chưa bật quyền chia sẻ nhắc thuốc.',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textGrey,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSize.spacing24),
                     LoadingButton(
                       text: 'Lưu quyền',

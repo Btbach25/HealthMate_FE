@@ -1,10 +1,10 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/core/widgets/settings_switch_row.dart';
 import 'package:fe/data/models/settings/general_settings.dart';
 import 'package:fe/data/services/settings_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
@@ -111,49 +111,19 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
             icon: Icons.palette_outlined,
             title: 'Giao diện',
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.light_mode, color: Colors.orange),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Chế độ tối',
-                        style: AppTextStyles.labelLarge,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Text('Sáng'),
-                      Material(
-                        color: Colors.transparent,
-                        child: Switch(
-                          value: _settings.darkMode,
-                          onChanged: (value) {
-                            _updateSetting(
-                              (settings) => settings.copyWith(darkMode: value),
-                            );
-                            _showComingSoonSnack();
-                          },
-                          activeTrackColor: AppColors.primary,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          splashRadius: 0,
-                          thumbColor: WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return AppColors.primary;
-                            }
-                            return null;
-                          }),
-                        ),
-                      ),
-                      const Text('Tối'),
-                    ],
-                  ),
-                ],
+              SettingsSwitchRow(
+                title: 'Chế độ tối',
+                description: 'Chuyển sang giao diện tối (đang phát triển)',
+                icon: Icons.dark_mode_outlined,
+                value: _settings.darkMode,
+                onChanged: (value) {
+                  _updateSetting(
+                    (settings) => settings.copyWith(darkMode: value),
+                  );
+                  _showComingSoonSnack();
+                },
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsDropdown(
                 label: 'Ngôn ngữ',
                 value: _settings.language,
@@ -167,7 +137,7 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                   }
                 },
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsDropdown(
                 label: 'Định dạng ngày',
                 value: _settings.dateFormat,
@@ -180,7 +150,7 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                   }
                 },
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsDropdown(
                 label: 'Định dạng giờ',
                 value: _settings.timeFormat,
@@ -195,51 +165,43 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
               ),
             ],
           ),
-          
-          const SizedBox(height: AppSize.spacing24),
-          
-          // Logout Card
+
+          const SizedBox(height: AppSize.spacing16),
+
+          // Account / Logout Card
           SettingsCard(
-            icon: Icons.logout,
+            icon: Icons.manage_accounts_outlined,
             title: 'Tài khoản',
             children: [
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.error.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: _handleLogout,
-                  icon: const Icon(Icons.logout, size: 20),
-                  label: const Text(
-                    'Đăng xuất',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Semantics(
+                label: 'Đăng xuất khỏi tài khoản',
+                button: true,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _handleLogout,
+                    icon: const Icon(Icons.logout, size: 20),
+                    label: const Text('Đăng xuất'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor: AppColors.error.withValues(alpha: 0.3),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          
+
           SizedBox(
             height: MediaQuery.of(context).padding.bottom +
                 AppSize.bottomTabSafeInset,
@@ -248,7 +210,4 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
       ),
     );
   }
-
-
 }
-

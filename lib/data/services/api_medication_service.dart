@@ -2,6 +2,7 @@ import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/medication/medication.dart';
+import 'package:fe/data/models/medication/medication_share.dart';
 import 'package:fe/data/services/medication_service.dart';
 
 /// Gọi storage-service qua api-gateway: [ApiEndpoints.medications].
@@ -108,6 +109,97 @@ class ApiMedicationService implements MedicationService {
     } catch (e) {
       throw UnknownException(
         message: 'Lỗi khi cập nhật trạng thái thuốc.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<List<MedicationShare>> getMedicationShares(String medicationId) async {
+    try {
+      final raw = await _apiClient.get<List<dynamic>>(
+        ApiEndpoints.medicationShares(medicationId),
+        parser: (data) => data is List ? data : <dynamic>[],
+      );
+      return raw
+          .map((e) => MedicationShare.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi tải danh sách chia sẻ thuốc.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> addMedicationShare({
+    required String medicationId,
+    required String groupId,
+    required String sharedWithUserId,
+    int notifyOffsetMinutes = 0,
+  }) async {
+    try {
+      await _apiClient.post<Map<String, dynamic>>(
+        ApiEndpoints.medicationShares(medicationId),
+        body: {
+          'group_id': groupId,
+          'shared_with_user_id': sharedWithUserId,
+          'notify_offset_minutes': notifyOffsetMinutes,
+        },
+        parser: (d) => d as Map<String, dynamic>,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi chia sẻ thuốc.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteMedicationShare({
+    required String medicationId,
+    required String shareId,
+  }) async {
+    try {
+      await _apiClient.delete<Null>(
+        ApiEndpoints.medicationShareById(medicationId, shareId),
+        parser: (_) => null,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi hủy chia sẻ thuốc.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    try {
+      await _apiClient.post<Map<String, dynamic>>(
+        ApiEndpoints.medicationsDeviceToken,
+        body: {
+          'token': token,
+          'platform': platform,
+        },
+        parser: (d) => d as Map<String, dynamic>,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi bật thông báo nhắc trên điện thoại. Vui lòng thử lại.',
         originalError: e,
       );
     }

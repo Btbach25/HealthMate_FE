@@ -1,3 +1,4 @@
+import 'package:fe/core/allergy/allergy_matcher.dart';
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/prescription/prescription_ocr.dart';
@@ -9,6 +10,7 @@ import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
 import 'package:fe/data/services/api_ocr_service.dart';
+import 'package:fe/data/services/local_storage_service.dart';
 import 'dart:async';
 
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
@@ -66,24 +68,47 @@ class PrescriptionScanDialog extends StatefulWidget {
 }
 
 class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
+  static const Duration _stateSwitchDuration = Duration(milliseconds: 260);
   final ApiOcrService _apiOcrService = ApiOcrService();
+  final LocalStorageService _localStorage = LocalStorageService();
   bool _busy = false;
   String? _error;
   bool _requireReselect = false;
   List<_DraftEntry>? _entries;
+  List<AllergyMatch> _allergyMatches = [];
 
   @override
   void dispose() {
-    _disposeEntries();
+    _disposeEntries(immediate: true);
     super.dispose();
   }
 
-  void _disposeEntries() {
+  void _disposeEntries({bool immediate = false}) {
     if (_entries == null) return;
-    for (final e in _entries!) {
-      e.dispose();
-    }
+    final oldEntries = List<_DraftEntry>.from(_entries!);
     _entries = null;
+    _disposeDraftEntries(oldEntries, immediate: immediate);
+  }
+
+  void _disposeDraftEntries(
+    List<_DraftEntry> entries, {
+    bool immediate = false,
+  }) {
+    if (entries.isEmpty) return;
+    if (immediate || !mounted) {
+      for (final e in entries) {
+        e.dispose();
+      }
+      return;
+    }
+
+    // AnimatedSwitcher giữ widget cũ trong lúc animate-out.
+    // Dispose trễ để tránh "TextEditingController was used after being disposed".
+    Future<void>.delayed(_stateSwitchDuration + const Duration(milliseconds: 40), () {
+      for (final e in entries) {
+        e.dispose();
+      }
+    });
   }
 
   double _nameQualityScore(String name) {
@@ -209,6 +234,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       _busy = true;
       _error = null;
       _requireReselect = false;
+      _allergyMatches = [];
     });
     try {
       List<ParsedPrescriptionLine> parsed = const [];
@@ -306,7 +332,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
         setState(() {
           _disposeEntries();
           _error =
-              'Ảnh chưa đủ rõ nên kết quả OCR không tin cậy. Vui lòng chụp lại hoặc tải ảnh khác để tiếp tục.';
+              'Ảnh chưa đủ rõ nên không đọc tin cậy được nội dung đơn. Vui lòng chụp lại hoặc chọn ảnh khác.';
           _requireReselect = true;
         });
         return;
@@ -316,6 +342,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
         _entries = parsed.map((p) => _DraftEntry.fromParsed(p)).toList();
         _requireReselect = false;
       });
+      await _runAllergyCheck(parsed, apiResult?.meta);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -324,6 +351,47 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       });
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Load user allergies and run matcher for each parsed item.
+  /// Enriches [_DraftEntry.allergyHints] with user-specific reason text
+  /// and populates [_allergyMatches] for the top-level banner.
+  Future<void> _runAllergyCheck(
+    List<ParsedPrescriptionLine> parsed,
+    Map<String, dynamic>? meta,
+  ) async {
+    List<String> userAllergies;
+    try {
+      userAllergies = await _localStorage.getAllergies();
+    } catch (_) {
+      return; // Storage failure — skip silently, don't block scan flow
+    }
+    if (userAllergies.isEmpty || _entries == null) return;
+
+    final avgConf = (meta?['avg_confidence'] as num?)?.toDouble() ?? 1.0;
+    final ocrUncertain = avgConf < 0.65;
+
+    final newMatches = <AllergyMatch>[];
+    for (var i = 0; i < parsed.length && i < _entries!.length; i++) {
+      final item = parsed[i];
+      final match = AllergyMatcher.checkItem(
+        itemName: item.name,
+        itemGroupHints: item.allergyHints,
+        userAllergies: userAllergies,
+        ocrUncertain: ocrUncertain,
+      );
+      if (match.hasWarning) {
+        newMatches.add(match);
+        // Replace generic OCR hints with the user-specific reason on this entry.
+        _entries![i].allergyHints
+          ..clear()
+          ..add(match.reason);
+      }
+    }
+
+    if (newMatches.isNotEmpty && mounted) {
+      setState(() => _allergyMatches = newMatches);
     }
   }
 
@@ -566,11 +634,66 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   }
 
   void _removeEntry(int index) {
+    final removed = _entries![index];
     setState(() {
-      _entries![index].dispose();
       _entries!.removeAt(index);
       if (_entries!.isEmpty) _entries = null;
     });
+    _disposeDraftEntries([removed]);
+  }
+
+  Widget _buildAllergyBanner(List<AllergyMatch> matches) {
+    final hasHigh =
+        matches.any((m) => m.severity == AllergySeverity.highRisk);
+    final bannerColor =
+        hasHigh ? AppColors.errorLight : const Color(0xFFFFF3E0);
+    final borderColor = hasHigh
+        ? AppColors.error.withValues(alpha: 0.35)
+        : const Color(0xFFFFB74D);
+    final iconColor =
+        hasHigh ? AppColors.error : const Color(0xFFF57C00);
+    final titleColor =
+        hasHigh ? AppColors.error : const Color(0xFFE65100);
+    final bodyColor =
+        hasHigh ? AppColors.error : const Color(0xFFBF360C);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bannerColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber_rounded, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hasHigh
+                      ? 'Phát hiện thuốc có thể liên quan đến dị ứng đã khai báo'
+                      : 'Một số thuốc cần kiểm tra lại với hồ sơ dị ứng',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Thông tin chỉ mang tính hỗ trợ, không thay thế tư vấn bác sĩ hoặc dược sĩ.',
+            style: AppTextStyles.caption.copyWith(color: bodyColor),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildAnimatedStateContent() {
@@ -579,7 +702,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
         : (_error != null ? 'error' : (_entries != null ? 'entries' : 'idle'));
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 260),
+      duration: _stateSwitchDuration,
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) => FadeTransition(
@@ -644,6 +767,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
             ],
             if (_entries != null) ...[
               const SizedBox(height: 12),
+              if (_allergyMatches.isNotEmpty) ...[
+                _buildAllergyBanner(_allergyMatches),
+                const SizedBox(height: 8),
+              ],
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.only(right: 8, top: 4),

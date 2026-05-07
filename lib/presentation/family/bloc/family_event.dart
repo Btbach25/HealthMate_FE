@@ -24,29 +24,35 @@ class ResetFamily extends FamilyEvent {
 class CreateGroup extends FamilyEvent {
   final String name;
   final List<String> sharedMetrics;
+  final bool enableMedicationReminderShare;
 
   const CreateGroup({
     required this.name,
     required this.sharedMetrics,
+    this.enableMedicationReminderShare = false,
   });
 
   @override
-  List<Object?> get props => [name, sharedMetrics];
+  List<Object?> get props =>
+      [name, sharedMetrics, enableMedicationReminderShare];
 }
 
 class UpdateGroup extends FamilyEvent {
   final String groupId;
   final String? name;
   final List<String>? sharedMetrics;
+  final bool? enableMedicationReminderShare;
 
   const UpdateGroup({
     required this.groupId,
     this.name,
     this.sharedMetrics,
+    this.enableMedicationReminderShare,
   });
 
   @override
-  List<Object?> get props => [groupId, name, sharedMetrics];
+  List<Object?> get props =>
+      [groupId, name, sharedMetrics, enableMedicationReminderShare];
 }
 
 class DeleteGroup extends FamilyEvent {
@@ -124,6 +130,19 @@ class FetchOutgoingInvitations extends FamilyEvent {
   const FetchOutgoingInvitations();
 }
 
+class FetchInvitationPreview extends FamilyEvent {
+  final String groupId;
+  final bool isRetryAfter401;
+
+  const FetchInvitationPreview({
+    required this.groupId,
+    this.isRetryAfter401 = false,
+  });
+
+  @override
+  List<Object?> get props => [groupId, isRetryAfter401];
+}
+
 /// BE dùng group ID trong path: POST /groups/:id/accept.
 class AcceptInvitation extends FamilyEvent {
   final String groupId;
@@ -165,19 +184,56 @@ class RemoveMember extends FamilyEvent {
   List<Object?> get props => [groupId, memberId];
 }
 
+/// Owner: fetch danh sách thành viên đang chờ duyệt từ GET /groups/:id/pending-approvals.
+class FetchPendingApprovals extends FamilyEvent {
+  final String groupId;
+
+  const FetchPendingApprovals({required this.groupId});
+
+  @override
+  List<Object?> get props => [groupId];
+}
+
+/// Chủ nhóm duyệt yêu cầu tham gia.
+/// Endpoint: POST /groups/:groupId/approve/:memberId
+class ApproveJoinRequest extends FamilyEvent {
+  final String groupId;
+  final String memberId;
+
+  const ApproveJoinRequest({required this.groupId, required this.memberId});
+
+  @override
+  List<Object?> get props => [groupId, memberId];
+}
+
+/// Chủ nhóm từ chối yêu cầu tham gia.
+/// Endpoint: POST /groups/:groupId/reject-approval/:memberId
+class RejectJoinRequest extends FamilyEvent {
+  final String groupId;
+  final String memberId;
+
+  const RejectJoinRequest({required this.groupId, required this.memberId});
+
+  @override
+  List<Object?> get props => [groupId, memberId];
+}
+
 class UpdateMemberPermissions extends FamilyEvent {
   final String groupId;
   final String memberId;
   final List<String> sharedMetrics;
+  final bool? allowMedicationReminderShare;
 
   const UpdateMemberPermissions({
     required this.groupId,
     required this.memberId,
     required this.sharedMetrics,
+    this.allowMedicationReminderShare,
   });
 
   @override
-  List<Object?> get props => [groupId, memberId, sharedMetrics];
+  List<Object?> get props =>
+      [groupId, memberId, sharedMetrics, allowMedicationReminderShare];
 }
 
 

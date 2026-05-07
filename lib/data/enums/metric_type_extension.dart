@@ -15,6 +15,8 @@ extension MetricTypeExtension on MetricType {
         return 'Lượng calo';
       case MetricType.bloodPressure:
         return 'Huyết áp';
+      case MetricType.spo2:
+        return 'SpO2';
       case MetricType.weight:
         return 'Cân nặng';
       case MetricType.sleep:
@@ -35,6 +37,8 @@ extension MetricTypeExtension on MetricType {
         return Icons.local_fire_department_outlined;
       case MetricType.bloodPressure:
         return AppIcons.bloodPressure;
+      case MetricType.spo2:
+        return AppIcons.spo2;
       case MetricType.weight:
         return AppIcons.weight;
       case MetricType.sleep:

@@ -16,6 +16,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class MedicationView extends StatelessWidget {
   const MedicationView({super.key});
 
+  static const String _manageButtonLabel = 'Chỉnh sửa';
+  static const String _shareButtonLabel = 'Chia sẻ';
+  static const String _addButtonLabel = 'Thêm';
+  static const double _contentMaxWidth = 800;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,7 +109,7 @@ class MedicationView extends StatelessWidget {
               },
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 700),
+                  constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
@@ -113,9 +118,46 @@ class MedicationView extends StatelessWidget {
                       16,
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompactPhone = constraints.maxWidth < 390;
+                        const statSpacing = 10.0;
+                        const minStatTileWidth = 145.0;
+                        var statsPerRow =
+                            ((constraints.maxWidth + statSpacing) /
+                                    (minStatTileWidth + statSpacing))
+                                .floor()
+                                .clamp(1, 3);
+                        if (constraints.maxWidth >= 700) {
+                          statsPerRow = 3;
+                        } else if (constraints.maxWidth >= 330 &&
+                            statsPerRow < 2) {
+                          // Tránh rơi về 1 cột trên đa số điện thoại.
+                          statsPerRow = 2;
+                        }
+                        final statTileWidth = (constraints.maxWidth -
+                                (statSpacing * (statsPerRow - 1))) /
+                            statsPerRow;
+                        final actionAlignment = constraints.maxWidth < 520
+                            ? WrapAlignment.start
+                            : WrapAlignment.end;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                        const Text(
+                          'Thuốc',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Quản lý lịch uống và chia sẻ nhắc thuốc',
+                          style: TextStyle(color: AppColors.textGrey),
+                        ),
+                        const SizedBox(height: 12),
                         const MedicationPurposeBanner(),
                         const SizedBox(height: 12),
                         HeroActionBanner(
@@ -125,39 +167,53 @@ class MedicationView extends StatelessWidget {
                           action: Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            alignment: WrapAlignment.end,
+                            alignment: actionAlignment,
                             children: [
+                              OutlinedButton.icon(
+                                onPressed: state.medications.isEmpty
+                                    ? null
+                                    : () => _showManageMedicationsDialog(context),
+                                icon: Icon(
+                                  Icons.edit_rounded,
+                                  size: isCompactPhone ? 18 : 20,
+                                ),
+                                label: const Text(_manageButtonLabel),
+                                style: _outlinedHeroActionStyle(isCompactPhone),
+                              ),
                               OutlinedButton.icon(
                                 onPressed: state.medications.isEmpty
                                     ? null
                                     : () =>
                                         _showManageMedicationsDialog(context),
-                                icon: const Icon(Icons.edit_rounded, size: 20),
-                                label: const Text('Chỉnh sửa'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                  side: const BorderSide(
-                                      color: AppColors.primary),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                icon: Icon(
+                                  Icons.group_add_outlined,
+                                  size: isCompactPhone ? 18 : 20,
                                 ),
+                                label: const Text(_shareButtonLabel),
+                                style: _outlinedHeroActionStyle(isCompactPhone),
                               ),
                               FilledButton.icon(
                                 onPressed: () =>
                                     _showAddMedicationDialog(context),
-                                icon: const Icon(Icons.add_rounded, size: 22),
-                                label: const Text('Thêm'),
+                                icon: Icon(
+                                  Icons.add_rounded,
+                                  size: isCompactPhone ? 20 : 22,
+                                ),
+                                label: const Text(_addButtonLabel),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: AppColors.surface,
                                   elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isCompactPhone ? 12 : 16,
+                                    vertical: 12,
+                                  ),
+                                  visualDensity: isCompactPhone
+                                      ? const VisualDensity(
+                                          horizontal: -2,
+                                          vertical: 0,
+                                        )
+                                      : VisualDensity.standard,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -167,45 +223,42 @@ class MedicationView extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        Row(
+                        Wrap(
+                          spacing: statSpacing,
+                          runSpacing: statSpacing,
                           children: [
-                            Expanded(
-                              child: AppStatTile(
-                                icon: Icons.event_note_rounded,
-                                iconBg: AppColors.inputBackground,
-                                iconColor: AppColors.textSecondary,
-                                value: total,
-                                label: 'Lượt uống',
-                                valueColor: AppColors.textBlack,
-                              ),
+                            _buildStatTile(
+                              width: statTileWidth,
+                              icon: Icons.event_note_rounded,
+                              iconBg: AppColors.inputBackground,
+                              iconColor: AppColors.textSecondary,
+                              value: total,
+                              label: 'Lượt uống',
+                              valueColor: AppColors.textBlack,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: AppStatTile(
-                                icon: Icons.task_alt_rounded,
-                                iconBg: AppColors.primaryContainer,
-                                iconColor: AppColors.primary,
-                                value: taken,
-                                label: 'Đã uống',
-                                valueColor: AppColors.primary,
-                              ),
+                            _buildStatTile(
+                              width: statTileWidth,
+                              icon: Icons.task_alt_rounded,
+                              iconBg: AppColors.primaryContainer,
+                              iconColor: AppColors.primary,
+                              value: taken,
+                              label: 'Đã uống',
+                              valueColor: AppColors.primary,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: AppStatTile(
-                                icon: Icons.schedule_rounded,
-                                iconBg: missed > 0
-                                    ? AppColors.errorLight
-                                    : AppColors.inputBackground,
-                                iconColor: missed > 0
-                                    ? AppColors.error
-                                    : AppColors.textGrey,
-                                value: missed,
-                                label: 'Cần chú ý',
-                                valueColor: missed > 0
-                                    ? AppColors.error
-                                    : AppColors.textBlack,
-                              ),
+                            _buildStatTile(
+                              width: statTileWidth,
+                              icon: Icons.schedule_rounded,
+                              iconBg: missed > 0
+                                  ? AppColors.errorLight
+                                  : AppColors.inputBackground,
+                              iconColor: missed > 0
+                                  ? AppColors.error
+                                  : AppColors.textGrey,
+                              value: missed,
+                              label: 'Cần chú ý',
+                              valueColor: missed > 0
+                                  ? AppColors.error
+                                  : AppColors.textBlack,
                             ),
                           ],
                         ),
@@ -240,6 +293,8 @@ class MedicationView extends StatelessWidget {
                                   ),
                         ),
                       ],
+                    );
+                      },
                     ),
                   ),
                 ),
@@ -273,6 +328,48 @@ class MedicationView extends StatelessWidget {
       builder: (_) => BlocProvider.value(
         value: bloc,
         child: const ManageMedicationsDialog(),
+      ),
+    );
+  }
+
+  Widget _buildStatTile({
+    required double width,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required int value,
+    required String label,
+    required Color valueColor,
+  }) {
+    return SizedBox(
+      width: width,
+      child: AppStatTile(
+        icon: icon,
+        iconBg: iconBg,
+        iconColor: iconColor,
+        value: value,
+        label: label,
+        valueColor: valueColor,
+      ),
+    );
+  }
+
+  ButtonStyle _outlinedHeroActionStyle(bool isCompactPhone) {
+    return OutlinedButton.styleFrom(
+      foregroundColor: AppColors.primary,
+      side: const BorderSide(color: AppColors.primary),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompactPhone ? 10 : 14,
+        vertical: 12,
+      ),
+      visualDensity: isCompactPhone
+          ? const VisualDensity(
+              horizontal: -2,
+              vertical: 0,
+            )
+          : VisualDensity.standard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }

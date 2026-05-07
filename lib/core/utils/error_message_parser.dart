@@ -19,8 +19,9 @@ class ErrorMessageParser {
     'unauthorized': 'Bạn không có quyền thực hiện thao tác này.',
     'forbidden': 'Bạn không có quyền thực hiện thao tác này.',
     'validation': 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.',
-    'server error': 'Lỗi máy chủ. Vui lòng thử lại sau.',
+    'server error': 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau.',
     'bad request': 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại.',
+    'invalid metric': 'Loại chỉ số này chưa được hỗ trợ. Hãy chọn chỉ số khác hoặc thử lại sau.',
   };
 
   /// Parses error message and returns user-friendly Vietnamese message

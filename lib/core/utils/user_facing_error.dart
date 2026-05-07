@@ -52,7 +52,7 @@ abstract final class UserFacingError {
           'Nếu vẫn lỗi, vui lòng thử sau hoặc dùng ứng dụng trên điện thoại.';
     }
     if (lower.contains('invalid uuid format')) {
-      return 'Thông tin tài khoản không khớp với máy chủ. '
+      return 'Phiên đăng nhập không còn hợp lệ. '
           'Hãy đăng xuất và đăng nhập lại, rồi thử một lần nữa.';
     }
     return ErrorMessageParser.parse(text);
