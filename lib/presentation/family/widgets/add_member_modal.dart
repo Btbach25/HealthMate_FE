@@ -15,8 +15,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AddMemberModal extends StatefulWidget {
   final String groupId;
+  final List<MetricType> groupAllowedMetrics;
 
-  const AddMemberModal({super.key, required this.groupId});
+  const AddMemberModal({
+    super.key,
+    required this.groupId,
+    required this.groupAllowedMetrics,
+  });
 
   @override
   State<AddMemberModal> createState() => _AddMemberModalState();
@@ -28,6 +33,7 @@ class _AddMemberModalState extends State<AddMemberModal>
   final _emailController = TextEditingController();
   RelationshipType? _selectedRelationship;
   final Set<MetricType> _selectedMetrics = {};
+  bool _allowMedicationReminderShare = false;
   bool _isLoading = false;
 
   static final List<RelationshipType> _relationships = RelationshipType.all;
@@ -40,6 +46,19 @@ class _AddMemberModalState extends State<AddMemberModal>
 
   void _handleInvite() {
     if (_isLoading) return;
+
+    final allowedMetrics = widget.groupAllowedMetrics.toSet();
+    final invalidSelections = _selectedMetrics.difference(allowedMetrics);
+    if (invalidSelections.isNotEmpty) {
+      setState(() {
+        _selectedMetrics.removeAll(invalidSelections);
+      });
+      showInlineMessage(
+        'Bạn chỉ có thể chọn chỉ số nằm trong quyền chia sẻ của nhóm.',
+        backgroundColor: AppColors.error,
+      );
+      return;
+    }
     
     if (!_formKey.currentState!.validate()) {
       showInlineMessage(
@@ -182,7 +201,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Chọn loại dữ liệu sức khỏe mà thành viên này có thể xem (hiện hỗ trợ: nhịp tim, bước chân, calo)',
+                  'Chọn thông tin sức khỏe mà người này được xem sau khi họ chấp nhận lời mời.',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.textGrey.withValues(alpha:0.8),
@@ -193,11 +212,18 @@ class _AddMemberModalState extends State<AddMemberModal>
                   builder: (context, constraints) {
                     final itemWidth =
                         (constraints.maxWidth - AppSize.spacing12) / 2;
+                    final allowedMetrics = widget.groupAllowedMetrics.toSet();
+                    final selectableMetrics = MetricHelper.availableMetrics
+                        .where((m) => allowedMetrics.contains(m.type))
+                        .where((m) =>
+                            MetricSelectionHelper.isMetricSupportedByBackend(
+                              m.type,
+                            ))
+                        .toList();
                     return Wrap(
                       spacing: AppSize.spacing12,
                       runSpacing: AppSize.spacing12,
-                      children: MetricHelper.availableMetrics
-                          .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
+                      children: selectableMetrics
                           .map(
                             (metric) => SizedBox(
                               width: itemWidth,
@@ -218,9 +244,35 @@ class _AddMemberModalState extends State<AddMemberModal>
                               ),
                             ),
                           )
-                          .toList(),
+                          .toList()
+                        ..add(
+                          SizedBox(
+                            width: itemWidth,
+                            child: _MedicationPermissionTile(
+                              selected: _allowMedicationReminderShare,
+                              onTap: () {
+                                setState(() {
+                                  _allowMedicationReminderShare =
+                                      !_allowMedicationReminderShare;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
                     );
                   },
+                ),
+                const SizedBox(height: AppSize.spacing8),
+                Text(
+                  widget.groupAllowedMetrics.isEmpty
+                      ? 'Nhóm hiện chưa cấu hình chỉ số chia sẻ, hãy cập nhật quyền chia sẻ của nhóm trước khi mời.'
+                      : (_allowMedicationReminderShare
+                          ? 'Đã chọn chia sẻ nhắc nhở uống thuốc cho thành viên này (sẽ áp dụng sau khi thành viên tham gia).'
+                          : 'Bạn có thể bật thêm quyền chia sẻ nhắc nhở uống thuốc cho thành viên.'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textGrey.withValues(alpha: 0.8),
+                  ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -276,6 +328,71 @@ class _AddMemberModalState extends State<AddMemberModal>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MedicationPermissionTile extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MedicationPermissionTile({
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSize.p16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryContainer : Colors.white,
+          borderRadius: BorderRadius.circular(AppSize.r12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.cardBorder,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.primary : AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.medication_outlined,
+                color: selected ? Colors.white : AppColors.textGrey,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Nhắc nhở uống thuốc',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? AppColors.primaryDark : AppColors.textBlack,
+                ),
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.check_circle,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ],
+          ],
         ),
       ),
     );

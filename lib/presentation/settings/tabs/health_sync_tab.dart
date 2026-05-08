@@ -22,7 +22,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
   bool _isSyncing = false;
   // ignore: unused_field
   DateTime? _lastSyncTime; // Reserved for future use
-  
+
   final Map<String, bool> _healthDataTypes = {
     'heart_rate': true,
     'steps': true,
@@ -31,7 +31,6 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
   };
 
   Future<void> _requestPermissions() async {
-    // Simulate permission request
     await Future.delayed(const Duration(seconds: 1));
     if (mounted) {
       setState(() {
@@ -61,7 +60,6 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
       _isSyncing = true;
     });
 
-    // Simulate sync
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
@@ -85,130 +83,82 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Permission / Sync status card
           SettingsCard(
             icon: Icons.sync,
             title: 'Đồng bộ dữ liệu sức khỏe',
-            trailing: (!_hasPermissions && _isHealthConnectAvailable)
-                ? Container(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: AppColors.buttonShadow,
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _requestPermissions,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                      ),
-                      child: const Text(
-                        'Cấp quyền',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  )
-                : (_hasPermissions)
-                    ? Container(
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: AppColors.buttonShadow,
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: _isSyncing ? null : _performSync,
-                          icon: _isSyncing
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Icon(Icons.sync, size: 18),
-                          label: Text(
-                            _isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                          ),
-                        ),
-                      )
-                    : null,
             children: [
-              if (!_hasPermissions)
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.orange,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Chưa cấp quyền',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: Colors.orange,
+              if (!_hasPermissions) ...[
+                _buildPermissionWarning(),
+                const SizedBox(height: 12),
+                if (_isHealthConnectAvailable)
+                  Semantics(
+                    label: 'Cấp quyền truy cập Health Connect',
+                    button: true,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _requestPermissions,
+                        icon: const Icon(Icons.lock_open_outlined, size: 18),
+                        label: const Text('Cấp quyền truy cập'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
+              ] else ...[
+                _buildPermissionGrantedRow(),
+                const SizedBox(height: 12),
+                Semantics(
+                  label: _isSyncing ? 'Đang đồng bộ dữ liệu' : 'Đồng bộ dữ liệu ngay',
+                  button: true,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSyncing ? null : _performSync,
+                      icon: _isSyncing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.sync, size: 18),
+                      label: Text(_isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
+              ],
             ],
           ),
-          
-          if (!_hasPermissions) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: AppColors.errorLight,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: AppColors.error,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Ứng dụng cần quyền truy cập Health Connect để đồng bộ dữ liệu sức khỏe. Vui lòng cấp quyền để sử dụng tính năng này.',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          
-          const SizedBox(height: AppSize.spacing24),
-          
+
+          const SizedBox(height: AppSize.spacing16),
+
           // Auto Sync Card
           SettingsCard(
             icon: Icons.settings_outlined,
@@ -226,7 +176,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                 },
               ),
               if (_autoSyncEnabled && _hasPermissions) ...[
-                const Divider(height: 24),
+                const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
                 SettingsDropdown(
                   label: 'Chu kỳ đồng bộ',
                   value: _syncInterval,
@@ -240,12 +190,12 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
               ],
             ],
           ),
-          
-          const SizedBox(height: AppSize.spacing24),
-          
+
+          const SizedBox(height: AppSize.spacing16),
+
           // Health Data Types Card
           SettingsCard(
-            icon: Icons.favorite,
+            icon: Icons.favorite_outline,
             title: 'Dữ liệu sức khỏe',
             children: [
               _buildHealthDataTypeRow(
@@ -254,21 +204,21 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                 key: 'heart_rate',
                 enabled: _healthDataTypes['heart_rate'] ?? false,
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               _buildHealthDataTypeRow(
                 name: 'Số bước chân',
                 icon: Icons.directions_walk,
                 key: 'steps',
                 enabled: _healthDataTypes['steps'] ?? false,
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               _buildHealthDataTypeRow(
                 name: 'Lượng calo',
                 icon: Icons.local_fire_department,
                 key: 'calories',
                 enabled: _healthDataTypes['calories'] ?? false,
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               _buildHealthDataTypeRow(
                 name: 'Giấc ngủ',
                 icon: Icons.bedtime,
@@ -277,7 +227,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
               ),
             ],
           ),
-          
+
           SizedBox(
             height: MediaQuery.of(context).padding.bottom +
                 AppSize.bottomTabSafeInset,
@@ -287,8 +237,48 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     );
   }
 
-  // Removed _buildCard and _buildSwitchRow - now using SettingsCard and SettingsSwitchRow widgets
+  Widget _buildPermissionWarning() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Ứng dụng cần quyền truy cập Health Connect để đồng bộ dữ liệu sức khỏe.',
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildPermissionGrantedRow() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: AppColors.successLight,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'Đã cấp quyền truy cập',
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.success),
+        ),
+      ],
+    );
+  }
 
   Widget _buildHealthDataTypeRow({
     required String name,
@@ -297,106 +287,84 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     required bool enabled,
   }) {
     final now = DateTime.now();
-    final sampleValue = _getSampleValue(key);
-    final updateTime = enabled 
+    final updateTime = enabled
         ? DateFormat('dd/MM/yyyy HH:mm').format(now)
         : 'Chưa đồng bộ';
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: enabled ? AppColors.primary.withValues(alpha:0.3) : AppColors.cardBorder,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: enabled 
-                  ? AppColors.primaryContainer 
-                  : AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: enabled ? AppColors.primary : AppColors.textGrey,
-              size: 20,
-            ),
+    final sampleValue = _getSampleValue(key);
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: enabled ? AppColors.primaryContainer : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(9),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      name,
-                      style: AppTextStyles.labelLarge,
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      enabled ? Icons.check_circle : Icons.error_outline,
-                      size: 16,
-                      color: enabled ? AppColors.success : AppColors.error,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Cập nhật: $updateTime',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textGrey,
-                    fontSize: 12,
-                  ),
-                ),
-                if (enabled && sampleValue != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    sampleValue,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+          child: Icon(
+            icon,
+            color: enabled ? AppColors.primary : AppColors.textGrey,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(name, style: AppTextStyles.labelLarge),
+                  const SizedBox(width: 6),
+                  Icon(
+                    enabled ? Icons.check_circle : Icons.error_outline,
+                    size: 14,
+                    color: enabled ? AppColors.success : AppColors.error,
                   ),
                 ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Cập nhật: $updateTime',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textGrey,
+                  fontSize: AppSize.fontSize12,
+                ),
+              ),
+              if (enabled && sampleValue != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  sampleValue,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
-            ),
+            ],
           ),
-          Material(
-            color: Colors.transparent,
-            child: Switch(
-              value: enabled,
-              onChanged: _hasPermissions
-                  ? (value) {
-                      setState(() {
-                        _healthDataTypes[key] = value;
-                      });
-                    }
-                  : null,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              splashRadius: 0,
-              thumbColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return Colors.white;
+        ),
+        const SizedBox(width: 8),
+        Switch(
+          value: enabled,
+          onChanged: _hasPermissions
+              ? (value) {
+                  setState(() {
+                    _healthDataTypes[key] = value;
+                  });
                 }
-                return Colors.grey[300];
-              }),
-              trackColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return AppColors.primary;
-                }
-                return Colors.grey[300];
-              }),
-            ),
-          ),
-        ],
-      ),
+              : null,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          splashRadius: 0,
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return Colors.white;
+            return Colors.grey[300];
+          }),
+          trackColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.primary;
+            return Colors.grey[300];
+          }),
+        ),
+      ],
     );
   }
 
@@ -415,4 +383,3 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     }
   }
 }
-

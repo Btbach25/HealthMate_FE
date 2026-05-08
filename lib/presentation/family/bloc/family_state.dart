@@ -4,6 +4,8 @@ enum FamilyStatus {
   initial,
   loading,
   loaded,
+  invitationPreviewLoading,
+  invitationPreviewLoaded,
   error,
   creatingGroup,
   groupCreated,
@@ -17,6 +19,9 @@ enum FamilyStatus {
   invitationAccepted,
   invitationDeclined,
   groupUpdated,
+  // Owner duyệt/từ chối yêu cầu tham gia. [BE-REQ-01] [BE-REQ-02]
+  joinRequestApproved,
+  joinRequestRejected,
 }
 
 const _familyStateUnset = Object();
@@ -32,6 +37,10 @@ class FamilyState extends Equatable {
   final String? currentGroupId;
   final List<IncomingInvitation> incomingInvitations;
   final List<OutgoingInvitation> outgoingInvitations;
+  /// Owner only: thành viên đang chờ chủ nhóm duyệt (từ GET /groups/:id/pending-approvals).
+  final List<OutgoingInvitation> pendingApprovals;
+  final GroupDetails? invitationPreviewDetails;
+  final String? invitationPreviewGroupId;
   /// FE-only: các group đã rời/xóa cục bộ, dùng để filter kết quả fetch trễ.
   final Set<String> hiddenGroupIds;
 
@@ -45,6 +54,9 @@ class FamilyState extends Equatable {
     this.currentGroupId,
     this.incomingInvitations = const [],
     this.outgoingInvitations = const [],
+    this.pendingApprovals = const [],
+    this.invitationPreviewDetails,
+    this.invitationPreviewGroupId,
     this.hiddenGroupIds = const <String>{},
   });
 
@@ -59,6 +71,9 @@ class FamilyState extends Equatable {
       currentGroupId: null,
       incomingInvitations: [],
       outgoingInvitations: [],
+      pendingApprovals: [],
+      invitationPreviewDetails: null,
+      invitationPreviewGroupId: null,
       hiddenGroupIds: <String>{},
     );
   }
@@ -73,6 +88,9 @@ class FamilyState extends Equatable {
     Object? currentGroupId = _familyStateUnset,
     Object? incomingInvitations = _familyStateUnset,
     Object? outgoingInvitations = _familyStateUnset,
+    Object? pendingApprovals = _familyStateUnset,
+    Object? invitationPreviewDetails = _familyStateUnset,
+    Object? invitationPreviewGroupId = _familyStateUnset,
     Object? hiddenGroupIds = _familyStateUnset,
   }) {
     return FamilyState(
@@ -99,6 +117,17 @@ class FamilyState extends Equatable {
       outgoingInvitations: identical(outgoingInvitations, _familyStateUnset)
           ? this.outgoingInvitations
           : outgoingInvitations as List<OutgoingInvitation>,
+      pendingApprovals: identical(pendingApprovals, _familyStateUnset)
+          ? this.pendingApprovals
+          : pendingApprovals as List<OutgoingInvitation>,
+      invitationPreviewDetails:
+          identical(invitationPreviewDetails, _familyStateUnset)
+              ? this.invitationPreviewDetails
+              : invitationPreviewDetails as GroupDetails?,
+      invitationPreviewGroupId:
+          identical(invitationPreviewGroupId, _familyStateUnset)
+              ? this.invitationPreviewGroupId
+              : invitationPreviewGroupId as String?,
       hiddenGroupIds: identical(hiddenGroupIds, _familyStateUnset)
           ? this.hiddenGroupIds
           : hiddenGroupIds as Set<String>,
@@ -116,6 +145,9 @@ class FamilyState extends Equatable {
         currentGroupId,
         incomingInvitations,
         outgoingInvitations,
+        pendingApprovals,
+        invitationPreviewDetails,
+        invitationPreviewGroupId,
         hiddenGroupIds,
       ];
 }

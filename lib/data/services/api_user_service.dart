@@ -1,8 +1,10 @@
+import 'package:fe/core/utils/user_timezone.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/user_service.dart';
+import 'package:flutter/foundation.dart';
 
 /// Implementation [UserService] goi API Users qua [ApiClient].
 class ApiUserService implements UserService {
@@ -39,6 +41,7 @@ class ApiUserService implements UserService {
     double? weight,
     double? height,
     String? bloodGroup,
+    String? timezone,
   }) async {
     try {
       final body = <String, dynamic>{'name': name};
@@ -50,6 +53,7 @@ class ApiUserService implements UserService {
       if (weight != null) body['weight'] = weight;
       if (height != null) body['height'] = height;
       if (bloodGroup != null) body['blood_group'] = bloodGroup;
+      if (timezone != null && timezone.isNotEmpty) body['timezone'] = timezone;
       await _apiClient.put<void>(
         ApiEndpoints.usersProfile,
         body: body,
@@ -62,6 +66,30 @@ class ApiUserService implements UserService {
         message: 'Loi khi cap nhat ho so.',
         originalError: e,
       );
+    }
+  }
+
+  @override
+  Future<void> syncTimezoneAfterLogin() async {
+    try {
+      final profile = await getProfile();
+      final tz = resolveUserTimezone();
+      if (profile.name.trim().isEmpty) return;
+      if (profile.timezone == tz) return;
+      await updateProfile(
+        name: profile.name,
+        phone: profile.phone,
+        address: profile.address,
+        gender: profile.gender,
+        birthday: profile.birthday,
+        weight: profile.weight,
+        height: profile.height,
+        bloodGroup: profile.bloodGroup,
+        timezone: tz,
+      );
+      debugPrint('[UserProfile] Synced timezone: $tz');
+    } catch (e) {
+      debugPrint('[UserProfile] Sync timezone skipped: $e');
     }
   }
 

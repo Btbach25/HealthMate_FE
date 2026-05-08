@@ -201,6 +201,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: _healthRepository),
         RepositoryProvider<UserService>.value(value: _userService),
         RepositoryProvider.value(value: _medicationRepository),
+        RepositoryProvider.value(value: _healthWsService),
         RepositoryProvider.value(value: _fcmService),
       ],
       child: MultiBlocProvider(
@@ -256,6 +257,10 @@ class _AppViewState extends State<AppView> {
         if (!mounted) return;
         if (authState.status == AuthStatus.authenticated) {
           context.read<FcmService>().registerCurrentToken();
+          final userService = context.read<UserService>();
+          Future<void>(() async {
+            await userService.syncTimezoneAfterLogin();
+          });
         } else if (authState.status == AuthStatus.unauthenticated) {
           context.read<DeviceHealthCubit>().stopPeriodicSync();
           context.read<FcmService>().unregisterToken();

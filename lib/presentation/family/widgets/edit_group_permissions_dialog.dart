@@ -33,6 +33,7 @@ class _EditGroupPermissionsDialogState
   final _nameController = TextEditingController();
   final Set<MetricType> _selectedMetrics = {};
   late final List<MetricOption> _supportedMetrics;
+  bool _allowMedicationReminderShare = false;
   bool _isLoading = false;
   bool _didEditName = false;
   
@@ -45,6 +46,7 @@ class _EditGroupPermissionsDialogState
     _nameController.text = widget.group.name;
     // Pre-select current group metrics
     _selectedMetrics.addAll(widget.group.sharedMetrics);
+    _allowMedicationReminderShare = widget.group.medicationSharingAllowed;
     _supportedMetrics = MetricHelper.availableMetrics
         .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
         .toList();
@@ -72,14 +74,6 @@ class _EditGroupPermissionsDialogState
       return;
     }
 
-    if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
-      showInlineMessage(
-        MetricSelectionHelper.getValidationErrorMessage(),
-        backgroundColor: AppColors.error,
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
@@ -93,9 +87,11 @@ class _EditGroupPermissionsDialogState
         .filterMetricTypesForBackend(widget.group.sharedMetrics.map((m) => m.value).toList());
     final metricsChanged = selectedBackendMetricTypes.toSet() !=
         originalBackendMetricTypes.toSet();
+    final medicationChanged =
+        _allowMedicationReminderShare != widget.group.medicationSharingAllowed;
 
     // Only update if something changed
-    if (nameChanged || metricsChanged) {
+    if (nameChanged || metricsChanged || medicationChanged) {
       showDialog<void>(
         context: context,
         builder: (dialogContext) {
@@ -121,6 +117,8 @@ class _EditGroupPermissionsDialogState
                           name: nameChanged ? newName : null,
                           sharedMetrics:
                               metricsChanged ? selectedBackendMetricTypes : null,
+                          enableMedicationReminderShare:
+                              medicationChanged ? _allowMedicationReminderShare : null,
                         ),
                       );
                 },
@@ -226,7 +224,7 @@ class _EditGroupPermissionsDialogState
                     ),
                     const SizedBox(height: AppSize.spacing8),
                     Text(
-                      'Hiện tại chỉ hỗ trợ chia sẻ: Nhịp tim, Số bước chân, Lượng calo.',
+                      'Chọn loại chỉ số được chia sẻ trong nhóm. Nhắc uống thuốc chỉ áp dụng với thành viên đủ quyền — theo cài đặt nhóm và quyền từng người.',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textGrey,
                       ),
@@ -237,28 +235,53 @@ class _EditGroupPermissionsDialogState
                       style: AppTextStyles.labelLarge,
                     ),
                     const SizedBox(height: AppSize.spacing12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: _supportedMetrics.map((metric) {
-                        final isSelected = _selectedMetrics.contains(metric.type);
-                        return MetricCheckbox(
-                          metric: metric,
-                          isSelected: isSelected,
-                          width: 180,
-                          showCheckbox: false,
-                          showCheckIcon: true,
-                          onChanged: (selected) {
-                            setState(() {
-                              if (selected) {
-                                _selectedMetrics.add(metric.type);
-                              } else {
-                                _selectedMetrics.remove(metric.type);
-                              }
-                            });
-                          },
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final itemWidth =
+                            (constraints.maxWidth - AppSize.spacing12) / 2;
+                        return Wrap(
+                          spacing: AppSize.spacing12,
+                          runSpacing: AppSize.spacing12,
+                          children: _supportedMetrics
+                              .map((metric) {
+                                final isSelected =
+                                    _selectedMetrics.contains(metric.type);
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: MetricCheckbox(
+                                    metric: metric,
+                                    isSelected: isSelected,
+                                    showCheckbox: false,
+                                    showCheckIcon: true,
+                                    onChanged: (selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          _selectedMetrics.add(metric.type);
+                                        } else {
+                                          _selectedMetrics.remove(metric.type);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                );
+                              })
+                              .toList()
+                            ..add(
+                              SizedBox(
+                                width: itemWidth,
+                                child: _MedicationPermissionTile(
+                                  selected: _allowMedicationReminderShare,
+                                  onTap: () {
+                                    setState(() {
+                                      _allowMedicationReminderShare =
+                                          !_allowMedicationReminderShare;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
                         );
-                      }).toList(),
+                      },
                     ),
                     if (buildInlineMessage() != null) ...[
                       const SizedBox(height: AppSize.spacing16),
@@ -275,6 +298,71 @@ class _EditGroupPermissionsDialogState
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MedicationPermissionTile extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MedicationPermissionTile({
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSize.p16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryContainer : Colors.white,
+          borderRadius: BorderRadius.circular(AppSize.r12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.cardBorder,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.primary : AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.medication_outlined,
+                color: selected ? Colors.white : AppColors.textGrey,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Nhắc nhở uống thuốc',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? AppColors.primaryDark : AppColors.textBlack,
+                ),
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.check_circle,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ],
+          ],
         ),
       ),
     );

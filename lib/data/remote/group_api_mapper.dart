@@ -67,6 +67,7 @@ class GroupApiMapper {
       pendingInvitations: _int(json['pending_invitations']),
       sharedMetrics: _parseMetricTypes(json['shared_metrics']),
       ownerId: canonicalUserId(_str(json['owner_id'])),
+      medicationSharingAllowed: json['medication_sharing_allowed'] == true,
     );
   }
 

@@ -21,6 +21,7 @@ class FamilySummaryCards extends StatelessWidget {
           child: _SummaryCard(
             value: groupsJoined.toString(),
             label: 'Nhóm tham gia',
+            icon: Icons.people_outline_rounded,
             color: AppColors.primary,
           ),
         ),
@@ -29,7 +30,8 @@ class FamilySummaryCards extends StatelessWidget {
           child: _SummaryCard(
             value: pendingInvitations.toString(),
             label: 'Lời mời chờ',
-            color: Colors.orange,
+            icon: Icons.mark_email_unread_outlined,
+            color: const Color(0xFFE65100),
           ),
         ),
       ],
@@ -40,11 +42,13 @@ class FamilySummaryCards extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final String value;
   final String label;
+  final IconData icon;
   final Color color;
 
   const _SummaryCard({
     required this.value,
     required this.label,
+    required this.icon,
     required this.color,
   });
 
@@ -66,14 +70,10 @@ class _SummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSize.p8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha:0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppSize.r10),
                 ),
-                child: Icon(
-                  label == 'Nhóm tham gia' ? Icons.people : Icons.mail_outline,
-                  color: color,
-                  size: AppSize.icon20,
-                ),
+                child: Icon(icon, color: color, size: AppSize.icon20),
               ),
               const Spacer(),
             ],

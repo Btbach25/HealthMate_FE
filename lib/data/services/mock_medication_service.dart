@@ -1,10 +1,12 @@
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
+import 'package:fe/data/models/medication/medication_share.dart';
 import 'package:fe/data/services/medication_service.dart';
 
 class MockMedicationService implements MedicationService {
   final List<Medication> _medications;
+  final Map<String, List<MedicationShare>> _sharesByMedicationId = {};
 
   MockMedicationService() : _medications = _buildMockData();
 
@@ -126,5 +128,50 @@ class MockMedicationService implements MedicationService {
     _medications[medIndex] = med.copyWith(reminders: updatedReminders);
 
     return List.from(_medications);
+  }
+
+  @override
+  Future<List<MedicationShare>> getMedicationShares(String medicationId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return List<MedicationShare>.from(_sharesByMedicationId[medicationId] ?? []);
+  }
+
+  @override
+  Future<void> addMedicationShare({
+    required String medicationId,
+    required String groupId,
+    required String sharedWithUserId,
+    int notifyOffsetMinutes = 0,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    final current = _sharesByMedicationId.putIfAbsent(medicationId, () => []);
+    current.add(
+      MedicationShare(
+        id: 'share-${current.length + 1}',
+        medicationId: medicationId,
+        groupId: groupId,
+        sharedWithUserId: sharedWithUserId,
+        notifyOffsetMinutes: notifyOffsetMinutes,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteMedicationShare({
+    required String medicationId,
+    required String shareId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final current = _sharesByMedicationId[medicationId];
+    if (current == null) return;
+    current.removeWhere((s) => s.id == shareId);
+  }
+
+  @override
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 120));
   }
 }

@@ -55,13 +55,13 @@ class AuthApiService implements AuthService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.body.isEmpty) {
-        throw Exception('Máy chủ không phản hồi. Vui lòng thử lại sau.');
+        throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
       }
       dynamic body;
       try {
         body = jsonDecode(response.body);
       } catch (_) {
-        throw Exception('Máy chủ đang gặp sự cố (${response.statusCode}). Vui lòng thử lại sau.');
+        throw Exception('Hệ thống đang gặp sự cố. Vui lòng thử lại sau.');
       }
 
       if (response.statusCode == 200) {
@@ -120,13 +120,13 @@ class AuthApiService implements AuthService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.body.isEmpty) {
-        throw Exception('Máy chủ không phản hồi. Vui lòng thử lại sau.');
+        throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
       }
       dynamic body;
       try {
         body = jsonDecode(response.body);
       } catch (_) {
-        throw Exception('Máy chủ đang gặp sự cố (${response.statusCode}). Vui lòng thử lại sau.');
+        throw Exception('Hệ thống đang gặp sự cố. Vui lòng thử lại sau.');
       }
       if (response.statusCode == 200) {
         final authResponse = AuthResponse.fromJson(body);
@@ -172,8 +172,8 @@ class AuthApiService implements AuthService {
 
       if (response.statusCode == 500) {
         throw Exception(
-          'Máy chủ tạm thời không gửi được email xác thực (lỗi gửi mail). '
-          'Vui lòng thử lại sau hoặc liên hệ quản trị viên.',
+          'Hiện không gửi được email xác thực. '
+          'Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.',
         );
       }
 

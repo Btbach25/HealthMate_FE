@@ -7,6 +7,7 @@ class LocalStorageService {
   static const String _userKey = 'current_user';
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _allergiesKey = 'user_allergies';
 
   Future<void> saveUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,6 +42,16 @@ class LocalStorageService {
   Future<void> saveAccessToken(String accessToken) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accessTokenKey, accessToken);
+  }
+
+  Future<void> saveAllergies(List<String> allergies) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_allergiesKey, allergies);
+  }
+
+  Future<List<String>> getAllergies() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_allergiesKey) ?? [];
   }
 
   Future<void> clearAll() async {

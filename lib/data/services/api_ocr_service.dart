@@ -136,6 +136,12 @@ class ApiOcrService {
         final specificTimes = specificTimesDyn is List
             ? specificTimesDyn.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
             : const <String>[];
+        // Map allergy_hints from OCR-service (generic drug-class hints, not user-specific).
+        // Field is new and optional — falls back to empty list for backward compat.
+        final allergyHintsDyn = item['allergy_hints'];
+        final allergyHints = allergyHintsDyn is List
+            ? allergyHintsDyn.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
+            : const <String>[];
         out.add(
           ParsedPrescriptionLine(
             name: name,
@@ -145,6 +151,7 @@ class ApiOcrService {
             suggestedTimes:
                 specificTimes.isEmpty ? _fallbackTimes(timesPerDay) : specificTimes,
             likelyOral: true,
+            allergyHints: allergyHints,
           ),
         );
       }

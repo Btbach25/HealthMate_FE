@@ -7,8 +7,10 @@ import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
 import 'package:fe/data/models/group/family_group.dart';
+import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
+import 'package:fe/data/repositories/family_repository.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/family_management_app_bar.dart';
@@ -112,8 +114,8 @@ class _FamilyGroupManagementViewState
           if (state.status == FamilyStatus.invitationAccepted) {
             ToastUtils.showCustomToast(
               context,
-              'Đã chấp nhận lời mời thành công',
-              ToastType.success,
+              'Đã gửi yêu cầu tham gia, đang chờ chủ nhóm duyệt.',
+              ToastType.info,
             );
           }
           if (state.status == FamilyStatus.invitationDeclined) {
@@ -122,8 +124,6 @@ class _FamilyGroupManagementViewState
               'Đã từ chối lời mời',
               ToastType.info,
             );
-            // Force refresh incoming invitations to update UI
-            context.read<FamilyBloc>().add(const FetchIncomingInvitations());
           }
         },
         child: BlocBuilder<FamilyBloc, FamilyState>(
@@ -236,42 +236,13 @@ class _FamilyGroupManagementViewState
   }
 
   void _editGroupPermissions(BuildContext context, FamilyGroup group) {
-    // Show confirmation dialog first
+    final bloc = context.read<FamilyBloc>();
     showDialog<void>(
       context: context,
-      builder: (confirmContext) {
-        return AlertDialog(
-          title: const Text('Chỉnh sửa nhóm'),
-          content: const Text(
-            'Bạn có muốn chỉnh sửa thông tin nhóm này không?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(confirmContext),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(confirmContext);
-                // Open edit dialog
-                final bloc = context.read<FamilyBloc>();
-                showDialog<void>(
-                  context: context,
-                  builder: (dialogContext) {
-                    return BlocProvider.value(
-                      value: bloc,
-                      child: EditGroupPermissionsDialog(group: group),
-                    );
-                  },
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Chỉnh sửa'),
-            ),
-          ],
+      builder: (dialogContext) {
+        return BlocProvider.value(
+          value: bloc,
+          child: EditGroupPermissionsDialog(group: group),
         );
       },
     );
@@ -327,12 +298,12 @@ class _MyGroupsTab extends StatelessWidget {
   }
 
 
+  static final _groupDateFormat = DateFormat('dd/MM/yyyy');
+
   Widget _buildGroupCard(BuildContext context, FamilyGroup group) {
     final authUserId = context.read<AuthBloc>().state.user.id;
     final isOwner = authUserId.isNotEmpty && group.ownerId == authUserId;
-    // BE GET /groups không trả member_count → 0; chủ nhóm luôn là ít nhất 1 thành viên
-    final displayMemberCount = (isOwner && group.memberCount < 1) ? 1 : group.memberCount;
-    final dateFormat = DateFormat('yyyy-MM-dd');
+    final displayMemberCount = group.memberCount < 1 ? 1 : group.memberCount;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -423,24 +394,7 @@ class _MyGroupsTab extends StatelessWidget {
                           icon: const Icon(Icons.edit, size: 20),
                           onPressed: () => onEditPermissions(context, group),
                           color: AppColors.textGrey,
-                          tooltip: 'Chỉnh sửa quyền truy cập',
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.copy, size: 20),
-                          onPressed: null,
-                          color: AppColors.textGrey,
-                          tooltip: 'Chỉ chủ nhóm mới có thể sao chép liên kết',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.share, size: 20),
-                          onPressed: null,
-                          color: AppColors.textGrey,
-                          tooltip: 'Chỉ chủ nhóm mới có thể chỉnh sửa chia sẻ',
+                          tooltip: 'Chỉnh sửa nhóm',
                         ),
                       ],
                     ),
@@ -448,7 +402,7 @@ class _MyGroupsTab extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '$displayMemberCount thành viên • Tạo ${dateFormat.format(group.createdAt)}',
+                '$displayMemberCount thành viên • Tạo ${_groupDateFormat.format(group.createdAt)}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textGrey,
@@ -479,7 +433,34 @@ class _MyGroupsTab extends StatelessWidget {
                     );
                   }).toList(),
                 ),
+              ] else if (group.medicationSharingAllowed) ...[
+                const SizedBox(height: 12),
               ],
+              if (group.medicationSharingAllowed)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.inputBackground,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Nhắc nhở uống thuốc',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textBlack,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              
             ],
           ),
         );
@@ -496,31 +477,23 @@ class _IncomingInvitationsTab extends StatelessWidget {
     );
   }
 
+  static final _inviteDateFormat = DateFormat('dd/MM/yyyy');
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<FamilyBloc, FamilyState>(
-      listener: (context, state) {
-        // Force refresh when invitation is declined or accepted
-        if (state.status == FamilyStatus.invitationDeclined ||
-            state.status == FamilyStatus.invitationAccepted) {
-          // The list will be automatically updated by BlocBuilder below
-          // after FetchIncomingInvitations is dispatched in bloc
+    return BlocBuilder<FamilyBloc, FamilyState>(
+      buildWhen: (previous, current) =>
+          previous.incomingInvitations != current.incomingInvitations ||
+          previous.status != current.status,
+      builder: (context, state) {
+        if (state.incomingInvitations.isEmpty &&
+            state.status != FamilyStatus.loading) {
+          return _RefreshableEmptyState(
+            onRefresh: () => _refreshIncomingInvitations(context),
+            icon: Icons.mail_outline,
+            title: 'Không có lời mời nào',
+          );
         }
-      },
-      child: BlocBuilder<FamilyBloc, FamilyState>(
-        buildWhen: (previous, current) =>
-            previous.incomingInvitations != current.incomingInvitations ||
-            previous.status != current.status,
-        builder: (context, state) {
-          // Show empty state immediately if no data, don't wait for loading
-          if (state.incomingInvitations.isEmpty && 
-              state.status != FamilyStatus.loading) {
-            return _RefreshableEmptyState(
-              onRefresh: () => _refreshIncomingInvitations(context),
-              icon: Icons.mail_outline,
-              title: 'Không có lời mời nào',
-            );
-          }
 
         return RefreshIndicator(
           onRefresh: () => _refreshIncomingInvitations(context),
@@ -536,18 +509,18 @@ class _IncomingInvitationsTab extends StatelessWidget {
             ),
             itemCount: state.incomingInvitations.length,
             itemBuilder: (context, index) {
-              final invitation = state.incomingInvitations[index];
-              return _buildIncomingInvitationCard(context, invitation);
+              return _buildIncomingInvitationCard(
+                context,
+                state.incomingInvitations[index],
+              );
             },
           ),
         );
-        },
-      ),
+      },
     );
   }
 
   Widget _buildIncomingInvitationCard(BuildContext context, IncomingInvitation invitation) {
-    final dateFormat = DateFormat('dd/MM/yyyy');
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(AppSize.p16),
@@ -584,7 +557,7 @@ class _IncomingInvitationsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${invitation.memberCount} thành viên • ${dateFormat.format(invitation.sentAt)}',
+                      '${invitation.memberCount} thành viên • ${_inviteDateFormat.format(invitation.sentAt)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textGrey,
@@ -615,6 +588,27 @@ class _IncomingInvitationsTab extends StatelessWidget {
               }).toList(),
             ),
           ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                showDialog<void>(
+                  context: context,
+                  builder: (_) => _InvitationGroupDetailsDialog(
+                    invitation: invitation,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              label: const Text('Xem chi tiết nhóm'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -680,6 +674,395 @@ class _IncomingInvitationsTab extends StatelessWidget {
 
 }
 
+class _InvitationGroupDetailsDialog extends StatefulWidget {
+  final IncomingInvitation invitation;
+
+  const _InvitationGroupDetailsDialog({
+    required this.invitation,
+  });
+
+  @override
+  State<_InvitationGroupDetailsDialog> createState() =>
+      _InvitationGroupDetailsDialogState();
+}
+
+class _InvitationGroupDetailsDialogState
+    extends State<_InvitationGroupDetailsDialog> {
+  late final Future<List<FamilyMember>?> _detailsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _detailsFuture = _loadDetails();
+  }
+
+  Future<List<FamilyMember>?> _loadDetails() async {
+    try {
+      final repo = context.read<FamilyRepository>();
+      return await repo.getGroupMembersForInvitee(
+        groupId: widget.invitation.groupId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+  }
+
+  String _memberSubtitle(FamilyMember member, String? ownerId) {
+    if ((ownerId ?? '').isNotEmpty && member.userId == ownerId) {
+      return 'Quản trị viên';
+    }
+    final relationship = (member.relationship ?? '').trim();
+    if (relationship.isNotEmpty) {
+      return relationship;
+    }
+    return 'Thành viên';
+  }
+
+  Widget _buildMemberTile(
+    BuildContext context,
+    FamilyMember member,
+    String? ownerId,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryLightGradient,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              _initials(member.name),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textBlack,
+                  ),
+                ),
+                Text(
+                  _memberSubtitle(member, ownerId),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textGrey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final invitation = widget.invitation;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSize.r24),
+          clipBehavior: Clip.antiAlias,
+          child: FutureBuilder<List<FamilyMember>?>(
+            future: _detailsFuture,
+            builder: (context, snapshot) {
+              final loading = snapshot.connectionState == ConnectionState.waiting;
+              final members = snapshot.data ?? const <FamilyMember>[];
+              final ownerId = widget.invitation.group?.ownerId ?? '';
+              final canShowMembers = !loading && members.isNotEmpty;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(18, 16, 10, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primaryDark.withValues(alpha: 0.14),
+                          AppColors.primary.withValues(alpha: 0.08),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: const Border(
+                        bottom: BorderSide(color: AppColors.cardBorder),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.groups_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Chi tiết nhóm',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textBlack,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close_rounded),
+                          color: AppColors.textGrey,
+                          splashRadius: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invitation.groupName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textBlack,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.cardBorder),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Mời bởi: ${invitation.inviterName}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${invitation.memberCount} thành viên',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.cardBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  alignment: Alignment.center,
+                                  decoration: const BoxDecoration(
+                                    gradient: AppColors.primaryGradient,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    _initials(invitation.inviterName),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'TẠO BỞI',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          letterSpacing: 0.6,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textGrey,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        invitation.inviterName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textBlack,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        'Người mời bạn tham gia nhóm',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textGrey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.person_outline_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Danh sách thành viên',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textBlack,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          if (loading)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (!canShowMembers)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: const Text(
+                                'Bạn chưa là thành viên chính thức nên chưa xem được danh sách thành viên. Hãy chấp nhận lời mời để xem đầy đủ chi tiết nhóm.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textGrey,
+                                  height: 1.35,
+                                ),
+                              ),
+                            )
+                          else
+                            Column(
+                              children: members
+                                  .map((member) =>
+                                      _buildMemberTile(context, member, ownerId))
+                                  .toList(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Đóng'),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _OutgoingInvitationsTab extends StatelessWidget {
   const _OutgoingInvitationsTab();
 
@@ -727,17 +1110,24 @@ class _OutgoingInvitationsTab extends StatelessWidget {
     );
   }
 
+  static final _outgoingDateFormat = DateFormat('dd/MM/yyyy');
+
   Widget _buildOutgoingInvitationCard(BuildContext context, OutgoingInvitation invitation) {
-    final dateFormat = DateFormat('dd/MM/yyyy');
     String statusText;
     Color statusColor;
     IconData statusIcon;
 
     switch (invitation.status) {
       case GroupMemberStatus.pending:
-        statusText = 'Đang chờ';
+        statusText = 'Chờ người được mời';
         statusColor = Colors.orange;
-        statusIcon = Icons.pending;
+        statusIcon = Icons.pending_outlined;
+        break;
+      case GroupMemberStatus.pendingOwnerApproval:
+        // Invitee đã đồng ý, chờ chủ nhóm duyệt. [BE-REQ-03]
+        statusText = 'Chờ chủ nhóm duyệt';
+        statusColor = Colors.deepOrange;
+        statusIcon = Icons.hourglass_top_rounded;
         break;
       case GroupMemberStatus.accepted:
         statusText = 'Đã chấp nhận';
@@ -804,7 +1194,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                     ],
                     const SizedBox(height: 4),
                     Text(
-                      'Gửi ngày: ${dateFormat.format(invitation.sentAt)}',
+                      'Gửi ngày: ${_outgoingDateFormat.format(invitation.sentAt)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textGrey,

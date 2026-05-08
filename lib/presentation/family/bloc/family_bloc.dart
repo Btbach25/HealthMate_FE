@@ -28,10 +28,14 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<TransferOwnership>(_onTransferOwnership);
     on<FetchIncomingInvitations>(_onFetchIncomingInvitations);
     on<FetchOutgoingInvitations>(_onFetchOutgoingInvitations);
+    on<FetchInvitationPreview>(_onFetchInvitationPreview);
     on<AcceptInvitation>(_onAcceptInvitation);
     on<DeclineInvitation>(_onDeclineInvitation);
     on<RemoveMember>(_onRemoveMember);
     on<UpdateMemberPermissions>(_onUpdateMemberPermissions);
+    on<FetchPendingApprovals>(_onFetchPendingApprovals);
+    on<ApproveJoinRequest>(_onApproveJoinRequest);
+    on<RejectJoinRequest>(_onRejectJoinRequest);
     on<ResetFamily>(_onResetFamily);
   }
 
@@ -65,13 +69,6 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   Set<String> _hideGroupId(String groupId) {
     final next = <String>{...state.hiddenGroupIds};
     next.add(groupId);
-    return next;
-  }
-
-  Set<String> _unhideGroupId(String groupId) {
-    if (state.hiddenGroupIds.isEmpty) return state.hiddenGroupIds;
-    final next = <String>{...state.hiddenGroupIds};
-    next.remove(groupId);
     return next;
   }
 
@@ -136,6 +133,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
       final newGroup = await _familyRepository.createGroup(
         name: event.name,
         sharedMetrics: event.sharedMetrics,
+        enableMedicationReminderShare: event.enableMedicationReminderShare,
       );
       final updatedGroups = [newGroup, ...state.summary.groups];
       emit(
@@ -169,6 +167,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         name: event.name,
         sharedMetrics: event.sharedMetrics,
+        enableMedicationReminderShare: event.enableMedicationReminderShare,
       );
       final currentGroupDetails = state.groupDetails;
       final currentGroupId = state.currentGroupId;
@@ -448,6 +447,73 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     }
   }
 
+  Future<void> _onFetchInvitationPreview(
+    FetchInvitationPreview event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: FamilyStatus.invitationPreviewLoading,
+        invitationPreviewGroupId: event.groupId,
+        invitationPreviewDetails: null,
+        errorMessage: null,
+        isSessionExpired: false,
+      ),
+    );
+    try {
+      FamilyGroup? cachedGroup;
+      for (final g in state.summary.groups) {
+        if (g.id == event.groupId) {
+          cachedGroup = g;
+          break;
+        }
+      }
+      if (cachedGroup == null) {
+        for (final invitation in state.incomingInvitations) {
+          if (invitation.group?.id == event.groupId) {
+            cachedGroup = invitation.group;
+            break;
+          }
+        }
+      }
+
+      final details = await _familyRepository.getGroupDetails(
+        groupId: event.groupId,
+        cachedGroup: cachedGroup,
+      );
+      emit(
+        state.copyWith(
+          status: FamilyStatus.invitationPreviewLoaded,
+          invitationPreviewGroupId: event.groupId,
+          invitationPreviewDetails: details,
+          errorMessage: null,
+        ),
+      );
+    } catch (e) {
+      final isUnauthorized = e is UnauthorizedException;
+      if (isUnauthorized && !event.isRetryAfter401) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (!isClosed) {
+            add(
+              FetchInvitationPreview(
+                groupId: event.groupId,
+                isRetryAfter401: true,
+              ),
+            );
+          }
+        });
+        return;
+      }
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+          isSessionExpired: isUnauthorized,
+        ),
+      );
+    }
+  }
+
   Future<void> _onAcceptInvitation(
     AcceptInvitation event,
     Emitter<FamilyState> emit,
@@ -459,32 +525,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         sharedMetrics: event.sharedMetrics,
       );
 
-      // Cập nhật optimistic số thành viên trong nhóm ngay lập tức,
-      // dùng memberCount từ invitation (nếu có) + 1 cho người vừa tham gia.
-      final groups = [...state.summary.groups];
-      final index = groups.indexWhere((g) => g.id == event.groupId);
-      var updatedSummary = state.summary;
-      if (index != -1) {
-        final group = groups[index];
-        final baseCount = event.currentMemberCount ?? group.memberCount;
-        final newCount = (baseCount > 0 ? baseCount + 1 : 1);
-        groups[index] = group.copyWith(memberCount: newCount);
-        updatedSummary = state.summary.copyWith(
-          groups: groups,
-          groupsJoined: groups.length,
-        );
-      }
-
+      // [BE-REQ-03] Sau khi BE triển khai pending_owner_approval:
+      // Invitee chấp nhận → trạng thái chuyển sang pending_owner_approval,
+      // user CHƯA join nhóm. Chủ nhóm cần duyệt thêm một bước.
+      //
+      // FE không cập nhật optimistic memberCount hay FetchFamilyGroups
+      // vì user chưa thực sự là thành viên nhóm.
       emit(
         state.copyWith(
           status: FamilyStatus.invitationAccepted,
-          hiddenGroupIds: _unhideGroupId(event.groupId),
-          summary: updatedSummary,
           errorMessage: null,
         ),
       );
+      // Xoá invitation khỏi danh sách incoming (invitee đã phản hồi).
       add(const FetchIncomingInvitations());
-      add(const FetchFamilyGroups());
     } catch (e) {
       if (e is NotFoundException) {
         emit(
@@ -497,6 +551,68 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         add(const FetchIncomingInvitations());
         return;
       }
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onFetchPendingApprovals(
+    FetchPendingApprovals event,
+    Emitter<FamilyState> emit,
+  ) async {
+    try {
+      final approvals = await _familyRepository.getPendingApprovals(
+        groupId: event.groupId,
+      );
+      emit(state.copyWith(pendingApprovals: approvals));
+    } catch (_) {
+      // Non-fatal: pending approvals không hiển thị được thì để danh sách rỗng.
+      emit(state.copyWith(pendingApprovals: const []));
+    }
+  }
+
+  Future<void> _onApproveJoinRequest(
+    ApproveJoinRequest event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _familyRepository.approveJoinRequest(
+        groupId: event.groupId,
+        memberId: event.memberId,
+      );
+      emit(state.copyWith(status: FamilyStatus.joinRequestApproved));
+      // Refresh: cập nhật danh sách chờ duyệt + members trong nhóm.
+      add(FetchPendingApprovals(groupId: event.groupId));
+      add(FetchGroupDetails(groupId: event.groupId));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onRejectJoinRequest(
+    RejectJoinRequest event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _familyRepository.rejectJoinRequest(
+        groupId: event.groupId,
+        memberId: event.memberId,
+      );
+      emit(state.copyWith(status: FamilyStatus.joinRequestRejected));
+      // Refresh danh sách chờ duyệt.
+      add(FetchPendingApprovals(groupId: event.groupId));
+    } catch (e) {
       emit(
         state.copyWith(
           status: FamilyStatus.error,
@@ -576,6 +692,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         memberId: event.memberId,
         sharedMetrics: event.sharedMetrics,
+        allowMedicationReminderShare: event.allowMedicationReminderShare,
       );
       emit(state.copyWith(
         status: FamilyStatus.memberPermissionsUpdated,

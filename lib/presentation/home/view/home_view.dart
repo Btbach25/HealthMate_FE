@@ -153,7 +153,7 @@ class _HomeViewState extends State<HomeView> {
                                       return Padding(
                                         padding: const EdgeInsets.only(top: 6),
                                         child: Text(
-                                          'Đồng bộ thiết bị: ${dState.dataCount} mục, bước hôm nay: ${dState.totalSteps ?? '—'} (lúc $time)',
+                                          'Đã cập nhật ${dState.dataCount} thông tin từ điện thoại — bước chân hôm nay: ${dState.totalSteps ?? '—'} · $time',
                                           style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
                                         ),
                                       );
@@ -267,7 +267,7 @@ class _ReadinessScoreCard extends StatelessWidget {
                 const Text('Điểm sẵn sàng thể chất', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
-                  hasScore ? _scoreLabel(score!) : 'Đang chờ dữ liệu thiết bị...',
+                  hasScore ? _scoreLabel(score!) : 'Đang chờ số liệu cập nhật...',
                   style: TextStyle(fontSize: 12, color: color),
                 ),
               ],

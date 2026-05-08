@@ -284,7 +284,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Health App Demo',
+      title: 'HealthMate',
       theme: ThemeData(
         primarySwatch: Colors.indigo, // Đổi màu
         brightness: Brightness.dark, // Thử theme tối
@@ -301,7 +301,7 @@ class _MyAppState extends State<MyApp> {
       ),
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Health Data Demo'),
+          title: const Text('Dữ liệu sức khỏe'),
         ),
         body: Column(
           children: [

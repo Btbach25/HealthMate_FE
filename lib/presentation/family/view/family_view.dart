@@ -17,6 +17,8 @@ import 'package:go_router/go_router.dart';
 class FamilyView extends StatelessWidget {
   const FamilyView({super.key});
 
+  static const double _contentMaxWidth = 800;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,27 +46,18 @@ class FamilyView extends StatelessWidget {
             );
           }
 
-          // Show loaded state if status is loaded or groupDetailsLoaded (when returning from group details)
-          if (state.status == FamilyStatus.loaded ||
-              state.status == FamilyStatus.creatingGroup ||
-              state.status == FamilyStatus.groupCreated ||
-              state.status == FamilyStatus.groupDetailsLoaded ||
-              state.status == FamilyStatus.memberInvited ||
-              state.status == FamilyStatus.memberRemoved ||
-              state.status == FamilyStatus.groupUpdated ||
-              state.status == FamilyStatus.ownershipTransferred ||
-              state.status == FamilyStatus.groupLeft ||
-              state.status == FamilyStatus.invitationsLoaded ||
-              state.status == FamilyStatus.invitationAccepted ||
-              state.status == FamilyStatus.invitationDeclined) {
-            return Center(
+          return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
+                constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    context.read<FamilyBloc>().add(const FetchFamilyGroups());
-                    // Wait for the state to update
-                    await Future.delayed(const Duration(milliseconds: 500));
+                    final bloc = context.read<FamilyBloc>();
+                    bloc.add(const FetchFamilyGroups());
+                    try {
+                      await bloc.stream
+                          .firstWhere((s) => s.status != FamilyStatus.loading)
+                          .timeout(const Duration(seconds: 45));
+                    } catch (_) {}
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -73,7 +66,21 @@ class FamilyView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const FamilyAppBar(),
-                      const SizedBox(height: AppSize.spacing32),
+                      const SizedBox(height: AppSize.spacing20),
+                      const Text(
+                        'Gia đình',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Quản lý nhóm và quyền chia sẻ trong gia đình',
+                        style: TextStyle(color: AppColors.textGrey),
+                      ),
+                      const SizedBox(height: AppSize.spacing24),
                       // Header section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,9 +182,6 @@ class FamilyView extends StatelessWidget {
                 ),
               ),
             );
-          }
-
-          return const Center(child: Text('Trạng thái không xác định'));
         },
       ),
     );
@@ -387,11 +391,14 @@ class _CreateGroupCard extends StatelessWidget {
   }
 }
 
-/// Lời mời đến (cần phản hồi) + lời mời đi còn [pending].
+/// Lời mời đến (cần phản hồi) + lời mời đi cần action (pending hoặc pendingOwnerApproval).
+/// [BE-REQ-03] pendingOwnerApproval được tính vào badge vì chủ nhóm cần duyệt.
 int _totalPendingInvitations(FamilyState state) {
-  final outgoingPending = state.outgoingInvitations
-      .where((o) => o.status == GroupMemberStatus.pending)
+  final outgoingActive = state.outgoingInvitations
+      .where((o) =>
+          o.status == GroupMemberStatus.pending ||
+          o.status == GroupMemberStatus.pendingOwnerApproval)
       .length;
-  return state.incomingInvitations.length + outgoingPending;
+  return state.incomingInvitations.length + outgoingActive;
 }
 

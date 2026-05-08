@@ -3,8 +3,10 @@ import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
+import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_group_summary.dart';
+import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
@@ -16,7 +18,90 @@ import 'package:fe/data/services/family_service.dart';
 class ApiFamilyService implements FamilyService {
   final ApiClient _apiClient;
 
+  /// Tên trong bảng `metric_types` trên DB (GET /groups/metric-types). Tránh gửi BP/SpO2 khi migration chưa có → 400.
+  Set<String>? _serverMetricNamesCache;
+
+  static const Set<String> _medicationPermissionKeys = {
+    'medication',
+    'medications',
+    'medication_reminder',
+    'medication_reminders',
+    'medication_schedule',
+    'medication_sharing',
+  };
+  static const String _medicationPermissionKey = 'medication_reminder';
+  bool? _medicationPermissionSupportedCache;
+
   ApiFamilyService({required ApiClient apiClient}) : _apiClient = apiClient;
+
+  Future<Set<String>> _loadServerMetricNames() async {
+    if (_serverMetricNamesCache != null) return _serverMetricNamesCache!;
+    try {
+      final list = await _apiClient.get<List<dynamic>>(
+        ApiEndpoints.groupMetricTypes,
+        parser: (data) => data is List ? data : [],
+      );
+      final names = <String>{};
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          final n = item['name']?.toString().trim();
+          if (n != null && n.isNotEmpty) names.add(n);
+        }
+      }
+      if (names.isNotEmpty) {
+        _serverMetricNamesCache = names;
+        return names;
+      }
+    } catch (_) {}
+    _serverMetricNamesCache = MetricSelectionHelper.backendMetricNameSet;
+    return _serverMetricNamesCache!;
+  }
+
+  /// Chuẩn hóa + chỉ gửi tên có trên máy chủ (tránh `invalid metric type` khi DB thiếu migration).
+  Future<List<String>> _metricTypesForPut(List<String> feMetrics) async {
+    final base = MetricSelectionHelper.filterMetricTypesForBackend(feMetrics);
+    if (base.isEmpty) return [];
+    final server = await _loadServerMetricNames();
+    return MetricSelectionHelper.intersectWithServerMetricNames(base, server);
+  }
+
+  static const String _metricTypesNotOnServerMessage =
+      'Một số chỉ số bạn chọn hiện chưa dùng được trên ứng dụng. '
+      'Hãy bỏ chọn các chỉ số đó rồi thử lại, hoặc liên hệ hỗ trợ nếu bạn cần đầy đủ loại chỉ số.';
+
+  /// PUT quyền bắt buộc có ít nhất một `metric_type` hợp lệ.
+  void _requireNonEmptyMetricTypesForPut(
+    List<String> feMetrics,
+    List<String> metricTypes,
+  ) {
+    if (metricTypes.isNotEmpty) return;
+    final base = MetricSelectionHelper.filterMetricTypesForBackend(feMetrics);
+    if (base.isNotEmpty) {
+      throw const ValidationException(
+        message: _metricTypesNotOnServerMessage,
+        statusCode: 422,
+      );
+    }
+    throw const ValidationException(
+      message: 'Vui lòng chọn ít nhất một chỉ số.',
+      statusCode: 422,
+    );
+  }
+
+  /// Tạo/sửa nhóm: không bắt buộc PUT; chỉ lỗi nếu máy chủ loại hết chỉ số đã chọn.
+  void _throwIfServerDroppedAllChosenMetrics(
+    List<String> feMetrics,
+    List<String> metricTypes,
+  ) {
+    if (metricTypes.isNotEmpty) return;
+    final base = MetricSelectionHelper.filterMetricTypesForBackend(feMetrics);
+    if (base.isNotEmpty) {
+      throw const ValidationException(
+        message: _metricTypesNotOnServerMessage,
+        statusCode: 422,
+      );
+    }
+  }
 
   List<String> _extractGlobalMetricTypesFromPermissions(dynamic rawPermissions) {
     if (rawPermissions is Map<String, dynamic>) {
@@ -54,6 +139,42 @@ class ApiFamilyService implements FamilyService {
       }
     }
     return parsed;
+  }
+
+  bool _isMedicationSharingAllowed(List<String> rawPermissionTypes) {
+    return rawPermissionTypes.any((raw) {
+      final normalized = raw.trim().toLowerCase();
+      return _medicationPermissionKeys.contains(normalized);
+    });
+  }
+
+  Future<void> _setMedicationReminderPermission({
+    required String groupId,
+    required bool enabled,
+    String? targetUserId,
+  }) async {
+    final body = <String, dynamic>{
+      'metric_type': _medicationPermissionKey,
+      'enabled': enabled,
+    };
+    if (targetUserId != null && targetUserId.isNotEmpty) {
+      body['target_user_id'] = targetUserId;
+    }
+    await _apiClient.post<void>(
+      ApiEndpoints.groupPermissions(groupId),
+      body: body,
+      parser: (_) {},
+    );
+  }
+
+  Future<bool> _supportsMedicationReminderPermission() async {
+    if (_medicationPermissionSupportedCache != null) {
+      return _medicationPermissionSupportedCache!;
+    }
+    final names = await _loadServerMetricNames();
+    final supported = names.contains(_medicationPermissionKey);
+    _medicationPermissionSupportedCache = supported;
+    return supported;
   }
 
   List<String> _extractSpecificMetricTypesFromPermissions(
@@ -110,8 +231,11 @@ class ApiFamilyService implements FamilyService {
             final globalMetricTypes =
                 _extractGlobalMetricTypesFromPermissions(permissionsRaw);
             final parsed = _toMetricTypes(globalMetricTypes);
-            if (parsed.isEmpty) return group;
-            return group.copyWith(sharedMetrics: parsed);
+            return group.copyWith(
+              sharedMetrics: parsed.isNotEmpty ? parsed : group.sharedMetrics,
+              medicationSharingAllowed:
+                  _isMedicationSharingAllowed(globalMetricTypes),
+            );
           } catch (_) {
             // Some roles/groups may not allow reading permissions.
             // Keep existing mapped metrics as fallback.
@@ -135,6 +259,7 @@ class ApiFamilyService implements FamilyService {
   Future<FamilyGroup> createGroup({
     required String name,
     required List<String> sharedMetrics,
+    bool enableMedicationReminderShare = false,
   }) async {
     try {
       final body = <String, dynamic>{'name': name};
@@ -144,7 +269,8 @@ class ApiFamilyService implements FamilyService {
         parser: (d) => d as Map<String, dynamic>,
       );
       var group = GroupApiMapper.toFamilyGroup(data);
-      final metricTypes = MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
+      final metricTypes = await _metricTypesForPut(sharedMetrics);
+      _throwIfServerDroppedAllChosenMetrics(sharedMetrics, metricTypes);
       if (metricTypes.isNotEmpty) {
         await _apiClient.put<void>(
           ApiEndpoints.groupPermissions(data['id'].toString()),
@@ -160,6 +286,16 @@ class ApiFamilyService implements FamilyService {
         }
         if (parsed.isNotEmpty) {
           group = group.copyWith(sharedMetrics: parsed);
+        }
+      }
+      if (enableMedicationReminderShare) {
+        final supported = await _supportsMedicationReminderPermission();
+        if (supported) {
+          await _setMedicationReminderPermission(
+            groupId: data['id'].toString(),
+            enabled: true,
+          );
+          group = group.copyWith(medicationSharingAllowed: true);
         }
       }
       return group;
@@ -178,16 +314,26 @@ class ApiFamilyService implements FamilyService {
     required String groupId,
     String? name,
     List<String>? sharedMetrics,
+    bool? enableMedicationReminderShare,
   }) async {
     try {
       var permissionsUpdated = false;
-      if (sharedMetrics != null && sharedMetrics.isNotEmpty) {
-        final metricTypes = MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
-        if (metricTypes.isNotEmpty) {
-          await _apiClient.put<void>(
-            ApiEndpoints.groupPermissions(groupId),
-            body: {'metric_types': metricTypes},
-            parser: (_) {},
+      if (sharedMetrics != null) {
+        final metricTypes = await _metricTypesForPut(sharedMetrics);
+        _throwIfServerDroppedAllChosenMetrics(sharedMetrics, metricTypes);
+        await _apiClient.put<void>(
+          ApiEndpoints.groupPermissions(groupId),
+          body: {'metric_types': metricTypes},
+          parser: (_) {},
+        );
+        permissionsUpdated = true;
+      }
+      if (enableMedicationReminderShare != null) {
+        final supported = await _supportsMedicationReminderPermission();
+        if (supported) {
+          await _setMedicationReminderPermission(
+            groupId: groupId,
+            enabled: enableMedicationReminderShare,
           );
           permissionsUpdated = true;
         }
@@ -205,7 +351,7 @@ class ApiFamilyService implements FamilyService {
           if (permissionsUpdated) {
             throw UnknownException(
               message:
-                  'Đã lưu quyền chia sẻ, nhưng đổi tên nhóm đang lỗi phía máy chủ. Vui lòng thử đổi tên lại sau.',
+                  'Đã lưu quyền chia sẻ, nhưng chưa đổi được tên nhóm. Vui lòng thử đổi tên lại sau.',
               originalError: e,
             );
           }
@@ -290,7 +436,8 @@ class ApiFamilyService implements FamilyService {
             : '';
     if (effectiveEmail.isEmpty) {
       throw UnknownException(
-        message: 'Backend chỉ hỗ trợ mời bằng email. Vui lòng nhập email đã đăng ký vào ô Email.',
+        message:
+            'Hiện chỉ có thể mời thành viên bằng email. Vui lòng nhập email tài khoản đã đăng ký trong ô Email.',
         originalError: null,
       );
     }
@@ -362,6 +509,8 @@ class ApiFamilyService implements FamilyService {
           _extractGlobalMetricTypesFromPermissions(globalPermissionsRaw);
       final globalMetricTypeSet = globalMetricTypes.toSet();
       final globalMetricsParsed = _toMetricTypes(globalMetricTypes);
+      final globalMedicationShareAllowed =
+          _isMedicationSharingAllowed(globalMetricTypes);
 
       final effectiveMembers = await Future.wait(
         members.map((member) async {
@@ -381,6 +530,15 @@ class ApiFamilyService implements FamilyService {
             memberPermissionsRaw,
             member.userId,
           ).toSet();
+          final memberSpecificMedicationTypes =
+              _extractSpecificMetricTypesFromPermissions(
+            memberPermissionsRaw,
+            member.userId,
+          );
+          final memberMedicationShareAllowed =
+              memberSpecificMedicationTypes.isEmpty
+                  ? globalMedicationShareAllowed
+                  : _isMedicationSharingAllowed(memberSpecificMedicationTypes);
 
           // Default-open mode:
           // - No specific rules for this member => inherits global.
@@ -392,6 +550,7 @@ class ApiFamilyService implements FamilyService {
           final parsed = _toMetricTypes(effectiveMetricTypes.toList());
           return member.copyWith(
             sharedMetrics: parsed,
+            medicationReminderShareAllowed: memberMedicationShareAllowed,
           );
         }),
       );
@@ -400,6 +559,7 @@ class ApiFamilyService implements FamilyService {
         memberCount: members.length,
         sharedMetrics:
             globalMetricsParsed.isNotEmpty ? globalMetricsParsed : group.sharedMetrics,
+        medicationSharingAllowed: _isMedicationSharingAllowed(globalMetricTypes),
       );
       return GroupDetails(group: groupWithCount, members: effectiveMembers);
     } on ApiException {
@@ -447,14 +607,13 @@ class ApiFamilyService implements FamilyService {
         body: {'status': 'accepted'},
         parser: (_) {},
       );
-      final metricTypes = MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
-      if (metricTypes.isNotEmpty) {
-        await _apiClient.put<void>(
-          ApiEndpoints.groupPermissions(groupId),
-          body: {'metric_types': metricTypes},
-          parser: (_) {},
-        );
-      }
+      final metricTypes = await _metricTypesForPut(sharedMetrics);
+      _requireNonEmptyMetricTypesForPut(sharedMetrics, metricTypes);
+      await _apiClient.put<void>(
+        ApiEndpoints.groupPermissions(groupId),
+        body: {'metric_types': metricTypes},
+        parser: (_) {},
+      );
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -541,6 +700,29 @@ class ApiFamilyService implements FamilyService {
   }
 
   @override
+  Future<List<FamilyMember>> getGroupMembersForInvitee({
+    required String groupId,
+  }) async {
+    try {
+      final membersRaw = await _apiClient.get<List<dynamic>>(
+        ApiEndpoints.groupMembers(groupId),
+        parser: (data) => data is List ? data : [],
+      );
+      return membersRaw
+          .whereType<Map<String, dynamic>>()
+          .map((e) => GroupApiMapper.toFamilyMember(e, groupId))
+          .toList();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi tải danh sách thành viên.',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
   Future<void> removeMember({
     required String groupId,
     required String memberId,
@@ -565,10 +747,11 @@ class ApiFamilyService implements FamilyService {
     required String groupId,
     required String memberId,
     required List<String> sharedMetrics,
+    bool? allowMedicationReminderShare,
   }) async {
     try {
-      final metricTypes =
-          MetricSelectionHelper.filterMetricTypesForBackend(sharedMetrics);
+      final metricTypes = await _metricTypesForPut(sharedMetrics);
+      _throwIfServerDroppedAllChosenMetrics(sharedMetrics, metricTypes);
       await _apiClient.put<void>(
         ApiEndpoints.groupPermissions(groupId),
         body: {
@@ -577,6 +760,16 @@ class ApiFamilyService implements FamilyService {
         },
         parser: (_) {},
       );
+      if (allowMedicationReminderShare != null) {
+        final supported = await _supportsMedicationReminderPermission();
+        if (supported) {
+          await _setMedicationReminderPermission(
+            groupId: groupId,
+            enabled: allowMedicationReminderShare,
+            targetUserId: memberId,
+          );
+        }
+      }
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -586,4 +779,85 @@ class ApiFamilyService implements FamilyService {
       );
     }
   }
+
+  /// Owner only: GET /groups/:id/pending-approvals
+  @override
+  Future<List<OutgoingInvitation>> getPendingApprovals({
+    required String groupId,
+  }) async {
+    try {
+      final list = await _apiClient.get<List<dynamic>>(
+        ApiEndpoints.groupPendingApprovals(groupId),
+        parser: (data) => data is List ? data : [],
+      );
+      // BE trả SentInvitationResponse — dùng stub FamilyGroup (chỉ cần id).
+      final stubGroup = FamilyGroup(
+        id: groupId,
+        name: '',
+        memberCount: 0,
+        userRole: GroupMemberRole.owner,
+        createdAt: DateTime(2000),
+        updatedAt: DateTime(2000),
+        sharedMetrics: const [],
+        ownerId: '',
+      );
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map((inv) => GroupApiMapper.sentInvitationToOutgoing(
+                json: inv,
+                group: stubGroup,
+              ))
+          .toList();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi tải danh sách yêu cầu chờ duyệt.',
+        originalError: e,
+      );
+    }
+  }
+
+  /// Owner only: POST /groups/:id/approve/:memberId
+  @override
+  Future<void> approveJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) async {
+    try {
+      await _apiClient.post<void>(
+        ApiEndpoints.groupApprove(groupId, memberId),
+        parser: (_) {},
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi duyệt yêu cầu tham gia.',
+        originalError: e,
+      );
+    }
+  }
+
+  /// Owner only: POST /groups/:id/reject-approval/:memberId
+  @override
+  Future<void> rejectJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) async {
+    try {
+      await _apiClient.post<void>(
+        ApiEndpoints.groupRejectApproval(groupId, memberId),
+        parser: (_) {},
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi từ chối yêu cầu tham gia.',
+        originalError: e,
+      );
+    }
+  }
+
 }

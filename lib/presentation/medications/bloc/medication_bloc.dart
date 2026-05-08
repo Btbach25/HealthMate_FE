@@ -143,7 +143,7 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
           medications: meds,
           clearDeletingMedicationId: true,
           feedbackMessage:
-              'Không tìm thấy thuốc trên máy chủ. Danh sách đã được làm mới.',
+              'Không tìm thấy thuốc này trên tài khoản. Danh sách đã được làm mới.',
           feedbackIsError: false,
         ));
       } catch (e) {

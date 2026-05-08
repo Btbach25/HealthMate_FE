@@ -26,12 +26,31 @@ class ApiEndpoints {
       '/groups/$groupId/permissions';
   static String groupOwner(String groupId) => '/groups/$groupId/owner';
 
+  /// Danh sách thành viên đang chờ chủ nhóm duyệt (owner only).
+  static String groupPendingApprovals(String groupId) =>
+      '/groups/$groupId/pending-approvals';
+
+  /// Chủ nhóm duyệt một yêu cầu tham gia.
+  static String groupApprove(String groupId, String memberId) =>
+      '/groups/$groupId/approve/$memberId';
+
+  /// Chủ nhóm từ chối một yêu cầu tham gia.
+  static String groupRejectApproval(String groupId, String memberId) =>
+      '/groups/$groupId/reject-approval/$memberId';
+
   // ---------- Users (cần Bearer) ----------
   static const String usersProfile = '/users/profile';
   static const String users = '/users';
 
   // ---------- Medications (storage-service qua gateway, Bearer) ----------
   static const String medications = '/medications';
+  static const String medicationsDeviceToken = '/medications/device-token';
+
+  static String medicationShares(String medicationId) =>
+      '/medications/$medicationId/shares';
+
+  static String medicationShareById(String medicationId, String shareId) =>
+      '/medications/$medicationId/shares/$shareId';
 
   // ---------- OCR (ocr-service qua api-gateway; Bearer bắt buộc — route nằm trong nhóm JWT) ----------
   static const String ocrPrescriptionParse = '/ocr/prescriptions/parse';

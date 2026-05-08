@@ -112,6 +112,10 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       _showErrorSnack('Vui lòng nhập tên thuốc và liều lượng');
       return;
     }
+    if (_startDate != null && _endDate != null && _endDate!.isBefore(_startDate!)) {
+      _showErrorSnack('Ngày kết thúc không được sớm hơn ngày bắt đầu.');
+      return;
+    }
 
     final userId = context.read<AuthBloc>().state.user.id;
     if (userId.isEmpty) {

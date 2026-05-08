@@ -14,6 +14,7 @@ class FamilyGroup extends Equatable {
   final int pendingInvitations;
   final List<MetricType> sharedMetrics;
   final String ownerId;
+  final bool medicationSharingAllowed;
 
   const FamilyGroup({
     required this.id,
@@ -26,6 +27,7 @@ class FamilyGroup extends Equatable {
     this.pendingInvitations = 0,
     required this.sharedMetrics,
     required this.ownerId,
+    this.medicationSharingAllowed = false,
   });
 
   factory FamilyGroup.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class FamilyGroup extends Equatable {
         (e) => MetricType.fromValue(cvToString(e)),
       ),
       ownerId: cvToString(json['owner_id']),
+      medicationSharingAllowed: json['medication_sharing_allowed'] == true,
     );
   }
 
@@ -58,6 +61,7 @@ class FamilyGroup extends Equatable {
       'pending_invitations': pendingInvitations,
       'shared_metrics': sharedMetrics.map((e) => e.value).toList(),
       'owner_id': ownerId,
+      'medication_sharing_allowed': medicationSharingAllowed,
     };
   }
 
@@ -83,6 +87,7 @@ class FamilyGroup extends Equatable {
     int? pendingInvitations,
     List<MetricType>? sharedMetrics,
     String? ownerId,
+    bool? medicationSharingAllowed,
   }) {
     return FamilyGroup(
       id: id ?? this.id,
@@ -95,6 +100,8 @@ class FamilyGroup extends Equatable {
       pendingInvitations: pendingInvitations ?? this.pendingInvitations,
       sharedMetrics: sharedMetrics ?? this.sharedMetrics,
       ownerId: ownerId ?? this.ownerId,
+      medicationSharingAllowed:
+          medicationSharingAllowed ?? this.medicationSharingAllowed,
     );
   }
 
@@ -110,6 +117,7 @@ class FamilyGroup extends Equatable {
         pendingInvitations,
         sharedMetrics,
         ownerId,
+        medicationSharingAllowed,
       ];
 }
 

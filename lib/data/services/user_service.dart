@@ -18,7 +18,11 @@ abstract class UserService {
     double? weight,
     double? height,
     String? bloodGroup,
+    String? timezone,
   });
+
+  /// Dong bo timezone sau login de BE trigger notification dung gio.
+  Future<void> syncTimezoneAfterLogin();
 
   /// Danh sach users (tim kiem). GET /users?search=&limit=&offset=
   Future<List<User>> listUsers({String? search, int? limit, int? offset});

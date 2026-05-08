@@ -17,7 +17,7 @@ import 'package:fe/data/services/family_service.dart';
 class _AcceptedGroupInfo {
   final IncomingInvitation invitation;
   final List<MetricType> userSelectedMetrics;
-  
+
   _AcceptedGroupInfo({
     required this.invitation,
     required this.userSelectedMetrics,
@@ -47,21 +47,23 @@ class MockFamilyService implements FamilyService {
     final twoHoursAgo = now.subtract(const Duration(hours: 2));
     final oneDayAgo = now.subtract(const Duration(days: 1));
     final threeHoursAgo = now.subtract(const Duration(hours: 3));
-    
+
     // Count pending outgoing invitations per group (for groups where user is admin)
     // Count from both static and dynamic invitations
     final pendingCountByGroup = <String, int>{};
-    
+
     // Count from dynamic invitations
     for (final inv in _outgoingInvitations) {
       if (inv.status == GroupMemberStatus.pending) {
-        pendingCountByGroup[inv.groupId] = (pendingCountByGroup[inv.groupId] ?? 0) + 1;
+        pendingCountByGroup[inv.groupId] =
+            (pendingCountByGroup[inv.groupId] ?? 0) + 1;
       }
     }
-    
+
     // Also count from static mock data (for initial state)
     // Group '1' has 1 pending, Group '3' has 0 pending (declined doesn't count)
-    pendingCountByGroup['1'] = (pendingCountByGroup['1'] ?? 0) + 1; // Static pending invitation
+    pendingCountByGroup['1'] =
+        (pendingCountByGroup['1'] ?? 0) + 1; // Static pending invitation
 
     final groups = [
       FamilyGroup(
@@ -72,7 +74,8 @@ class MockFamilyService implements FamilyService {
         createdAt: DateTime(2024, 12, 1),
         updatedAt: now,
         lastActivity: twoHoursAgo,
-        pendingInvitations: pendingCountByGroup['1'] ?? 1, // Count pending outgoing invitations
+        pendingInvitations:
+            pendingCountByGroup['1'] ?? 1, // Count pending outgoing invitations
         sharedMetrics: [
           MetricType.heartRate,
           MetricType.stepsCount,
@@ -143,6 +146,7 @@ class MockFamilyService implements FamilyService {
   Future<FamilyGroup> createGroup({
     required String name,
     required List<String> sharedMetrics,
+    bool enableMedicationReminderShare = false,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -158,6 +162,7 @@ class MockFamilyService implements FamilyService {
       pendingInvitations: 0,
       sharedMetrics: sharedMetrics.map((e) => MetricType.fromValue(e)).toList(),
       ownerId: 'current-user-id',
+      medicationSharingAllowed: enableMedicationReminderShare,
     );
   }
 
@@ -166,6 +171,7 @@ class MockFamilyService implements FamilyService {
     required String groupId,
     String? name,
     List<String>? sharedMetrics,
+    bool? enableMedicationReminderShare,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
   }
@@ -193,40 +199,39 @@ class MockFamilyService implements FamilyService {
     String? userId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     // Get group name from groups list
     final summary = await getFamilyGroups();
     final group = summary.groups.firstWhere(
       (g) => g.id == groupId,
       orElse: () => throw Exception('Không tìm thấy nhóm'),
     );
-    
+
     // Validate email format (additional check)
     final emailPattern = r'^[^@\s]+@[^@\s]+\.[^@\s]+$';
     final regex = RegExp(emailPattern);
     if (!regex.hasMatch(email.trim())) {
       throw Exception('Email không hợp lệ');
     }
-    
+
     // Check if email already invited (simulate duplicate check)
     final hasExistingInvitation = _outgoingInvitations.any(
-      (inv) => inv.inviteeEmail.toLowerCase() == email.toLowerCase() && 
-               inv.groupId == groupId &&
-               inv.status == GroupMemberStatus.pending,
+      (inv) =>
+          inv.inviteeEmail.toLowerCase() == email.toLowerCase() &&
+          inv.groupId == groupId &&
+          inv.status == GroupMemberStatus.pending,
     );
     if (hasExistingInvitation) {
       throw Exception('Email này đã được mời vào nhóm');
     }
-    
+
     // Convert sharedMetrics strings to MetricType
-    final metrics = sharedMetrics
-        .map((m) => MetricType.fromValue(m))
-        .toList();
-    
+    final metrics = sharedMetrics.map((m) => MetricType.fromValue(m)).toList();
+
     // Check if this email already has a status (for simulating already accepted/declined)
     // In real app, new invitations always start as pending
     final status = _inviteeStatuses[email] ?? GroupMemberStatus.pending;
-    
+
     // Create new outgoing invitation
     final now = DateTime.now();
     final newInvitation = OutgoingInvitation(
@@ -236,9 +241,7 @@ class MockFamilyService implements FamilyService {
       invitee: User(
         id: 'user-${now.millisecondsSinceEpoch}',
         email: email,
-        name: name.trim().isNotEmpty
-            ? name
-            : email.split('@').first,
+        name: name.trim().isNotEmpty ? name : email.split('@').first,
         role: UserRole.user,
         status: UserStatus.verified,
         provider: LoginProvider.email,
@@ -250,7 +253,7 @@ class MockFamilyService implements FamilyService {
       sentAt: now,
       sharedMetrics: metrics,
     );
-    
+
     // Add to outgoing invitations list
     _outgoingInvitations.add(newInvitation);
   }
@@ -504,8 +507,9 @@ class MockFamilyService implements FamilyService {
 
     // Filter out removed members
     final removedMemberIds = _removedMembers[groupId] ?? <String>{};
-    final filteredMembers = members.where((member) => !removedMemberIds.contains(member.id)).toList();
-    
+    final filteredMembers =
+        members.where((member) => !removedMemberIds.contains(member.id)).toList();
+
     // Update memberCount in group
     final updatedGroup = group.copyWith(memberCount: filteredMembers.length);
 
@@ -535,6 +539,7 @@ class MockFamilyService implements FamilyService {
     required String groupId,
     required String memberId,
     required List<String> sharedMetrics,
+    bool? allowMedicationReminderShare,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
   }
@@ -551,18 +556,17 @@ class MockFamilyService implements FamilyService {
       (inv) => inv.groupId == groupId,
       orElse: () => throw Exception('Invitation not found'),
     );
-    
+
     // Convert sharedMetrics strings to MetricType
-    final userSelectedMetrics = sharedMetrics
-        .map((m) => MetricType.fromValue(m))
-        .toList();
-    
+    final userSelectedMetrics =
+        sharedMetrics.map((m) => MetricType.fromValue(m)).toList();
+
     _acceptedGroups[invitation.groupId] = _AcceptedGroupInfo(
       invitation: invitation,
       userSelectedMetrics: userSelectedMetrics,
     );
   }
-  
+
   // Helper method to get all invitations (before filtering)
   Future<List<IncomingInvitation>> _getAllIncomingInvitations() async {
     final now = DateTime.now();
@@ -648,21 +652,24 @@ class MockFamilyService implements FamilyService {
       (inv) => inv.groupId == groupId,
       orElse: () => throw Exception('Không tìm thấy lời mời'),
     );
-    
+
     // Update outgoing invitation status (simulate backend update)
-    _updateOutgoingInvitationStatus(incomingInv.inviterEmail, GroupMemberStatus.declined);
+    _updateOutgoingInvitationStatus(
+        incomingInv.inviterEmail, GroupMemberStatus.declined);
   }
-  
+
   // Helper method to simulate updating outgoing invitation status when invitee accepts/declines
   // In real app, this would be handled by the backend when the invitee accepts/declines
-  void _updateOutgoingInvitationStatus(String inviteeEmail, GroupMemberStatus newStatus) {
+  void _updateOutgoingInvitationStatus(
+      String inviteeEmail, GroupMemberStatus newStatus) {
     // Store the status for this email
     _inviteeStatuses[inviteeEmail] = newStatus;
-    
+
     // Update all pending outgoing invitations with this email
     for (int i = 0; i < _outgoingInvitations.length; i++) {
       final inv = _outgoingInvitations[i];
-      if (inv.invitee?.email == inviteeEmail && inv.status == GroupMemberStatus.pending) {
+      if (inv.invitee?.email == inviteeEmail &&
+          inv.status == GroupMemberStatus.pending) {
         _outgoingInvitations[i] = OutgoingInvitation(
           id: inv.id,
           groupId: inv.groupId,
@@ -676,13 +683,13 @@ class MockFamilyService implements FamilyService {
       }
     }
   }
-  
+
   // Public method to simulate invitee accepting invitation (for testing/demo purposes)
   // In real app, this would be called by backend when invitee accepts
   void simulateInviteeAccepts(String inviteeEmail) {
     _updateOutgoingInvitationStatus(inviteeEmail, GroupMemberStatus.accepted);
   }
-  
+
   // Public method to simulate invitee declining invitation (for testing/demo purposes)
   // In real app, this would be called by backend when invitee declines
   void simulateInviteeDeclines(String inviteeEmail) {
@@ -692,9 +699,9 @@ class MockFamilyService implements FamilyService {
   @override
   Future<List<IncomingInvitation>> getIncomingInvitations() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     final allInvitations = await _getAllIncomingInvitations();
-    
+
     // Filter out accepted and declined invitations
     return allInvitations
         .where((inv) =>
@@ -706,9 +713,9 @@ class MockFamilyService implements FamilyService {
   @override
   Future<List<OutgoingInvitation>> getOutgoingInvitations() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     final now = DateTime.now();
-    
+
     // Static mock data (for initial state)
     final staticInvitations = [
       OutgoingInvitation(
@@ -817,24 +824,75 @@ class MockFamilyService implements FamilyService {
         ],
       ),
     ];
-    
+
     // Combine static and dynamic invitations
     // Remove duplicates by id (in case static data overlaps with dynamic)
     final allInvitations = <String, OutgoingInvitation>{};
-    
+
     // Add static invitations first
     for (final inv in staticInvitations) {
       allInvitations[inv.id] = inv;
     }
-    
+
     // Add dynamic invitations (will override if same id)
     for (final inv in _outgoingInvitations) {
       allInvitations[inv.id] = inv;
     }
-    
+
     // Return sorted by sentAt (newest first)
     return allInvitations.values.toList()
       ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
   }
-}
 
+  @override
+  Future<List<FamilyMember>> getGroupMembersForInvitee({
+    required String groupId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    // Mock: trả về danh sách rỗng (chưa là thành viên nên không có quyền xem).
+    return const [];
+  }
+
+  @override
+  Future<List<OutgoingInvitation>> getPendingApprovals({
+    required String groupId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    // Mock: lọc outgoing invitations theo groupId và status pending_owner_approval.
+    return _outgoingInvitations
+        .where((inv) =>
+            inv.groupId == groupId &&
+            inv.status == GroupMemberStatus.pendingOwnerApproval)
+        .toList();
+  }
+
+  @override
+  Future<void> approveJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final idx = _outgoingInvitations.indexWhere(
+      (inv) => inv.groupId == groupId && (inv.invitee?.id == memberId),
+    );
+    if (idx >= 0) {
+      final inv = _outgoingInvitations[idx];
+      _outgoingInvitations[idx] = inv.copyWith(status: GroupMemberStatus.accepted);
+    }
+  }
+
+  @override
+  Future<void> rejectJoinRequest({
+    required String groupId,
+    required String memberId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final idx = _outgoingInvitations.indexWhere(
+      (inv) => inv.groupId == groupId && (inv.invitee?.id == memberId),
+    );
+    if (idx >= 0) {
+      final inv = _outgoingInvitations[idx];
+      _outgoingInvitations[idx] = inv.copyWith(status: GroupMemberStatus.declined);
+    }
+  }
+}
