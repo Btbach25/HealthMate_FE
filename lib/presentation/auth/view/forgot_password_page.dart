@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
+import '../widgets/auth_logo_header.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
   const ForgotPasswordPage({super.key});
@@ -51,9 +52,7 @@ class ForgotPasswordView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // const AppHeader(),
-              // const SizedBox(height: AppSize.p32),
-              // Form Card
+              const AuthLogoHeader(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
                 child: Container(
@@ -88,9 +87,6 @@ class ForgotPasswordForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Icon chìa khóa
-        Icon(Icons.vpn_key_outlined, size: 48, color: AppColors.primary.withValues(alpha: 0.5)),
-        const SizedBox(height: AppSize.p16),
         const Text('Quên mật khẩu', style: AppStyles.h1, textAlign: TextAlign.center),
         const SizedBox(height: AppSize.p8),
         const Text(

@@ -500,8 +500,10 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: charts.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) =>
-                        StatsChartCard(chart: charts[index]),
+                    itemBuilder: (context, index) => StatsChartCard(
+                      chart: charts[index],
+                      selectedRange: _rangeParam(_selectedRange),
+                    ),
                   );
                 },
               ),

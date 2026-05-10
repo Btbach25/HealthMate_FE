@@ -11,6 +11,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
+import '../widgets/auth_logo_header.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -55,12 +56,10 @@ class LoginView extends StatelessWidget {
       },
       child: SafeArea(
         child: SingleChildScrollView(
-          // padding: const EdgeInsets.symmetric(horizontal: AppSize.p24, vertical: AppSize.p32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // const AppHeader(),
-              // const SizedBox(height: AppSize.p32),
+              const AuthLogoHeader(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSize.p24,

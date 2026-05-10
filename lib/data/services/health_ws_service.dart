@@ -285,6 +285,25 @@ class HealthWsService {
     }
   }
 
+  /// Gửi một chỉ số nhập tay từ user lên BE qua WebSocket.
+  Future<void> sendManualMetric(String metricType, double value) async {
+    if (kIsWeb) return;
+    if (!_connected) await connect();
+    if (!_connected || _channel == null || _userId == null) return;
+    try {
+      _channel!.sink.add(jsonEncode({
+        'user_id': _userId,
+        'metric_type': metricType,
+        'value': value,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      }));
+      debugPrint('[HealthWs] Manual metric sent: $metricType=$value');
+    } catch (e) {
+      debugPrint('[HealthWs] Manual send error: $e');
+      _onDisconnected();
+    }
+  }
+
   Future<void> disconnect() async {
     await _socketSubscription?.cancel();
     _socketSubscription = null;

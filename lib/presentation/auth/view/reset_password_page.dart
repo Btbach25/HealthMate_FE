@@ -11,6 +11,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
+import '../widgets/auth_logo_header.dart';
 
 class ResetPasswordPage extends StatelessWidget {
   const ResetPasswordPage({super.key});
@@ -52,21 +53,26 @@ class ResetPasswordView extends StatelessWidget {
             // vertical: AppSize.p32
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // const AppHeader(),
-              // const SizedBox(height: AppSize.p32),
-              Container(
-                padding: const EdgeInsets.all(AppSize.p24),
-                decoration: BoxDecoration(
+              const AuthLogoHeader(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSize.p24),
+                  decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(AppSize.r12),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          spreadRadius: 5,
-                          blurRadius: 20)
-                    ]),
-                child: const ResetPasswordForm(),
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        spreadRadius: 5,
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: const ResetPasswordForm(),
+                ),
               ),
             ],
           ),

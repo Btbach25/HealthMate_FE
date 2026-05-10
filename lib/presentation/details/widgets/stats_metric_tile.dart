@@ -16,15 +16,19 @@ class StatsMetricTile extends StatelessWidget {
     required this.mode,
   });
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'steps': return AppIcons.steps;
-      case 'heart': return AppIcons.heart;
-      case 'weight': return AppIcons.weight;
-      case 'sleep': return AppIcons.sleep;
-      default: return AppIcons.stats;
-    }
+  // Backend may send 'heart' for multiple metric types, so resolve by title+unit.
+  String _metricKey() {
+    final t = metric.title.toLowerCase();
+    final u = metric.unit.toLowerCase();
+    if (t.contains('huyết áp') || t.contains('blood') || u == 'mmhg') return 'bp';
+    if (t.contains('spo2') || t.contains('oxy') || t.contains('o2')) return 'spo2';
+    if (t.contains('nhiệt') || t.contains('temp') || u == '°c') return 'temp';
+    if (t.contains('cân') || t.contains('weight') || u == 'kg') return 'weight';
+    if (t.contains('bước') || t.contains('step')) return 'steps';
+    if (t.contains('ngủ') || t.contains('sleep') || u == 'giờ') return 'sleep';
+    return 'heart';
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -38,16 +42,16 @@ class StatsMetricTile extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: AppColors.cardShadowList,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildIcon(_getIconData(metric.iconName)),
+          _buildIcon(_metricKey()),
           const SizedBox(width: 12),
 
           Expanded(
@@ -172,15 +176,31 @@ class StatsMetricTile extends StatelessWidget {
     );
   }
   
-  Widget _buildIcon(IconData icon) {
+  Widget _buildIcon(String key) {
+    final IconData icon;
+    final Color color;
+    final Color bg;
+    switch (key) {
+      case 'bp':
+        icon = AppIcons.bloodPressure; color = AppColors.primary;       bg = AppColors.primaryContainer;
+      case 'spo2':
+        icon = AppIcons.spo2;          color = AppColors.info;           bg = AppColors.infoLight;
+      case 'temp':
+        icon = AppIcons.temperature;   color = AppColors.tempIconColor;  bg = AppColors.tempIconBg;
+      case 'weight':
+        icon = AppIcons.weight;        color = AppColors.weightIconColor; bg = AppColors.weightIconBg;
+      case 'steps':
+        icon = AppIcons.steps;         color = AppColors.success;        bg = AppColors.successLight;
+      case 'sleep':
+        icon = AppIcons.sleep;         color = const Color(0xFF5C6BC0);  bg = const Color(0xFFE8EAF6);
+      default:
+        icon = AppIcons.heart;         color = AppColors.heartIconColor; bg = AppColors.heartIconBg;
+    }
     return Container(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: AppColors.primary, size: 28),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }

@@ -23,12 +23,11 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Padding chung cho card
-      padding: const EdgeInsets.all(16), 
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: AppColors.cardShadowList,
       ),
       // Dùng LayoutBuilder để biết chiều rộng
       child: LayoutBuilder(

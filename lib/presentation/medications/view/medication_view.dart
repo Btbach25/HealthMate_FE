@@ -114,7 +114,7 @@ class MedicationView extends StatelessWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      MediaQuery.of(context).padding.top + 16,
+                      16,
                       16,
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
@@ -144,20 +144,6 @@ class MedicationView extends StatelessWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                        const Text(
-                          'Thuốc',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Quản lý lịch uống và chia sẻ nhắc thuốc',
-                          style: TextStyle(color: AppColors.textGrey),
-                        ),
-                        const SizedBox(height: 12),
                         const MedicationPurposeBanner(),
                         const SizedBox(height: 12),
                         HeroActionBanner(

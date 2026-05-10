@@ -88,7 +88,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(medicationReminders: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Cảnh báo sức khỏe',
                 description: 'Thông báo khi chỉ số vượt ngưỡng',
@@ -97,7 +97,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(healthAlerts: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Thông báo nhóm',
                 description: 'Nhận thông báo từ các nhóm chia sẻ',
@@ -106,7 +106,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(groupNotifications: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Thông báo đẩy',
                 description: 'Nhận thông báo đẩy từ ứng dụng',
@@ -115,7 +115,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(pushNotifications: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Thông báo email',
                 description: 'Nhận thông báo qua email',
@@ -143,7 +143,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(soundEnabled: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Rung',
                 description: 'Rung thiết bị khi có thông báo',
@@ -153,7 +153,7 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
                   (settings) => settings.copyWith(vibrationEnabled: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

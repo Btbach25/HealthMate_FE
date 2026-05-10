@@ -8,13 +8,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/home_bloc.dart';
-import '../widgets/home_app_bar.dart';
 import '../widgets/medication_card.dart';
 import '../widgets/notification_list.dart';
-import '../widgets/stats_grid.dart';
 import '../bloc/health_overview_bloc.dart';
 import '../widgets/health_overview_section.dart';
 import '../widgets/welcome_message.dart';
+import '../widgets/metric_carousel.dart';
 import '../bloc/device_health_cubit.dart';
 
 class HomeView extends StatefulWidget {
@@ -70,24 +69,61 @@ class _HomeViewState extends State<HomeView> {
         builder: (context, state) {
           if (state.status == HomeStatus.initial ||
               state.status == HomeStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          if (state.status == HomeStatus.error) {
             return Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                  SizedBox(height: 16),
                   Text(
-                    state.errorMessage ?? 'Đã có lỗi xảy ra',
-                    style: const TextStyle(color: AppColors.error),
+                    'Đang tải dữ liệu sức khỏe...',
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 14),
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () => context.read<HomeBloc>().add(FetchHomeData()),
-                    child: const Text('Thử lại'),
-                  )
                 ],
+              ),
+            );
+          }
+
+          if (state.status == HomeStatus.error) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: AppColors.errorLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.cloud_off_outlined, size: 40, color: AppColors.error),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Không tải được dữ liệu',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textBlack),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      state.errorMessage ?? 'Vui lòng kiểm tra kết nối mạng và thử lại.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textGrey, fontSize: 13, height: 1.5),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => context.read<HomeBloc>().add(FetchHomeData()),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -117,9 +153,6 @@ class _HomeViewState extends State<HomeView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        HomeAppBar(user: displayUser),
-                        const SizedBox(height: 24),
-
                         WelcomeMessage(name: displayUser.name),
                         const SizedBox(height: 24),
 
@@ -142,23 +175,8 @@ class _HomeViewState extends State<HomeView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const HealthOverviewSection(),
-                                  const SizedBox(height: 24),
-                                  StatsGrid(homeData: homeData),
-                                  const SizedBox(height: 12),
-                                  BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
-                                    builder: (context, dState) {
-                                      if (dState.lastUpdated == null) return const SizedBox.shrink();
-                                      final ts = dState.lastUpdated!;
-                                      final time = '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 6),
-                                        child: Text(
-                                          'Đã cập nhật ${dState.dataCount} thông tin từ điện thoại — bước chân hôm nay: ${dState.totalSteps ?? '—'} · $time',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                  const SizedBox(height: 16),
+                                  const MetricCarousel(),
                                 ],
                               );
                             },

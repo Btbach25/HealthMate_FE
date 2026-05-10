@@ -14,24 +14,64 @@ class ManageMedicationsDialog extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xóa thuốc?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.error, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('Xóa thuốc?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ],
+        ),
         content: Text(
           'Xóa “${med.name}” và toàn bộ nhắc giờ liên quan? '
           'Thao tác này không thể hoàn tác.',
-          style: AppTextStyles.bodySmall.copyWith(height: 1.4),
+          style: AppTextStyles.bodySmall.copyWith(
+              height: 1.5, color: AppColors.textSecondary),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Xóa'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textGrey,
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Hủy'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Xóa',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -50,10 +90,12 @@ class ManageMedicationsDialog extends StatelessWidget {
     );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã cập nhật chia sẻ nhắc thuốc'),
+        SnackBar(
+          content: const Text('Đã cập nhật chia sẻ nhắc thuốc'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(12),
         ),
       );
     }
@@ -72,7 +114,7 @@ class ManageMedicationsDialog extends StatelessWidget {
           builder: (context, state) {
             final meds = state.medications;
             return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
+              padding: const EdgeInsets.fromLTRB(20, 20, 8, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -101,18 +143,48 @@ class ManageMedicationsDialog extends StatelessWidget {
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(24),
-                              child: Text(
-                                'Chưa có thuốc nào.',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.textGrey,
-                                ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.inputBackground,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.medication_outlined,
+                                      size: 32,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Chưa có thuốc nào',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Thêm thuốc để bắt đầu quản lý lịch uống.',
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           )
                         : ListView.separated(
                             itemCount: meds.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
+                            separatorBuilder: (_, __) => const Divider(
+                                height: 1,
+                                thickness: 0.8,
+                                color: AppColors.cardBorder,
+                              ),
                             itemBuilder: (context, index) {
                               final med = meds[index];
                               final deleting =
@@ -124,7 +196,7 @@ class ManageMedicationsDialog extends StatelessWidget {
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 4,
-                                  vertical: 4,
+                                  vertical: 10,
                                 ),
                                 title: Text(
                                   med.name,

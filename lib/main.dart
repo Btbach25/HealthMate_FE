@@ -297,12 +297,31 @@ class _AppViewState extends State<AppView> {
           scaffoldBackgroundColor: AppColors.background,
           colorScheme: const ColorScheme.light(primary: AppColors.primary),
           inputDecorationTheme: const InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
-              borderSide: BorderSide.none,
-            ),
             filled: true,
             fillColor: AppColors.inputBackground,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide(color: AppColors.inputBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide(color: AppColors.inputBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppSize.r12)),
+              borderSide: BorderSide(color: AppColors.error, width: 1.5),
+            ),
+            hintStyle: TextStyle(color: AppColors.textLight, fontSize: 15),
+            prefixIconColor: AppColors.textGrey,
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(foregroundColor: AppColors.primary),

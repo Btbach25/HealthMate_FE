@@ -1,4 +1,5 @@
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/data/models/details/chart_data_point.dart';
 import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -6,35 +7,42 @@ import 'package:intl/intl.dart';
 
 class StatsChartCard extends StatelessWidget {
   final MetricChart chart;
-  const StatsChartCard({super.key, required this.chart});
+  final String selectedRange;
 
-  // Aggregate data points by day (average per day)
+  const StatsChartCard({
+    super.key,
+    required this.chart,
+    required this.selectedRange,
+  });
+
+  List<ChartDataPoint> _sortedPoints() {
+    return (List<ChartDataPoint>.from(chart.points)
+      ..sort((a, b) => a.time.compareTo(b.time)));
+  }
+
   List<({DateTime date, double value})> _aggregateByDay() {
     final Map<String, List<double>> grouped = {};
     final dateKey = DateFormat('yyyy-MM-dd');
-
     for (final point in chart.points) {
-      final key = dateKey.format(point.time);
-      grouped.putIfAbsent(key, () => []).add(point.value);
+      grouped.putIfAbsent(dateKey.format(point.time), () => []).add(point.value);
     }
-
-    final result = grouped.entries.map((e) {
-      final date = DateTime.parse(e.key);
+    return (grouped.entries.map((e) {
       final avg = e.value.reduce((a, b) => a + b) / e.value.length;
-      return (date: date, value: avg);
+      return (date: DateTime.parse(e.key), value: avg);
     }).toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-
-    return result;
+      ..sort((a, b) => a.date.compareTo(b.date)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final dailyData = _aggregateByDay();
-    final values = dailyData.map((d) => d.value).toList();
+    final values = chart.points.map((p) => p.value).toList();
     final minVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a < b ? a : b);
     final maxVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a > b ? a : b);
     final latestVal = chart.points.isEmpty ? 0.0 : chart.points.last.value;
+
+    final is24h = selectedRange == '24h';
+    final pts = is24h ? _sortedPoints() : <ChartDataPoint>[];
+    final daily = is24h ? <({DateTime date, double value})>[] : _aggregateByDay();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -46,7 +54,6 @@ class StatsChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -77,7 +84,6 @@ class StatsChartCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Summary row
           if (chart.points.isNotEmpty)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -90,11 +96,15 @@ class StatsChartCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Bar chart
-          if (dailyData.isNotEmpty)
+          if (is24h && pts.isNotEmpty)
             AspectRatio(
               aspectRatio: 1.7,
-              child: BarChart(_buildBarData(dailyData, maxVal)),
+              child: BarChart(_buildRawBarData(pts, maxVal)),
+            )
+          else if (!is24h && daily.isNotEmpty)
+            AspectRatio(
+              aspectRatio: 1.7,
+              child: BarChart(_buildBarData(daily, maxVal)),
             ),
         ],
       ),
@@ -121,6 +131,94 @@ class StatsChartCard extends StatelessWidget {
     );
   }
 
+  // 24h: mỗi cột = một điểm đo, trục x là HH:mm
+  BarChartData _buildRawBarData(List<ChartDataPoint> pts, double maxVal) {
+    final barGroups = pts.asMap().entries.map((e) {
+      return BarChartGroupData(
+        x: e.key,
+        barRods: [
+          BarChartRodData(
+            toY: e.value.value,
+            color: chart.lineColor,
+            width: _barWidth(pts.length),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: maxVal * 1.15,
+              color: chart.lineColor.withValues(alpha: 0.07),
+            ),
+          ),
+        ],
+      );
+    }).toList();
+
+    final labelStep = (pts.length / 6).ceil().clamp(1, pts.length);
+
+    return BarChartData(
+      maxY: maxVal * 1.15,
+      barGroups: barGroups,
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: false,
+        horizontalInterval: maxVal * 0.5,
+        getDrawingHorizontalLine: (_) => FlLine(
+          color: AppColors.cardBorder,
+          strokeWidth: 1,
+          dashArray: [4, 6],
+        ),
+      ),
+      borderData: FlBorderData(show: false),
+      titlesData: FlTitlesData(
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 28,
+            getTitlesWidget: (value, meta) {
+              final idx = value.toInt();
+              if (idx % labelStep != 0) return const SizedBox.shrink();
+              if (idx >= pts.length) return const SizedBox.shrink();
+              return SideTitleWidget(
+                meta: meta,
+                space: 4,
+                child: Text(
+                  DateFormat('HH:mm').format(pts[idx].time),
+                  style: const TextStyle(color: AppColors.textGrey, fontSize: 10),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+      barTouchData: BarTouchData(
+        touchTooltipData: BarTouchTooltipData(
+          getTooltipColor: (_) => Colors.white.withValues(alpha: 0.95),
+          tooltipBorder: BorderSide(color: chart.lineColor, width: 1.5),
+          tooltipBorderRadius: BorderRadius.circular(8),
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            final pt = pts[group.x];
+            return BarTooltipItem(
+              '${DateFormat('HH:mm').format(pt.time)}\n',
+              const TextStyle(color: AppColors.textBlack, fontSize: 11),
+              children: [
+                TextSpan(
+                  text: '${rod.toY.toStringAsFixed(0)} ${chart.unit}',
+                  style: TextStyle(
+                    color: chart.lineColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   BarChartData _buildBarData(
     List<({DateTime date, double value})> dailyData,
     double maxVal,
@@ -144,7 +242,6 @@ class StatsChartCard extends StatelessWidget {
       );
     }).toList();
 
-    // Show x-axis labels: up to 7 labels evenly spaced
     final labelStep = (dailyData.length / 6).ceil().clamp(1, dailyData.length);
 
     return BarChartData(

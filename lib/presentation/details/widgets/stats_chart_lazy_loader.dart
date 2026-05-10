@@ -24,7 +24,10 @@ class StatsChartLazyLoader extends StatelessWidget {
               return const Center(child: Text('Không có dữ liệu biểu đồ'));
             }
             // Hiển thị danh sách biểu đồ
-            return StatsChartList(charts: state.chartData!);
+            return StatsChartList(
+              charts: state.chartData!,
+              selectedRange: state.selectedRange,
+            );
         }
       },
     );

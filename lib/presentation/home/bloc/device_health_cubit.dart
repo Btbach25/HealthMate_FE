@@ -19,7 +19,11 @@ class DeviceHealthState extends Equatable {
   final int dataCount;
   final double? readinessScore;
   final bool readinessLoading;
+  final double? bloodOxygen;
+  final double? sleepHours;
   final String? error;
+  // null = chưa kiểm tra / không áp dụng (non-Android)
+  final bool? isHealthConnectConnected;
 
   const DeviceHealthState({
     this.loading = false,
@@ -28,7 +32,10 @@ class DeviceHealthState extends Equatable {
     this.dataCount = 0,
     this.readinessScore,
     this.readinessLoading = false,
+    this.bloodOxygen,
+    this.sleepHours,
     this.error,
+    this.isHealthConnectConnected,
   });
 
   DeviceHealthState copyWith({
@@ -38,7 +45,10 @@ class DeviceHealthState extends Equatable {
     int? dataCount,
     double? readinessScore,
     bool? readinessLoading,
+    double? bloodOxygen,
+    double? sleepHours,
     String? error,
+    bool? isHealthConnectConnected,
   }) => DeviceHealthState(
     loading: loading ?? this.loading,
     lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -46,12 +56,15 @@ class DeviceHealthState extends Equatable {
     dataCount: dataCount ?? this.dataCount,
     readinessScore: readinessScore ?? this.readinessScore,
     readinessLoading: readinessLoading ?? this.readinessLoading,
+    bloodOxygen: bloodOxygen ?? this.bloodOxygen,
+    sleepHours: sleepHours ?? this.sleepHours,
     error: error,
+    isHealthConnectConnected: isHealthConnectConnected ?? this.isHealthConnectConnected,
   );
 
   @override
   List<Object?> get props =>
-      [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, error];
+      [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, bloodOxygen, sleepHours, error, isHealthConnectConnected];
 }
 
 class DeviceHealthCubit extends Cubit<DeviceHealthState> {
@@ -93,14 +106,24 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   /// Fetch device health 1 lần + tính readiness.
   Future<void> poll() async {
     _stopped = false; // reset khi user đang active
+    final onAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     emit(state.copyWith(loading: true, error: null));
     final result = await _service.fetchAll();
     if (result == null) {
-      emit(state.copyWith(loading: false, error: 'Không lấy được dữ liệu thiết bị'));
+      emit(state.copyWith(
+        loading: false,
+        error: 'Không lấy được dữ liệu thiết bị',
+        isHealthConnectConnected: onAndroid ? false : null,
+      ));
       return;
     }
 
     _lastPoints = result.dataPoints;
+
+    // 0 điểm + không có steps trên Android = coi như chưa kết nối được HC
+    final hcConnected = onAndroid
+        ? (result.dataPoints.isNotEmpty || result.totalSteps != null)
+        : null;
 
     emit(state.copyWith(
       loading: false,
@@ -109,6 +132,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       dataCount: result.dataPoints.length,
       readinessLoading: true,
       error: null,
+      isHealthConnectConnected: hcConnected,
     ));
 
     // Kết nối WS (nếu chưa) và gửi ngay lần đầu
@@ -153,6 +177,31 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     debugPrint('[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:60s)');
   }
 
+  /// Cập nhật ngay SpO2 trong state (sau khi nhập tay thành công).
+  void patchBloodOxygen(double value) {
+    if (!_stopped) emit(state.copyWith(bloodOxygen: value));
+  }
+
+  /// Cập nhật ngay số bước trong state (sau khi nhập tay thành công).
+  void patchTotalSteps(int steps) {
+    if (!_stopped) {
+      emit(state.copyWith(totalSteps: steps, lastUpdated: DateTime.now()));
+    }
+  }
+
+  /// Gửi một chỉ số nhập tay lên BE. Trả về true nếu gửi thành công.
+  Future<bool> pushManualMetric(String metricType, double value) async {
+    if (kIsWeb) return false;
+    try {
+      if (!_stopped) await _wsService.connect();
+      await _wsService.sendManualMetric(metricType, value);
+      return true;
+    } catch (e) {
+      debugPrint('[DeviceHealthCubit] pushManualMetric error: $e');
+      return false;
+    }
+  }
+
   /// Dừng gửi định kỳ và đóng WS.
   void stopPeriodicSync() {
     _stopped = true; // chặn emit từ async ops đang bay (vd: _fetchReadiness)
@@ -169,13 +218,19 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     final heartRate = _latestNumeric(points, HealthDataType.HEART_RATE);
     final bloodOxygen = _latestNumeric(points, HealthDataType.BLOOD_OXYGEN);
+    final sleepHours = _totalSleepHours(points);
 
     if (heartRate == null || _stopped) {
-      if (!_stopped) emit(state.copyWith(readinessLoading: false));
+      if (!_stopped) {
+        emit(state.copyWith(
+          readinessLoading: false,
+          bloodOxygen: bloodOxygen,
+          sleepHours: sleepHours > 0 ? sleepHours : null,
+        ));
+      }
       return;
     }
 
-    final sleepHours = _totalSleepHours(points);
     final calories = _totalCalories(points);
     final steps = result.totalSteps?.toDouble();
 
@@ -206,7 +261,12 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       debugPrint('[Readiness] Source=LOCAL score=$score (HR=$heartRate → hrScore=${((40 - ((heartRate - 75).abs() / 25 * 40)).clamp(0, 40)).toStringAsFixed(1)}, sleep=${(sleepHours / 8 * 30).clamp(0, 30).toStringAsFixed(1)}, steps=${steps != null ? (steps / 10000 * 20).clamp(0, 20).toStringAsFixed(1) : "10.0(default)"}, spo2=${bloodOxygen != null ? (bloodOxygen >= 95 ? "10.0" : (bloodOxygen / 95 * 10).clamp(0, 10).toStringAsFixed(1)) : "8.0(default)"})');
     }
 
-    emit(state.copyWith(readinessScore: score, readinessLoading: false));
+    emit(state.copyWith(
+      readinessScore: score,
+      readinessLoading: false,
+      bloodOxygen: bloodOxygen,
+      sleepHours: sleepHours > 0 ? sleepHours : null,
+    ));
   }
 
   @override

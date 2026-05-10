@@ -825,7 +825,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                             shrinkWrap: true,
                             padding: const EdgeInsets.all(8),
                             itemCount: _filteredAllergies.length,
-                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            separatorBuilder: (context, index) => const Divider(height: 1, thickness: 0.8, color: AppColors.cardBorder),
                             itemBuilder: (context, index) {
                               final allergy = _filteredAllergies[index];
                               return ListTile(

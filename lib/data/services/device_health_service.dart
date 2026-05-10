@@ -113,6 +113,31 @@ class DeviceHealthService {
     }
   }
 
+  /// Kiểm tra xem Health Connect có được kết nối và cấp quyền không.
+  /// Trả về null nếu không áp dụng (non-Android), true/false nếu có/không.
+  /// Không hiện dialog — chỉ check trạng thái hiện tại.
+  Future<bool?> checkHCConnection() async {
+    if (kIsWeb) return null;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) { return null; }
+    try {
+      if (!_configured) {
+        await _health.configure();
+        _configured = true;
+      }
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final available = await _health.isHealthConnectAvailable();
+        if (!available) return false;
+      }
+      final types = _supportedTypes;
+      if (types.isEmpty) return false;
+      final granted = await _health.hasPermissions(types);
+      return granted == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Expose fetcher để cubit/service khác gọi hàm con nếu cần.
   HealthDataFetcher get fetcher => _fetcher;
 }
