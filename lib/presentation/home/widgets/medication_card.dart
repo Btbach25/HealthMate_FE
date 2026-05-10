@@ -64,39 +64,59 @@ class MedicationCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Đã uống ${progress.completed}/${progress.total} lần',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textGrey,
-                ),
-              ),
-              Text(
-                '${(percent * 100).toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: done ? AppColors.success : AppColors.primary,
-                ),
-              ),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(child: _StatBox(label: 'Lượt uống', value: '${progress.total}', color: AppColors.primary)),
+                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
+                Expanded(child: _StatBox(label: 'Đã uống', value: '${progress.completed}', color: AppColors.success)),
+                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
+                Expanded(child: _StatBox(label: 'Còn lại', value: '$remaining', color: remaining > 0 ? AppColors.warning : AppColors.textGrey)),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: percent,
               backgroundColor: AppColors.inputBackground,
               color: done ? AppColors.success : AppColors.primary,
-              minHeight: 8,
+              minHeight: 6,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatBox extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatBox({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/data/models/health/health_overview.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_icons.dart';
@@ -122,14 +123,20 @@ class _DataCard extends StatelessWidget {
   String _bpValue(HealthOverview o) {
     final bp = o.bloodPressure;
     if (bp == null) return '—';
-    return '${bp.systolic}/${bp.diastolic}';
+    final sys = bp.systolic;
+    final dia = bp.diastolic;
+    if (sys == null && dia == null) return '—';
+    if (dia == null) return '$sys/—';
+    if (sys == null) return '—/$dia';
+    return '$sys/$dia';
   }
 
   @override
   Widget build(BuildContext context) {
-    // BE overview may not carry weight — fall back to profile weight from AuthBloc.
     final profileWeight = context.select((AuthBloc b) => b.state.user.weight);
     final weightValue = overview.weight?.value ?? profileWeight;
+    final deviceSpo2 = context.select((DeviceHealthCubit c) => c.state.bloodOxygen);
+    final spo2 = overview.bloodOxygen ?? deviceSpo2;
 
     final metrics = [
       _MetricItem(
@@ -157,12 +164,12 @@ class _DataCard extends StatelessWidget {
         unit: 'mmHg',
       ),
       _MetricItem(
-        icon: AppIcons.temperature,
-        iconColor: AppColors.tempIconColor,
-        iconBgColor: AppColors.tempIconBg,
-        label: 'Nhiệt độ',
-        value: _fmt(overview.temperature?.value),
-        unit: '°C',
+        icon: AppIcons.spo2,
+        iconColor: const Color(0xFF1E88E5),
+        iconBgColor: const Color(0xFFE3F2FD),
+        label: 'SpO2',
+        value: spo2 != null ? spo2.toStringAsFixed(1) : '—',
+        unit: '%',
       ),
     ];
 

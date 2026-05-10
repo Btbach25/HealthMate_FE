@@ -90,6 +90,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     final dia = _latestNumeric(_lastPoints, HealthDataType.BLOOD_PRESSURE_DIASTOLIC);
     final wt = _latestNumeric(_lastPoints, HealthDataType.WEIGHT);
     final temp = _latestNumeric(_lastPoints, HealthDataType.BODY_TEMPERATURE);
+    final spo2 = _latestNumeric(_lastPoints, HealthDataType.BLOOD_OXYGEN);
     return HealthOverview(
       heartRate: hr != null ? HeartRate(time: now, userId: '', value: hr) : null,
       bloodPressure: (sys != null || dia != null)
@@ -97,6 +98,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
           : null,
       weight: wt != null ? Weight(time: now, userId: '', value: wt) : null,
       temperature: temp != null ? Temperature(time: now, userId: '', value: temp) : null,
+      bloodOxygen: spo2,
     );
   }
 
@@ -160,7 +162,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       }
     });
 
-    _fetchTimer = Timer.periodic(const Duration(seconds: 60), (_) async {
+    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       final result = await _service.fetchAll();
       if (result == null) return;
       _lastPoints = result.dataPoints;
@@ -174,7 +176,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       });
     });
 
-    debugPrint('[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:60s)');
+    debugPrint('[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:5s)');
   }
 
   /// Cập nhật ngay SpO2 trong state (sau khi nhập tay thành công).

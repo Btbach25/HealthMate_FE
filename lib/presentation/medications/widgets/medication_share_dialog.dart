@@ -3,18 +3,18 @@ import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/medication/medication.dart';
-import 'package:fe/data/models/medication/medication_share.dart';
 import 'package:fe/data/repositories/family_repository.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MedicationShareDialog extends StatefulWidget {
-  final Medication medication;
+  final List<Medication> medications;
 
   const MedicationShareDialog({
     super.key,
-    required this.medication,
+    required this.medications,
   });
 
   @override
@@ -22,134 +22,195 @@ class MedicationShareDialog extends StatefulWidget {
 }
 
 class _MedicationShareDialogState extends State<MedicationShareDialog> {
-  bool _loading = true;
-  bool _saving = false;
-  String? _error;
+  // Groups screen
+  bool _loadingGroups = true;
+  List<FamilyGroup> _groups = [];
+  String? _loadError;
 
-  final Map<String, _GroupShareOption> _groupsById = {};
-  final Set<String> _selectedKeys = {};
-  final Map<String, MedicationShare> _existingSharesByKey = {};
+  // Members screen
+  FamilyGroup? _selectedGroup;
+  List<FamilyMember> _groupMembers = [];
+  bool _loadingMembers = false;
+  final Set<String> _selectedUserIds = {};
+
+  // Sharing
+  bool _sharing = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadGroups();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadGroups() async {
     setState(() {
-      _loading = true;
-      _error = null;
-      _groupsById.clear();
-      _selectedKeys.clear();
-      _existingSharesByKey.clear();
+      _loadingGroups = true;
+      _loadError = null;
     });
-
     try {
       final familyRepo = context.read<FamilyRepository>();
-      final medicationRepo = context.read<MedicationRepository>();
-
       final summary = await familyRepo.getFamilyGroups();
-      final shares = await medicationRepo.getMedicationShares(widget.medication.id);
-
-      for (final share in shares) {
-        _existingSharesByKey[_shareKey(share.groupId, share.sharedWithUserId)] =
-            share;
-      }
-
-      for (final group in summary.groups) {
-        if (!group.medicationSharingAllowed) continue;
-        final details = await familyRepo.getGroupDetails(
-          groupId: group.id,
-          cachedGroup: group,
-        );
-        final eligibleMembers = details.members
-            .where((member) =>
-                member.userId != widget.medication.userId &&
-                member.sharedMetrics.isNotEmpty)
-            .toList();
-
-        if (eligibleMembers.isEmpty) continue;
-
-        _groupsById[group.id] = _GroupShareOption(
-          group: details.group,
-          members: eligibleMembers,
-        );
-      }
-
-      for (final entry in _groupsById.entries) {
-        final groupId = entry.key;
-        for (final member in entry.value.members) {
-          final key = _shareKey(groupId, member.userId);
-          if (_existingSharesByKey.containsKey(key)) {
-            _selectedKeys.add(key);
-          }
-        }
-      }
-
+      final eligible = summary.groups.toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
       if (!mounted) return;
       setState(() {
-        _loading = false;
+        _groups = eligible;
+        _loadingGroups = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = 'Không tải được danh sách thành viên có thể chia sẻ thuốc.';
+        _loadingGroups = false;
+        _loadError = 'Không tải được danh sách nhóm.';
       });
     }
   }
 
-  String _shareKey(String groupId, String userId) => '$groupId|$userId';
-
-  Future<void> _save() async {
-    if (_saving) return;
-    setState(() => _saving = true);
-
+  Future<void> _selectGroup(FamilyGroup group) async {
+    setState(() {
+      _selectedGroup = group;
+      _loadingMembers = true;
+      _selectedUserIds.clear();
+      _groupMembers = [];
+    });
     try {
-      final medicationRepo = context.read<MedicationRepository>();
-      final desiredKeys = Set<String>.from(_selectedKeys);
-      final existingKeys = _existingSharesByKey.keys.toSet();
-
-      final keysToAdd = desiredKeys.difference(existingKeys);
-      final keysToDelete = existingKeys.difference(desiredKeys);
-
-      for (final key in keysToAdd) {
-        final parts = key.split('|');
-        if (parts.length != 2) continue;
-        await medicationRepo.addMedicationShare(
-          medicationId: widget.medication.id,
-          groupId: parts[0],
-          sharedWithUserId: parts[1],
-        );
-      }
-
-      for (final key in keysToDelete) {
-        final existing = _existingSharesByKey[key];
-        if (existing == null) continue;
-        await medicationRepo.deleteMedicationShare(
-          medicationId: widget.medication.id,
-          shareId: existing.id,
-        );
-      }
-
+      final familyRepo = context.read<FamilyRepository>();
+      final details = await familyRepo.getGroupDetails(
+        groupId: group.id,
+        cachedGroup: group,
+      );
+      final currentUserId = context.read<AuthBloc>().state.user.id;
+      final eligible = details.members
+          .where((m) => m.userId != currentUserId && m.sharedMetrics.isNotEmpty)
+          .toList();
       if (!mounted) return;
-      Navigator.pop(context, true);
+      setState(() {
+        _groupMembers = eligible;
+        _loadingMembers = false;
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không thể lưu chia sẻ thuốc. Vui lòng thử lại.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        _loadingMembers = false;
+        _groupMembers = [];
+      });
     }
+  }
+
+  void _backToGroups() {
+    setState(() {
+      _selectedGroup = null;
+      _groupMembers = [];
+      _selectedUserIds.clear();
+    });
+  }
+
+  Future<void> _onConfirm() async {
+    if (_selectedUserIds.isEmpty || _sharing) return;
+    final group = _selectedGroup!;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: const Text(
+          'Xác nhận chia sẻ',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Chia sẻ toàn bộ ${widget.medications.length} loại thuốc '
+          'cho ${_selectedUserIds.length} thành viên trong nhóm "${group.name}"?',
+          style: AppTextStyles.bodySmall.copyWith(
+            height: 1.5,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textGrey,
+                    side: const BorderSide(color: AppColors.cardBorder),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Hủy'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Chia sẻ',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _sharing = true);
+
+    bool success = true;
+    try {
+      final medicationRepo = context.read<MedicationRepository>();
+      for (final med in widget.medications) {
+        for (final userId in _selectedUserIds) {
+          await medicationRepo.addMedicationShare(
+            medicationId: med.id,
+            groupId: group.id,
+            sharedWithUserId: userId,
+          );
+        }
+      }
+    } catch (_) {
+      success = false;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Đã chia sẻ nhắc thuốc thành công'
+              : 'Không thể chia sẻ nhắc thuốc. Vui lòng thử lại.',
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: success ? AppColors.primary : AppColors.error,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(12),
+      ),
+    );
+
+    setState(() => _sharing = false);
+    _backToGroups();
   }
 
   @override
   Widget build(BuildContext context) {
+    final onGroupsScreen = _selectedGroup == null;
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -163,44 +224,68 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
             children: [
               Row(
                 children: [
+                  if (!onGroupsScreen) ...[
+                    IconButton(
+                      onPressed: _sharing ? null : _backToGroups,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Text(
-                      'Chia sẻ nhắc thuốc',
+                      onGroupsScreen
+                          ? 'Chia sẻ nhắc thuốc'
+                          : _selectedGroup!.name,
                       style: AppTextStyles.h4.copyWith(fontSize: 18),
                     ),
                   ),
                   IconButton(
-                    onPressed: _saving ? null : () => Navigator.pop(context),
+                    onPressed: _sharing ? null : () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
               Text(
-                'Thuốc: ${widget.medication.name}. Chỉ hiện thành viên thuộc nhóm đã bật chia sẻ nhắc thuốc và đang chia sẻ ít nhất một chỉ số với bạn.',
+                onGroupsScreen
+                    ? 'Chia sẻ toàn bộ ${widget.medications.length} loại thuốc'
+                    : 'Chọn thành viên muốn chia sẻ nhắc thuốc',
                 style: AppTextStyles.caption,
               ),
               const SizedBox(height: 12),
               Flexible(
-                child: _buildBody(),
+                child: onGroupsScreen ? _buildGroupsList() : _buildMembersList(),
               ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: (_loading || _saving) ? null : _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+              if (!onGroupsScreen) ...[
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed:
+                      (_selectedUserIds.isEmpty || _sharing || _loadingMembers)
+                          ? null
+                          : _onConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: _sharing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Xác nhận (${_selectedUserIds.length} thành viên)',
                         ),
-                      )
-                    : const Text('Lưu chia sẻ'),
-              ),
+                ),
+              ],
             ],
           ),
         ),
@@ -208,8 +293,8 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
     );
   }
 
-  Widget _buildBody() {
-    if (_loading) {
+  Widget _buildGroupsList() {
+    if (_loadingGroups) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
@@ -218,87 +303,153 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
       );
     }
 
-    if (_error != null) {
+    if (_loadError != null) {
       return Center(
-        child: Text(
-          _error!,
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
-          textAlign: TextAlign.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _loadError!,
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _loadGroups,
+                child: const Text('Thử lại'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    if (_groupsById.isEmpty) {
+    if (_groups.isEmpty) {
       return Center(
-        child: Text(
-          'Không có thành viên nào đủ quyền để chia sẻ nhắc thuốc.',
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
-          textAlign: TextAlign.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'Không có nhóm nào cho phép chia sẻ nhắc thuốc.',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
-
-    final groups = _groupsById.values.toList()
-      ..sort((a, b) => a.group.name.compareTo(b.group.name));
 
     return ListView.separated(
       shrinkWrap: true,
-      itemCount: groups.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemCount: _groups.length,
+      separatorBuilder: (_, __) => const Divider(
+        height: 1,
+        thickness: 0.8,
+        color: AppColors.cardBorder,
+      ),
       itemBuilder: (context, index) {
-        final group = groups[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.inputBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+        final group = _groups[index];
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 4,
           ),
-          child: ExpansionTile(
-            title: Text(
-              group.group.name,
-              style: AppTextStyles.labelMedium,
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryContainer,
+              shape: BoxShape.circle,
             ),
-            subtitle: Text(
-              '${group.members.length} thành viên có thể nhận nhắc thuốc',
-              style: AppTextStyles.caption,
+            child: const Icon(
+              Icons.group_rounded,
+              color: AppColors.primary,
+              size: 20,
             ),
-            children: group.members.map((member) {
-              final key = _shareKey(group.group.id, member.userId);
-              final selected = _selectedKeys.contains(key);
-              return CheckboxListTile(
-                value: selected,
-                activeColor: AppColors.primary,
-                title: Text(member.name, style: AppTextStyles.bodySmall),
-                subtitle: Text(
-                  member.email ?? member.userId,
-                  style: AppTextStyles.caption,
-                ),
-                onChanged: _saving
-                    ? null
-                    : (value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedKeys.add(key);
-                          } else {
-                            _selectedKeys.remove(key);
-                          }
-                        });
-                      },
-              );
-            }).toList(),
+          ),
+          title: Text(
+            group.name,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            '${group.memberCount} thành viên',
+            style: AppTextStyles.caption,
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.ios_share_rounded, color: AppColors.primary),
+            tooltip: 'Chia sẻ vào nhóm này',
+            onPressed: () => _selectGroup(group),
           ),
         );
       },
     );
   }
-}
 
-class _GroupShareOption {
-  final FamilyGroup group;
-  final List<FamilyMember> members;
+  Widget _buildMembersList() {
+    if (_loadingMembers) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
 
-  const _GroupShareOption({
-    required this.group,
-    required this.members,
-  });
+    if (_groupMembers.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'Không có thành viên nào có thể nhận nhắc thuốc trong nhóm này.',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      itemCount: _groupMembers.length,
+      separatorBuilder: (_, __) => const Divider(
+        height: 1,
+        thickness: 0.8,
+        color: AppColors.cardBorder,
+      ),
+      itemBuilder: (context, index) {
+        final member = _groupMembers[index];
+        final selected = _selectedUserIds.contains(member.userId);
+        return CheckboxListTile(
+          value: selected,
+          activeColor: AppColors.primary,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 2,
+          ),
+          title: Text(
+            member.name,
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: member.email != null
+              ? Text(member.email!, style: AppTextStyles.caption)
+              : null,
+          onChanged: _sharing
+              ? null
+              : (value) {
+                  setState(() {
+                    if (value == true) {
+                      _selectedUserIds.add(member.userId);
+                    } else {
+                      _selectedUserIds.remove(member.userId);
+                    }
+                  });
+                },
+        );
+      },
+    );
+  }
 }

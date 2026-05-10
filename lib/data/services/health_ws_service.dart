@@ -59,6 +59,7 @@ class HealthWsService {
     HealthDataType.ACTIVE_ENERGY_BURNED: 'calories_burned',
     HealthDataType.BLOOD_PRESSURE_SYSTOLIC: 'blood_pressure',
     HealthDataType.BLOOD_OXYGEN: 'spo2',
+    HealthDataType.WEIGHT: 'weight',
   };
 
   double? _extractNumeric(HealthDataPoint point) {

@@ -2,7 +2,6 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
-import 'package:fe/presentation/medications/widgets/medication_share_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -80,24 +79,6 @@ class ManageMedicationsDialog extends StatelessWidget {
       final bloc = context.read<MedicationBloc>();
       if (bloc.state.deletingMedicationId != null) return;
       bloc.add(DeleteMedication(medicationId: med.id));
-    }
-  }
-
-  Future<void> _openShareDialog(BuildContext context, Medication med) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => MedicationShareDialog(medication: med),
-    );
-    if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Đã cập nhật chia sẻ nhắc thuốc'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(12),
-        ),
-      );
     }
   }
 
@@ -225,36 +206,18 @@ class ManageMedicationsDialog extends StatelessWidget {
                                           color: AppColors.primary,
                                         ),
                                       )
-                                    : Wrap(
-                                        spacing: 2,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.group_add_outlined,
-                                              color: AppColors.primary,
-                                            ),
-                                            tooltip: 'Chia sẻ nhắc thuốc',
-                                            onPressed: busy
-                                                ? null
-                                                : () => _openShareDialog(
-                                                    context,
-                                                    med,
-                                                  ),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.delete_outline_rounded,
-                                              color: AppColors.error,
-                                            ),
-                                            tooltip: 'Xóa khỏi lịch',
-                                            onPressed: busy
-                                                ? null
-                                                : () => _confirmDelete(
-                                                    context,
-                                                    med,
-                                                  ),
-                                          ),
-                                        ],
+                                    : IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: AppColors.error,
+                                        ),
+                                        tooltip: 'Xóa khỏi lịch',
+                                        onPressed: busy
+                                            ? null
+                                            : () => _confirmDelete(
+                                                context,
+                                                med,
+                                              ),
                                       ),
                               );
                             },
