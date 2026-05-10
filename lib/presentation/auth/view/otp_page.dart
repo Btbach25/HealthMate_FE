@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
+import '../widgets/auth_logo_header.dart';
 
 enum OtpFlow { login, signup, forgot }
 
@@ -64,9 +65,7 @@ class OtpView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // const AppHeader(),
-              // const SizedBox(height: AppSize.p32),
-              // Form Card
+              const AuthLogoHeader(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
                 child: Container(
@@ -101,8 +100,6 @@ class OtpForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(Icons.lock_open_outlined, size: 48, color: AppColors.primary.withValues(alpha: 0.5)),
-        const SizedBox(height: AppSize.p16),
         const Text('Xác thực OTP', style: AppStyles.h1, textAlign: TextAlign.center),
         const SizedBox(height: AppSize.p8),
         const Text(

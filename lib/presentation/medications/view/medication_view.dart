@@ -7,8 +7,10 @@ import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:fe/presentation/medications/view/medication_day_schedule.dart';
 import 'package:fe/presentation/medications/view/medication_schedule_widgets.dart';
+import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/widgets/add_medication_dialog.dart';
 import 'package:fe/presentation/medications/widgets/manage_medications_dialog.dart';
+import 'package:fe/presentation/medications/widgets/medication_share_dialog.dart';
 import 'package:fe/presentation/medications/widgets/prescription_scan_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -114,7 +116,7 @@ class MedicationView extends StatelessWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      MediaQuery.of(context).padding.top + 16,
+                      16,
                       16,
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
@@ -122,7 +124,7 @@ class MedicationView extends StatelessWidget {
                       builder: (context, constraints) {
                         final isCompactPhone = constraints.maxWidth < 390;
                         const statSpacing = 10.0;
-                        const minStatTileWidth = 145.0;
+                        const minStatTileWidth = 100.0;
                         var statsPerRow =
                             ((constraints.maxWidth + statSpacing) /
                                     (minStatTileWidth + statSpacing))
@@ -144,20 +146,6 @@ class MedicationView extends StatelessWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                        const Text(
-                          'Thuốc',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Quản lý lịch uống và chia sẻ nhắc thuốc',
-                          style: TextStyle(color: AppColors.textGrey),
-                        ),
-                        const SizedBox(height: 12),
                         const MedicationPurposeBanner(),
                         const SizedBox(height: 12),
                         HeroActionBanner(
@@ -183,8 +171,7 @@ class MedicationView extends StatelessWidget {
                               OutlinedButton.icon(
                                 onPressed: state.medications.isEmpty
                                     ? null
-                                    : () =>
-                                        _showManageMedicationsDialog(context),
+                                    : () => _showShareMedicationDialog(context, state.medications),
                                 icon: Icon(
                                   Icons.group_add_outlined,
                                   size: isCompactPhone ? 18 : 20,
@@ -316,6 +303,19 @@ class MedicationView extends StatelessWidget {
         value: bloc,
         child: const AddMedicationDialog(),
       ),
+    );
+  }
+
+  Future<void> _showShareMedicationDialog(
+    BuildContext context,
+    List<Medication> medications,
+  ) async {
+    if (medications.isEmpty) return;
+    await showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: true,
+      builder: (_) => MedicationShareDialog(medications: medications),
     );
   }
 

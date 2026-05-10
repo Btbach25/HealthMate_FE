@@ -12,26 +12,61 @@ class NotificationList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.inputBackground,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.cardShadowList,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Thông báo gia đình',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textBlack,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.notifications_none_rounded, color: AppColors.primary, size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Thông báo gia đình',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
+              ),
+            ],
           ),
           if (notifications.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 16.0),
-              child: Text(
-                'Không có thông báo mới.',
-                style: TextStyle(color: AppColors.textGrey),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.notifications_off_outlined, color: AppColors.textLight, size: 28),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Không có thông báo mới',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textGrey),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Thông báo từ nhóm gia đình sẽ hiện ở đây',
+                      style: TextStyle(fontSize: 12, color: AppColors.textLight),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             )
           else
@@ -39,14 +74,12 @@ class NotificationList extends StatelessWidget {
               itemCount: notifications.length,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 10),
               itemBuilder: (context, index) {
-                return NotificationTile(
-                  notification: notifications[index],
-                );
+                return NotificationTile(notification: notifications[index]);
               },
               separatorBuilder: (context, index) {
-                return const Divider(color: Colors.black12);
+                return const Divider(color: AppColors.cardBorder, height: 1);
               },
             ),
         ],

@@ -54,35 +54,32 @@ class FamilyMemberMetricsDialog extends StatefulWidget {
       _FamilyMemberMetricsDialogState();
 }
 
-class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
+class _FamilyMemberMetricsDialogState
+    extends State<FamilyMemberMetricsDialog> {
   static const _allMetricsLabel = 'Tất cả chỉ số';
 
   late final List<String> _metricItems;
   late final List<String> _sharedMetricValuesForWs;
-  /// Thứ tự cố định để chip realtime ổn định; đã lọc theo metric BE hỗ trợ.
   late final List<String> _watchedBackendMetrics;
 
   HealthWsService? _healthWs;
   StreamSubscription<FamilyMetricWatchEvent>? _realtimeSub;
   final Map<String, FamilyMetricWatchEvent> _liveByBackendMetric = {};
 
-  // Dropdown state
   String _selectedMetric = _allMetricsLabel;
   String _selectedRange = '7 ngày qua';
   String _selectedSort = 'Mới nhất';
 
-  // Charts future — rebuilt khi filter thay đổi
   late Future<List<MetricChart>> _chartsFuture;
 
   @override
   void initState() {
     super.initState();
-    final sharedLabels =
-        widget.member.sharedMetrics
-            .map((t) => MetricHelper.getMetricOption(t).label)
-            .toSet()
-            .toList()
-          ..sort();
+    final sharedLabels = widget.member.sharedMetrics
+        .map((t) => MetricHelper.getMetricOption(t).label)
+        .toSet()
+        .toList()
+      ..sort();
     _metricItems = [_allMetricsLabel, ...sharedLabels];
     _sharedMetricValuesForWs =
         widget.member.sharedMetrics.map((t) => t.value).toList();
@@ -137,7 +134,6 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
     return v.toStringAsFixed(1);
   }
 
-  /// Map nhãn hiển thị → range param cho API
   String _rangeParam(String label) {
     switch (label) {
       case '24 giờ qua':
@@ -150,22 +146,17 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
   }
 
   Future<List<MetricChart>> _loadCharts() {
-    // Lấy danh sách metric type (value string) để filter
-    final allSharedTypes = widget.member.sharedMetrics
-        .map((t) => t.value)
-        .toList();
-
+    final allSharedTypes =
+        widget.member.sharedMetrics.map((t) => t.value).toList();
     List<String>? filterTypes;
     if (_selectedMetric != _allMetricsLabel) {
-      // Tìm MetricType có label khớp
-      final matchedType = widget.member.sharedMetrics.where((t) {
-        return MetricHelper.getMetricOption(t).label == _selectedMetric;
-      });
-      filterTypes = matchedType.map((t) => t.value).toList();
+      filterTypes = widget.member.sharedMetrics
+          .where((t) => MetricHelper.getMetricOption(t).label == _selectedMetric)
+          .map((t) => t.value)
+          .toList();
     } else {
       filterTypes = allSharedTypes.isEmpty ? null : allSharedTypes;
     }
-
     return widget.statsRepository.getChartDataForMember(
       widget.member.userId,
       range: _rangeParam(_selectedRange),
@@ -173,360 +164,458 @@ class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
     );
   }
 
-  void _applyFilter() {
-    setState(() {
-      _chartsFuture = _loadCharts();
-    });
-  }
+  void _applyFilter() => setState(() => _chartsFuture = _loadCharts());
 
   List<MetricChart> _sortCharts(List<MetricChart> charts) {
     final sorted = [...charts];
-    if (_selectedSort == 'Cũ nhất') {
-      for (final c in sorted) {
-        c.points.sort((a, b) => a.time.compareTo(b.time));
-      }
-    } else {
-      for (final c in sorted) {
-        c.points.sort((a, b) => b.time.compareTo(a.time));
-      }
+    final asc = _selectedSort == 'Cũ nhất';
+    for (final c in sorted) {
+      c.points.sort(
+        (a, b) => asc ? a.time.compareTo(b.time) : b.time.compareTo(a.time),
+      );
     }
     return sorted;
   }
 
   @override
   Widget build(BuildContext context) {
+    final maxDialogHeight = MediaQuery.sizeOf(context).height * 0.9;
     final statusColor = widget.member.healthStatus.color;
     final statusBgColor = widget.member.healthStatus.backgroundColor;
-    final maxDialogHeight = MediaQuery.sizeOf(context).height * 0.9;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSize.r16),
       ),
+      backgroundColor: AppColors.surface,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 560, maxHeight: maxDialogHeight),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSize.p20),
-          child: ScrollConfiguration(
-            behavior: const _FamilyMetricsDialogScrollBehavior(),
-            child: SingleChildScrollView(
-              child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-              // ── Header ──────────────────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Header (fixed, không scroll) ─────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Avatar
                   Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.inputBackground,
+                    width: 46,
+                    height: 46,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryContainer,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Text(
                         StringHelper.getInitials(widget.member.name),
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textBlack,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Name + meta
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.member.name, style: AppTextStyles.h4),
-                        const SizedBox(height: 4),
                         Text(
-                          [
-                            if (widget.member.relationship != null)
-                              widget.member.relationship!,
-                            if (widget.member.age != null)
-                              '${widget.member.age} tuổi',
-                          ].join(' • '),
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textGrey,
-                          ),
+                          widget.member.name,
+                          style: AppTextStyles.h4,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusBgColor,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                widget.member.healthStatus.displayLabel,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: statusColor,
-                                ),
-                              ),
+                        if (widget.member.relationship != null ||
+                            widget.member.age != null)
+                          Text(
+                            [
+                              if (widget.member.relationship != null)
+                                widget.member.relationship!,
+                              if (widget.member.age != null)
+                                '${widget.member.age} tuổi',
+                            ].join(' · '),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textGrey,
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.inputBackground,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                'Chia sẻ ${widget.member.sharedMetrics.length} chỉ số',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textGrey.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            _Chip(
+                              label: widget.member.healthStatus.displayLabel,
+                              color: statusColor,
+                              bgColor: statusBgColor,
+                            ),
+                            const SizedBox(width: 6),
+                            _Chip(
+                              label:
+                                  '${widget.member.sharedMetrics.length} chỉ số',
+                              color: AppColors.textSecondary,
+                              bgColor: AppColors.inputBackground,
+                              icon: Icons.share_outlined,
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
+                  // Close
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     tooltip: 'Đóng',
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+            ),
+            const Divider(height: 1, thickness: 0.8, color: AppColors.cardBorder),
 
-              // ── Filter row ──────────────────────────────────────────
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Bộ lọc và sắp xếp dữ liệu',
-                  style: AppTextStyles.h4.copyWith(fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final useRow = constraints.maxWidth >= 420;
-                  final dropdowns = [
-                    SettingsDropdown(
-                      label: 'Loại chỉ số',
-                      value: _selectedMetric,
-                      items: _metricItems,
-                      onChanged: (v) {
-                        if (v == null) return;
-                        _selectedMetric = v;
-                        _applyFilter();
-                      },
-                    ),
-                    SettingsDropdown(
-                      label: 'Thời gian',
-                      value: _selectedRange,
-                      items: const ['24 giờ qua', '7 ngày qua', '30 ngày qua'],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        _selectedRange = v;
-                        _applyFilter();
-                      },
-                    ),
-                    SettingsDropdown(
-                      label: 'Sắp xếp',
-                      value: _selectedSort,
-                      items: const ['Mới nhất', 'Cũ nhất'],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() => _selectedSort = v);
-                      },
-                    ),
-                  ];
-                  if (useRow) {
-                    return Row(
-                      children: [
-                        Expanded(child: dropdowns[0]),
-                        const SizedBox(width: 8),
-                        Expanded(child: dropdowns[1]),
-                        const SizedBox(width: 8),
-                        Expanded(child: dropdowns[2]),
-                      ],
-                    );
-                  }
-                  return Column(
+            // ── Scrollable body ───────────────────────────────────────
+            Flexible(
+              child: ScrollConfiguration(
+                behavior: const _NoScrollbarBehavior(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      dropdowns[0],
-                      const SizedBox(height: 8),
-                      dropdowns[1],
-                      const SizedBox(height: 8),
-                      dropdowns[2],
+                      // ── Filters ──────────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.cardBorder),
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final useRow = constraints.maxWidth >= 380;
+                            final dropdowns = [
+                              SettingsDropdown(
+                                label: 'Loại chỉ số',
+                                value: _selectedMetric,
+                                items: _metricItems,
+                                onChanged: (v) {
+                                  if (v == null) return;
+                                  _selectedMetric = v;
+                                  _applyFilter();
+                                },
+                              ),
+                              SettingsDropdown(
+                                label: 'Thời gian',
+                                value: _selectedRange,
+                                items: const [
+                                  '24 giờ qua',
+                                  '7 ngày qua',
+                                  '30 ngày qua',
+                                ],
+                                onChanged: (v) {
+                                  if (v == null) return;
+                                  _selectedRange = v;
+                                  _applyFilter();
+                                },
+                              ),
+                              SettingsDropdown(
+                                label: 'Sắp xếp',
+                                value: _selectedSort,
+                                items: const ['Mới nhất', 'Cũ nhất'],
+                                onChanged: (v) {
+                                  if (v == null) return;
+                                  setState(() => _selectedSort = v);
+                                },
+                              ),
+                            ];
+                            if (useRow) {
+                              return Row(
+                                children: [
+                                  Expanded(child: dropdowns[0]),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: dropdowns[1]),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: dropdowns[2]),
+                                ],
+                              );
+                            }
+                            return Column(
+                              children: [
+                                dropdowns[0],
+                                const SizedBox(height: 8),
+                                dropdowns[1],
+                                const SizedBox(height: 8),
+                                dropdowns[2],
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Live metrics (mobile only) ────────────────────
+                      if (!kIsWeb && _watchedBackendMetrics.isNotEmpty) ...[
+                        _SectionLabel(
+                          icon: Icons.bolt_rounded,
+                          iconColor: AppColors.primary,
+                          label: 'Số liệu mới nhất',
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _watchedBackendMetrics.map((backend) {
+                            final ev = _liveByBackendMetric[backend];
+                            final label = _labelForBackendMetric(backend);
+                            if (ev == null) {
+                              return _LiveChip(label: label, value: null);
+                            }
+                            final timeStr = DateFormat('HH:mm dd/MM')
+                                .format(ev.timestamp.toLocal());
+                            return _LiveChip(
+                              label: label,
+                              value: _formatLiveValue(ev.value),
+                              time: timeStr,
+                            );
+                          }).toList(),
+                        ),
+                        if (_liveByBackendMetric.isEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Đang chờ cập nhật từ thành viên...',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textGrey,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── Record count + charts ─────────────────────────
+                      FutureBuilder<List<MetricChart>>(
+                        future: _chartsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32),
+                              child: LoadingWidget(),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return _EmptyState(
+                              rangeLabel: _selectedRange,
+                              errorMessage:
+                                  'Không thể tải dữ liệu. Thử lại sau.',
+                            );
+                          }
+                          final charts = _sortCharts(snapshot.data ?? []);
+                          final pointsCount = charts.fold<int>(
+                            0,
+                            (s, c) => s + c.points.length,
+                          );
+                          if (charts.isEmpty) {
+                            return _EmptyState(rangeLabel: _selectedRange);
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  _SectionLabel(
+                                    icon: Icons.bar_chart_rounded,
+                                    iconColor: AppColors.textSecondary,
+                                    label: 'Biểu đồ',
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '$pointsCount lần ghi · $_selectedRange',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: charts.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 16),
+                                itemBuilder: (context, index) =>
+                                    StatsChartCard(
+                                  chart: charts[index],
+                                  selectedRange: _rangeParam(_selectedRange),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Mobile: cập nhật số liệu mới (web chỉ có biểu đồ lịch sử).
-              if (!kIsWeb && _watchedBackendMetrics.isNotEmpty) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Số liệu mới nhất',
-                    style: AppTextStyles.h4.copyWith(fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _watchedBackendMetrics.map((backend) {
-                    final ev = _liveByBackendMetric[backend];
-                    final label = _labelForBackendMetric(backend);
-                    if (ev == null) {
-                      return Chip(
-                        label: Text(
-                          '$label: —',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        backgroundColor: AppColors.inputBackground,
-                        side: BorderSide(color: AppColors.cardBorder),
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }
-                    final timeStr = DateFormat(
-                      'dd/MM HH:mm',
-                    ).format(ev.timestamp.toLocal());
-                    return Chip(
-                      avatar: Icon(
-                        Icons.bolt_rounded,
-                        size: 18,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(
-                        '$label: ${_formatLiveValue(ev.value)} · $timeStr',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.08,
-                      ),
-                      side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
-                ),
-                if (_liveByBackendMetric.isEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Chưa có số liệu mới. Khi thành viên có đo mới, bạn sẽ thấy tại đây.',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textGrey,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-              ] else if (kIsWeb && _watchedBackendMetrics.isNotEmpty) ...[
-                Text(
-                  'Trên trình duyệt, bạn xem biểu đồ theo khoảng thời gian đã chọn. '
-                  'Để theo dõi số liệu cập nhật nhanh hơn, hãy mở ứng dụng trên điện thoại.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textGrey,
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Record count ─────────────────────────────────────────
-              FutureBuilder<List<MetricChart>>(
-                future: _chartsFuture,
-                builder: (context, snapshot) {
-                  final pointsCount = (snapshot.data ?? []).fold<int>(
-                    0,
-                    (sum, c) => sum + c.points.length,
-                  );
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Trong $_selectedRange: $pointsCount lần ghi nhận',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textGrey,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── Charts (scroll cùng toàn bộ dialog — tránh overflow khi màn hình thấp / web) ──
-              FutureBuilder<List<MetricChart>>(
-                future: _chartsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: LoadingWidget(),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return _EmptyState(
-                      rangeLabel: _selectedRange,
-                      errorMessage: 'Không thể tải dữ liệu. Thử lại sau.',
-                    );
-                  }
-                  final charts = _sortCharts(snapshot.data ?? []);
-                  if (charts.isEmpty) {
-                    return _EmptyState(rangeLabel: _selectedRange);
-                  }
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: charts.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) =>
-                        StatsChartCard(chart: charts[index]),
-                  );
-                },
-              ),
-            ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Cuộn khi nội dung dài; không vẽ thanh scrollbar mặc định (web/desktop hay hiện thanh dày dù ít nội dung).
-class _FamilyMetricsDialogScrollBehavior extends ScrollBehavior {
-  const _FamilyMetricsDialogScrollBehavior();
+class _SectionLabel extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  const _SectionLabel({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: AppTextStyles.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textBlack,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color bgColor;
+  final IconData? icon;
+  const _Chip({
+    required this.label,
+    required this.color,
+    required this.bgColor,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveChip extends StatelessWidget {
+  final String label;
+  final String? value;
+  final String? time;
+  const _LiveChip({required this.label, this.value, this.time});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: hasValue
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : AppColors.inputBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: hasValue
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.cardBorder,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.bolt_rounded,
+            size: 14,
+            color: hasValue ? AppColors.primary : AppColors.textGrey,
+          ),
+          const SizedBox(width: 4),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textGrey,
+                ),
+              ),
+              Text(
+                hasValue ? value! : '—',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: hasValue ? AppColors.primary : AppColors.textLight,
+                ),
+              ),
+              if (time != null)
+                Text(
+                  time!,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textGrey,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoScrollbarBehavior extends ScrollBehavior {
+  const _NoScrollbarBehavior();
 
   @override
   Widget buildScrollbar(
     BuildContext context,
     Widget child,
     ScrollableDetails details,
-  ) {
-    return child;
-  }
+  ) =>
+      child;
 }
 
 class _EmptyState extends StatelessWidget {
@@ -537,7 +626,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(16),
@@ -546,17 +635,19 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.bar_chart_rounded,
-            size: 56,
+          Icon(
+            errorMessage != null
+                ? Icons.cloud_off_outlined
+                : Icons.bar_chart_rounded,
+            size: 48,
             color: AppColors.textGrey,
           ),
           const SizedBox(height: 12),
           Text(
-            errorMessage ?? 'Không có dữ liệu phù hợp',
+            errorMessage ?? 'Không có dữ liệu trong $rangeLabel',
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: AppColors.textBlack,
             ),
             textAlign: TextAlign.center,
@@ -565,8 +656,8 @@ class _EmptyState extends StatelessWidget {
           Text(
             errorMessage != null
                 ? 'Kiểm tra kết nối hoặc thử lại.'
-                : 'Hãy thử thay đổi bộ lọc để xem dữ liệu khác.',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textGrey),
+                : 'Thử đổi bộ lọc để xem dữ liệu khác.',
+            style: AppTextStyles.caption.copyWith(color: AppColors.textGrey),
             textAlign: TextAlign.center,
           ),
         ],

@@ -7,7 +7,6 @@ import 'package:fe/core/widgets/error_widget.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
-import 'package:fe/presentation/family/widgets/family_app_bar.dart';
 import 'package:fe/presentation/family/widgets/family_group_card.dart';
 import 'package:fe/presentation/family/widgets/family_summary_cards.dart';
 import 'package:flutter/material.dart';
@@ -65,8 +64,6 @@ class FamilyView extends StatelessWidget {
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const FamilyAppBar(),
-                      const SizedBox(height: AppSize.spacing20),
                       const Text(
                         'Gia đình',
                         style: TextStyle(

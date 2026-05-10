@@ -123,22 +123,18 @@ class FcmService {
 
   Future<void> _registerToken(String token) async {
     try {
-      final user = await _localStorage.getUser();
-      if (user == null || user.isEmpty) return;
-
       final accessToken = await _localStorage.getAccessToken();
       if (accessToken == null) return;
 
       final response = await http
           .post(
-            Uri.parse('$_baseUrl/notifications/register-token'),
+            Uri.parse('$_baseUrl/medications/device-token'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $accessToken',
             },
             body: jsonEncode({
-              'user_id': user.id,
-              'fcm_token': token,
+              'token': token,
               'platform': 'android',
             }),
           )

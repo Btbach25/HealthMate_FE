@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/user_facing_error.dart';
+import 'package:fe/data/models/health/blood_pressure.dart';
 import 'package:fe/data/models/health/health_overview.dart';
+import 'package:fe/data/models/health/heart_rate.dart';
 import 'package:fe/data/repositories/health_repository.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 
@@ -23,6 +25,7 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
     on<HealthOverviewRequested>(_onRequested);
     on<HealthOverviewRetried>(_onRetried);
     on<HealthOverviewDeviceLoaded>(_onDeviceLoaded);
+    on<HealthOverviewManualPatched>(_onManualPatched);
 
     // Nếu device đã có data ngay từ đầu, dispatch luôn
     if (_deviceCubit.lastPoints.isNotEmpty) {
@@ -69,6 +72,17 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
       return;
     }
     emit(state.copyWith(status: HealthOverviewStatus.success, overview: event.overview));
+  }
+
+  void _onManualPatched(HealthOverviewManualPatched event, Emitter<HealthOverviewState> emit) {
+    final current = state.overview ?? HealthOverview.empty();
+    emit(state.copyWith(
+      status: HealthOverviewStatus.success,
+      overview: current.copyWith(
+        heartRate: event.heartRate ?? current.heartRate,
+        bloodPressure: event.bloodPressure ?? current.bloodPressure,
+      ),
+    ));
   }
 
   /// BE overview có userId thực; device overview luôn có userId rỗng

@@ -20,3 +20,12 @@ class HealthOverviewDeviceLoaded extends HealthOverviewEvent {
   @override
   List<Object?> get props => [overview];
 }
+
+/// Patch một hoặc nhiều chỉ số sau khi user nhập tay — luôn ghi đè bất kể nguồn.
+class HealthOverviewManualPatched extends HealthOverviewEvent {
+  final HeartRate? heartRate;
+  final BloodPressure? bloodPressure;
+  const HealthOverviewManualPatched({this.heartRate, this.bloodPressure});
+  @override
+  List<Object?> get props => [heartRate, bloodPressure];
+}

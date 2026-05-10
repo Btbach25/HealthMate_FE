@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends StatelessWidget {
@@ -22,6 +25,7 @@ class AppShell extends StatelessWidget {
     const double navBarHeight = 72;
     final mq = MediaQuery.of(context);
     return Scaffold(
+      appBar: _ShellAppBar(),
       body: Stack(
         clipBehavior: Clip.hardEdge,
         fit: StackFit.expand,
@@ -45,6 +49,87 @@ class AppShell extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Thanh trên cố định — dùng chung cho mọi tab trong shell.
+class _ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _ShellAppBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      automaticallyImplyLeading: false,
+      titleSpacing: 16,
+      title: Row(
+        children: [
+          Image.asset(
+            AppAssets.appLogo,
+            width: 28,
+            height: 28,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.health_and_safety_outlined,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'HealthMate',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        const Padding(
+          padding: EdgeInsets.only(right: 6),
+          child: _HCConnectionBadge(),
+        ),
+        Container(
+          width: 36,
+          height: 36,
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: AppColors.inputBackground,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.textGrey,
+            size: 20,
+          ),
+        ),
+        BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            final user = state.user;
+            return Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryContainer,
+                backgroundImage: user.picture != null
+                    ? NetworkImage(user.picture!)
+                    : null,
+                child: user.picture == null
+                    ? const Icon(AppIcons.userAvatar,
+                        color: AppColors.primary, size: 18)
+                    : null,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -183,6 +268,244 @@ class _NavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Health Connect badge ──────────────────────────────────────────────────────
+
+enum _BadgeMode { hidden, error, success }
+
+class _HCConnectionBadge extends StatefulWidget {
+  const _HCConnectionBadge();
+
+  @override
+  State<_HCConnectionBadge> createState() => _HCConnectionBadgeState();
+}
+
+class _HCConnectionBadgeState extends State<_HCConnectionBadge>
+    with TickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final AnimationController _expandCtrl;
+
+  _BadgeMode _mode = _BadgeMode.hidden;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+
+    _expandCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final connected = context.read<DeviceHealthCubit>().state.isHealthConnectConnected;
+      if (connected == false) _enterError();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _expandCtrl.dispose();
+    super.dispose();
+  }
+
+  void _enterError() {
+    if (_mode == _BadgeMode.error) return;
+    setState(() => _mode = _BadgeMode.error);
+    _autoExpand();
+  }
+
+  Future<void> _autoExpand() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted || _mode != _BadgeMode.error) return;
+    await _expandCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 3500));
+    if (!mounted || _mode != _BadgeMode.error) return;
+    await _expandCtrl.reverse();
+  }
+
+  Future<void> _enterSuccess() async {
+    if (_mode == _BadgeMode.hidden || _busy) return;
+    _busy = true;
+    // Mở rộng banner nếu đang thu nhỏ
+    if (_expandCtrl.value < 1) await _expandCtrl.forward();
+    if (!mounted) { _busy = false; return; }
+    setState(() => _mode = _BadgeMode.success);
+    await Future.delayed(const Duration(milliseconds: 2500));
+    if (!mounted) { _busy = false; return; }
+    await _expandCtrl.reverse();
+    if (!mounted) { _busy = false; return; }
+    setState(() => _mode = _BadgeMode.hidden);
+    _busy = false;
+  }
+
+  void _openDialog(BuildContext ctx) {
+    showDialog(context: ctx, builder: (_) => const _HealthConnectDialog());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<DeviceHealthCubit, DeviceHealthState>(
+      listenWhen: (p, c) => p.isHealthConnectConnected != c.isHealthConnectConnected,
+      listener: (_, state) {
+        if (state.isHealthConnectConnected == false) { _enterError(); }
+        else if (state.isHealthConnectConnected == true) { _enterSuccess(); }
+      },
+      child: AnimatedBuilder(
+        animation: _pulseCtrl,
+        builder: (ctx, _) {
+          if (_mode == _BadgeMode.hidden) return const SizedBox.shrink();
+
+          final isSuccess = _mode == _BadgeMode.success;
+          final pulse = 0.65 + 0.35 * _pulseCtrl.value;
+
+          final dotColor   = isSuccess ? const Color(0xFF43A047) : const Color(0xFFE53935);
+          final bgColor    = isSuccess ? const Color(0xFFF1F8E9) : const Color(0xFFFFF0F0);
+          final rimColor   = isSuccess ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2);
+          final textColor  = isSuccess ? const Color(0xFF2E7D32) : const Color(0xFFB71C1C);
+          final label      = isSuccess ? 'Đã kết nối HC' : 'Chưa kết nối HC';
+
+          return GestureDetector(
+            onTap: isSuccess ? null : () => _openDialog(ctx),
+            child: Container(
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: rimColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.scale(
+                    scale: isSuccess ? 1.0 : pulse,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  AnimatedBuilder(
+                    animation: _expandCtrl,
+                    builder: (_, child) => ClipRect(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: CurvedAnimation(
+                          parent: _expandCtrl,
+                          curve: Curves.easeOut,
+                        ).value,
+                        child: child,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Health Connect dialog ─────────────────────────────────────────────────────
+
+class _HealthConnectDialog extends StatelessWidget {
+  const _HealthConnectDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF0F0),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.link_off_rounded,
+              color: Color(0xFFE53935),
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Chưa kết nối\nHealth Connect',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+      content: const Text(
+        'Ứng dụng chưa được kết nối với Health Connect. '
+        'Cần cấp quyền để HealthMate có thể đọc và đồng bộ dữ liệu sức khỏe từ thiết bị của bạn.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 13.5,
+          color: Color(0xFF757575),
+          height: 1.5,
+        ),
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                // TODO: navigate to Health Connect guide page
+              },
+              icon: const Icon(Icons.menu_book_rounded, size: 18),
+              label: const Text('Xem hướng dẫn kết nối'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Đóng',
+                style: TextStyle(color: Color(0xFF9E9E9E)),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

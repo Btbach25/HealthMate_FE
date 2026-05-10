@@ -1,4 +1,5 @@
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/theme/app_icons.dart';
 import 'package:fe/data/models/health/medication_progress.dart';
 import 'package:flutter/material.dart';
 
@@ -11,59 +12,111 @@ class MedicationCard extends StatelessWidget {
     final double percent = (progress.total > 0)
         ? progress.completed / progress.total
         : 0.0;
+    final int remaining = progress.total - progress.completed;
+    final bool done = remaining == 0 && progress.total > 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: AppColors.cardShadowList,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Thuốc hôm nay',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textBlack,
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Đã uống: ${progress.completed}/${progress.total}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textGrey,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(AppIcons.medication, color: AppColors.primary, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Thuốc hôm nay',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textBlack,
+                  ),
                 ),
               ),
-              Text(
-                '${(percent * 100).toStringAsFixed(0)}%',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: done ? AppColors.successLight : AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  done ? 'Hoàn thành' : 'Còn $remaining lần',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: done ? AppColors.success : AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(child: _StatBox(label: 'Lượt uống', value: '${progress.total}', color: AppColors.primary)),
+                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
+                Expanded(child: _StatBox(label: 'Đã uống', value: '${progress.completed}', color: AppColors.success)),
+                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
+                Expanded(child: _StatBox(label: 'Còn lại', value: '$remaining', color: remaining > 0 ? AppColors.warning : AppColors.textGrey)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: percent,
               backgroundColor: AppColors.inputBackground,
-              color: AppColors.primary,
-              minHeight: 8,
+              color: done ? AppColors.success : AppColors.primary,
+              minHeight: 6,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatBox extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatBox({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

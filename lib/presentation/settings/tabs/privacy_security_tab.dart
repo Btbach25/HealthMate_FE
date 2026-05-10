@@ -1,4 +1,5 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
@@ -95,7 +96,7 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   (settings) => settings.copyWith(dataSharing: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Phân tích ẩn danh',
                 description: 'Gửi dữ liệu ẩn danh để cải thiện ứng dụng',
@@ -104,7 +105,7 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   (settings) => settings.copyWith(anonymousAnalytics: value),
                 ),
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Theo dõi vị trí',
                 description: 'Cho phép ứng dụng truy cập vị trí',
@@ -135,7 +136,7 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   _showComingSoonSnack();
                 },
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
               SettingsSwitchRow(
                 title: 'Tự động khóa',
                 description: 'Khóa ứng dụng khi không sử dụng',
@@ -145,7 +146,7 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                 ),
               ),
               if (_settings.autoLock) ...[
-                const Divider(height: 24),
+                const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
                 SettingsDropdown(
                   label: 'Thời gian tự động khóa',
                   value: _settings.lockTimeout,

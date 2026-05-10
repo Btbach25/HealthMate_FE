@@ -9,12 +9,14 @@ class HealthOverview extends Equatable {
   final Weight? weight;
   final BloodPressure? bloodPressure;
   final Temperature? temperature;
+  final double? bloodOxygen;
 
   const HealthOverview({
     this.heartRate,
     this.weight,
     this.bloodPressure,
     this.temperature,
+    this.bloodOxygen,
   });
 
   factory HealthOverview.empty() {
@@ -22,6 +24,12 @@ class HealthOverview extends Equatable {
   }
 
   factory HealthOverview.fromJson(Map<String, dynamic> json) {
+    double? parseDouble(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString());
+    }
+
     return HealthOverview(
       heartRate: json['heart_rate'] != null
           ? HeartRate.fromJson(json['heart_rate'] as Map<String, dynamic>)
@@ -35,6 +43,7 @@ class HealthOverview extends Equatable {
       temperature: json['temperature'] != null
           ? Temperature.fromJson(json['temperature'] as Map<String, dynamic>)
           : null,
+      bloodOxygen: parseDouble(json['spo2'] ?? json['blood_oxygen']),
     );
   }
 
@@ -44,6 +53,7 @@ class HealthOverview extends Equatable {
       'weight': weight?.toJson(),
       'blood_pressure': bloodPressure?.toJson(),
       'temperature': temperature?.toJson(),
+      'spo2': bloodOxygen,
     };
   }
 
@@ -52,15 +62,17 @@ class HealthOverview extends Equatable {
     Weight? weight,
     BloodPressure? bloodPressure,
     Temperature? temperature,
+    double? bloodOxygen,
   }) {
     return HealthOverview(
       heartRate: heartRate ?? this.heartRate,
       weight: weight ?? this.weight,
       bloodPressure: bloodPressure ?? this.bloodPressure,
       temperature: temperature ?? this.temperature,
+      bloodOxygen: bloodOxygen ?? this.bloodOxygen,
     );
   }
 
   @override
-  List<Object?> get props => [heartRate, weight, bloodPressure, temperature];
+  List<Object?> get props => [heartRate, weight, bloodPressure, temperature, bloodOxygen];
 }

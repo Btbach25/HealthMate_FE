@@ -59,6 +59,7 @@ class HealthWsService {
     HealthDataType.ACTIVE_ENERGY_BURNED: 'calories_burned',
     HealthDataType.BLOOD_PRESSURE_SYSTOLIC: 'blood_pressure',
     HealthDataType.BLOOD_OXYGEN: 'spo2',
+    HealthDataType.WEIGHT: 'weight',
   };
 
   double? _extractNumeric(HealthDataPoint point) {
@@ -282,6 +283,25 @@ class HealthWsService {
         _onDisconnected();
         break;
       }
+    }
+  }
+
+  /// Gửi một chỉ số nhập tay từ user lên BE qua WebSocket.
+  Future<void> sendManualMetric(String metricType, double value) async {
+    if (kIsWeb) return;
+    if (!_connected) await connect();
+    if (!_connected || _channel == null || _userId == null) return;
+    try {
+      _channel!.sink.add(jsonEncode({
+        'user_id': _userId,
+        'metric_type': metricType,
+        'value': value,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      }));
+      debugPrint('[HealthWs] Manual metric sent: $metricType=$value');
+    } catch (e) {
+      debugPrint('[HealthWs] Manual send error: $e');
+      _onDisconnected();
     }
   }
 

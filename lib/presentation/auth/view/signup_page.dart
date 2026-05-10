@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../bloc/auth_form_bloc.dart';
+import '../widgets/auth_logo_header.dart';
 
 class SignUpPage extends StatelessWidget {
   const SignUpPage({super.key});
@@ -50,11 +51,10 @@ class SignUpView extends StatelessWidget {
       },
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const AuthLogoHeader(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
                 child: Container(

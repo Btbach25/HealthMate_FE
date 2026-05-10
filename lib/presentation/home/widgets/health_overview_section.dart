@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/data/models/health/health_overview.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
 
 class HealthOverviewSection extends StatefulWidget {
   const HealthOverviewSection({super.key});
@@ -31,7 +34,7 @@ class _HealthOverviewSectionState extends State<HealthOverviewSection> {
             return const _LoadingCard();
           case HealthOverviewStatus.failure:
             return _ErrorCard(
-              message: state.errorMessage ?? 'Lỗi lấy dữ liệu',
+              message: state.errorMessage ?? 'Không tải được chỉ số sức khỏe. Kiểm tra kết nối và thử lại.',
               onRetry: () => context.read<HealthOverviewBloc>().add(const HealthOverviewRetried()),
             );
           case HealthOverviewStatus.success:
@@ -68,40 +71,43 @@ class _ErrorCard extends StatelessWidget {
   const _ErrorCard({required this.message, required this.onRetry});
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.tagUrgentBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.error_outline, color: AppColors.tagUrgentText),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: TextStyle(color: AppColors.tagUrgentText, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.inputBorder),
+        boxShadow: AppColors.cardShadowList,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.warningLight,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
+            child: const Icon(Icons.cloud_off_outlined, color: AppColors.warning, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Thử lại', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }
@@ -110,44 +116,186 @@ class _ErrorCard extends StatelessWidget {
 class _DataCard extends StatelessWidget {
   final HealthOverview overview;
   const _DataCard({required this.overview});
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Tình trạng sức khỏe', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _metricRow('Nhịp tim', overview.heartRate?.value, 'bpm'),
-            _metricRow('Cân nặng', overview.weight?.value, 'kg'),
-            _metricRow('Huyết áp', _bpValue(overview), ''),
-            _metricRow('Nhiệt độ', overview.temperature?.value, '°C'),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _metricRow(String label, Object? value, String unit) {
-    final display = value == null || (value is String && value.isEmpty)
-        ? '—'
-        : value.toString();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(unit.isNotEmpty ? '$display $unit' : display, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
+  String _fmt(Object? value) =>
+      (value == null || (value is String && value.isEmpty)) ? '—' : value.toString();
 
   String _bpValue(HealthOverview o) {
     final bp = o.bloodPressure;
     if (bp == null) return '—';
-    return '${bp.systolic}/${bp.diastolic}';
+    final sys = bp.systolic;
+    final dia = bp.diastolic;
+    if (sys == null && dia == null) return '—';
+    if (dia == null) return '$sys/—';
+    if (sys == null) return '—/$dia';
+    return '$sys/$dia';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileWeight = context.select((AuthBloc b) => b.state.user.weight);
+    final weightValue = overview.weight?.value ?? profileWeight;
+    final deviceSpo2 = context.select((DeviceHealthCubit c) => c.state.bloodOxygen);
+    final spo2 = overview.bloodOxygen ?? deviceSpo2;
+
+    final metrics = [
+      _MetricItem(
+        icon: AppIcons.heart,
+        iconColor: AppColors.heartIconColor,
+        iconBgColor: AppColors.heartIconBg,
+        label: 'Nhịp tim',
+        value: _fmt(overview.heartRate?.value),
+        unit: 'bpm',
+      ),
+      _MetricItem(
+        icon: AppIcons.weight,
+        iconColor: AppColors.weightIconColor,
+        iconBgColor: AppColors.weightIconBg,
+        label: 'Cân nặng',
+        value: _fmt(weightValue),
+        unit: 'kg',
+      ),
+      _MetricItem(
+        icon: AppIcons.bloodPressure,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryContainer,
+        label: 'Huyết áp',
+        value: _bpValue(overview),
+        unit: 'mmHg',
+      ),
+      _MetricItem(
+        icon: AppIcons.spo2,
+        iconColor: const Color(0xFF1E88E5),
+        iconBgColor: const Color(0xFFE3F2FD),
+        label: 'SpO2',
+        value: spo2 != null ? spo2.toStringAsFixed(1) : '—',
+        unit: '%',
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
+        boxShadow: AppColors.cardShadowList,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.monitor_heart_outlined, color: AppColors.primary, size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Tình trạng sức khỏe',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textBlack),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _MetricTile(item: metrics[0])),
+              const SizedBox(width: 10),
+              Expanded(child: _MetricTile(item: metrics[1])),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _MetricTile(item: metrics[2])),
+              const SizedBox(width: 10),
+              Expanded(child: _MetricTile(item: metrics[3])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricItem {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBgColor;
+  final String label;
+  final String value;
+  final String unit;
+  const _MetricItem({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBgColor,
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+}
+
+class _MetricTile extends StatelessWidget {
+  final _MetricItem item;
+  const _MetricTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = item.value == '—';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: item.iconBgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(item.icon, color: item.iconColor, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textGrey, height: 1.2),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isEmpty ? '—' : item.value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isEmpty ? AppColors.textLight : AppColors.textBlack,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (!isEmpty && item.unit.isNotEmpty)
+                  Text(
+                    item.unit,
+                    style: const TextStyle(fontSize: 10, color: AppColors.textGrey, height: 1.1),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

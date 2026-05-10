@@ -38,6 +38,15 @@ class _StatsViewState extends State<StatsView>
     super.dispose();
   }
 
+  static String _rangeLabel(String range) {
+    switch (range) {
+      case '24h': return '24 giờ';
+      case '7d':  return '7 ngày';
+      case '30d': return '30 ngày';
+      default:    return range;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,220 +58,271 @@ class _StatsViewState extends State<StatsView>
           context.read<StatsBloc>().add(TryDeviceFallback());
         },
         child: BlocBuilder<StatsBloc, StatsState>(
-        builder: (context, state) {
-          if (state.status == StatsStatus.initial ||
-              state.status == StatsStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state.status == StatsStatus.error) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
+          builder: (context, state) {
+            if (state.status == StatsStatus.initial ||
+                state.status == StatsStatus.loading) {
+              return Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.cloud_off_outlined, size: 48, color: AppColors.textGrey),
-                    const SizedBox(height: 12),
+                  children: const [
+                    CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                    SizedBox(height: 16),
                     Text(
-                      state.errorMessage ?? 'Không thể tải dữ liệu',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textGrey),
+                      'Đang tải chỉ số sức khỏe...',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 14),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => context.read<StatsBloc>().add(FetchStatsData()),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                  ],
+                ),
+              );
+            }
+
+            if (state.status == StatsStatus.error) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.cloud_off_outlined,
+                          size: 48, color: AppColors.textGrey),
+                      const SizedBox(height: 12),
+                      Text(
+                        state.errorMessage ?? 'Không thể tải dữ liệu',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textGrey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            context.read<StatsBloc>().add(FetchStatsData()),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Thử lại'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            if (state.status == StatsStatus.loaded &&
+                state.statsData != null &&
+                state.statsData!.metrics.isEmpty) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<StatsBloc>().add(FetchStatsData());
+                  await context
+                      .read<StatsBloc>()
+                      .stream
+                      .firstWhere((s) => s.status != StatsStatus.loading);
+                },
+                child: ListView(
+                  children: const [
+                    SizedBox(height: 120),
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.monitor_heart_outlined,
+                                size: 48, color: AppColors.textGrey),
+                            SizedBox(height: 12),
+                            Text(
+                              'Chưa có số liệu để hiển thị.\nKéo xuống để tải lại.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textGrey),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          if (state.status == StatsStatus.loaded && state.statsData != null && state.statsData!.metrics.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<StatsBloc>().add(FetchStatsData());
-                await context.read<StatsBloc>().stream
-                    .firstWhere((s) => s.status != StatsStatus.loading);
-              },
-              child: ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.monitor_heart_outlined, size: 48, color: AppColors.textGrey),
-                          SizedBox(height: 12),
-                          Text(
-                            'Chưa có số liệu để hiển thị.\nKéo xuống để tải lại.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textGrey),
+            if (state.status == StatsStatus.loaded && state.statsData != null) {
+              final data = state.statsData!;
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<StatsBloc>().add(FetchStatsData());
+                  await context
+                      .read<StatsBloc>()
+                      .stream
+                      .firstWhere((s) => s.status != StatsStatus.loading);
+                },
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: NestedScrollView(
+                      headerSliverBuilder:
+                          (context, innerBoxIsScrolled) {
+                        return [
+                          SliverAppBar(
+                            backgroundColor: AppColors.surface,
+                            pinned: true,
+                            automaticallyImplyLeading: false,
+                            toolbarHeight: 0,
+                            flexibleSpace: FlexibleSpaceBar(
+                              collapseMode: CollapseMode.pin,
+                              background: Container(
+                                color: AppColors.surface,
+                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Title row — fixed at the top of the background
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Chỉ số sức khỏe',
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textBlack,
+                                          ),
+                                        ),
+                                        if (state.isFromDevice) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 7, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.warningLight,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.smartphone,
+                                                    size: 11,
+                                                    color: AppColors.warning),
+                                                SizedBox(width: 3),
+                                                Text(
+                                                  'Thiết bị',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: AppColors.warning,
+                                                      fontWeight: FontWeight.w600),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                        const Spacer(),
+                                        PopupMenuButton<String>(
+                                          initialValue: state.selectedRange,
+                                          onSelected: (range) => context
+                                              .read<StatsBloc>()
+                                              .add(ChangeStatsRange(range)),
+                                          offset: const Offset(0, 38),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12)),
+                                          elevation: 3,
+                                          itemBuilder: (_) =>
+                                              StatsState.availableRanges.map((r) {
+                                            final active = r == state.selectedRange;
+                                            return PopupMenuItem<String>(
+                                              value: r,
+                                              child: Row(
+                                                children: [
+                                                  SizedBox(
+                                                    width: 20,
+                                                    child: active
+                                                        ? const Icon(Icons.check,
+                                                            size: 16,
+                                                            color: AppColors.primary)
+                                                        : null,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    _rangeLabel(r),
+                                                    style: TextStyle(
+                                                      fontWeight: active
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                      color: active
+                                                          ? AppColors.primary
+                                                          : AppColors.textBlack,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryContainer,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  _rangeLabel(state.selectedRange),
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                const Icon(
+                                                  Icons.keyboard_arrow_down_rounded,
+                                                  color: AppColors.primary,
+                                                  size: 16,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    StatsHeaderCard(
+                                      totalReadings: data.totalReadings,
+                                      totalTypes: data.totalTypes,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            bottom: StatsTabBar(controller: _tabController),
+                            expandedHeight: 160,
                           ),
+                        ];
+                      },
+                      body: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          StatsMetricList(
+                            metrics: data.metrics,
+                            displayMode: MetricDisplayMode.trend,
+                          ),
+                          StatsMetricList(
+                            metrics: data.metrics,
+                            displayMode: MetricDisplayMode.status,
+                          ),
+                          const StatsChartLazyLoader(),
                         ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            );
-          }
-
-          if (state.status == StatsStatus.loaded && state.statsData != null) {
-            final data = state.statsData!;
-
-            // Bố cục chính của trang
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<StatsBloc>().add(FetchStatsData());
-                await context.read<StatsBloc>().stream
-                    .firstWhere((s) => s.status != StatsStatus.loading);
-              },
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  // NestedScrollView để header cuộn cùng với list
-                  child: NestedScrollView(
-                  headerSliverBuilder: (context, innerBoxIsScrolled) {
-                    return [
-                      // SliverAppBar chứa Header, Buttons, và TabBar
-                      SliverAppBar(
-                        backgroundColor: AppColors.background,
-                        pinned: true,
-                        automaticallyImplyLeading: false,
-                        titleSpacing: 0,
-                        title: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              const Text(
-                                'Chỉ số sức khỏe',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              if (state.isFromDevice) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.smartphone, size: 12, color: Colors.orange.shade700),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Thiết bị',
-                                        style: TextStyle(fontSize: 11, color: Colors.orange.shade700, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        flexibleSpace: FlexibleSpaceBar(
-                          background: SafeArea(
-                            bottom: false,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 56), // chừa chỗ cho title
-                                StatsHeaderCard(
-                                  totalReadings: data.totalReadings,
-                                  totalTypes: data.totalTypes,
-                                ),
-                                _buildRangeSelector(context, state.selectedRange),
-                              ],
-                            ),
-                          ),
-                        ),
-                        bottom: StatsTabBar(controller: _tabController),
-                        expandedHeight: 300,
-                      ),
-                    ];
-                  },
-                  body: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      StatsMetricList(
-                        metrics: data.metrics,
-                        displayMode: MetricDisplayMode.trend,
-                      ),
-                      StatsMetricList(
-                        metrics: data.metrics,
-                        displayMode: MetricDisplayMode.status,
-                      ),
-                      
-                      const StatsChartLazyLoader(),
-                    ],
-                  ),
                 ),
-              ),
-            ),
-            );
-          }
+              );
+            }
 
-          return const Center(child: Text('Trạng thái không xác định'));
-        },
+            return const Center(child: Text('Trạng thái không xác định'));
+          },
         ),
-      ),
-    );
-  }
-
-  Widget _buildRangeSelector(BuildContext context, String selectedRange) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      child: Row(
-        children: StatsState.availableRanges.map((range) {
-          final isSelected = range == selectedRange;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: range != StatsState.availableRanges.last ? 8 : 0,
-              ),
-              child: GestureDetector(
-                onTap: () => context.read<StatsBloc>().add(ChangeStatsRange(range)),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    range,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : AppColors.textBlack,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
