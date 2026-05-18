@@ -23,6 +23,7 @@ class User extends Equatable {
   final double? height;
   final String? bloodGroup;
   final String? timezone;
+  final List<String> allergies;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -44,6 +45,7 @@ class User extends Equatable {
     this.height,
     this.bloodGroup,
     this.timezone,
+    this.allergies = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -56,6 +58,7 @@ class User extends Equatable {
       role: UserRole.user,
       status: UserStatus.unverified,
       provider: LoginProvider.email,
+      allergies: const [],
       createdAt: DateTime(0),
       updatedAt: DateTime(0),
     );
@@ -65,6 +68,10 @@ class User extends Equatable {
   bool get isNotEmpty => id != '';
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final rawAllergies = json['allergies'];
+    final List<String> allergiesList = rawAllergies is List
+        ? List<String>.from(rawAllergies.whereType<String>())
+        : const [];
     return User(
       id: cvToString(json['id']),
       email: cvToString(json['email']),
@@ -83,6 +90,7 @@ class User extends Equatable {
       height: cvToDoubleOrNull(json['height']),
       bloodGroup: cvToStringOrNull(json['blood_group']),
       timezone: cvToStringOrNull(json['timezone']),
+      allergies: allergiesList,
       createdAt: cvToDate(json['created_at'], defaultValue: DateTime(0)),
       updatedAt: cvToDate(json['updated_at'], defaultValue: DateTime(0)),
     );
@@ -107,6 +115,7 @@ class User extends Equatable {
       'height': height,
       'blood_group': bloodGroup,
       'timezone': timezone,
+      'allergies': allergies,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -140,6 +149,7 @@ class User extends Equatable {
     double? height,
     String? bloodGroup,
     String? timezone,
+    List<String>? allergies,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -161,6 +171,7 @@ class User extends Equatable {
       height: height ?? this.height,
       bloodGroup: bloodGroup ?? this.bloodGroup,
       timezone: timezone ?? this.timezone,
+      allergies: allergies ?? this.allergies,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -185,6 +196,7 @@ class User extends Equatable {
         height,
         bloodGroup,
         timezone,
+        allergies,
         createdAt,
         updatedAt,
       ];

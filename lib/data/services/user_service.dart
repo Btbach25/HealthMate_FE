@@ -8,6 +8,7 @@ abstract class UserService {
   /// Cap nhat profile. PUT /users/profile (email khong doi qua API nay).
   /// [gender] gui len BE: `male` | `female` | `other`.
   /// [birthday] `yyyy-MM-dd` hoac `''` de xoa ngay sinh tren server.
+  /// [allergies] non-null = ghi de; null = khong doi.
   Future<void> updateProfile({
     required String name,
     String? picture,
@@ -19,6 +20,7 @@ abstract class UserService {
     double? height,
     String? bloodGroup,
     String? timezone,
+    List<String>? allergies,
   });
 
   /// Dong bo timezone sau login de BE trigger notification dung gio.

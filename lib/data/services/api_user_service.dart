@@ -42,6 +42,7 @@ class ApiUserService implements UserService {
     double? height,
     String? bloodGroup,
     String? timezone,
+    List<String>? allergies,
   }) async {
     try {
       final body = <String, dynamic>{'name': name};
@@ -54,6 +55,7 @@ class ApiUserService implements UserService {
       if (height != null) body['height'] = height;
       if (bloodGroup != null) body['blood_group'] = bloodGroup;
       if (timezone != null && timezone.isNotEmpty) body['timezone'] = timezone;
+      if (allergies != null) body['allergies'] = allergies;
       await _apiClient.put<void>(
         ApiEndpoints.usersProfile,
         body: body,
@@ -86,6 +88,7 @@ class ApiUserService implements UserService {
         height: profile.height,
         bloodGroup: profile.bloodGroup,
         timezone: tz,
+        allergies: profile.allergies,
       );
       debugPrint('[UserProfile] Synced timezone: $tz');
     } catch (e) {
