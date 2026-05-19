@@ -6,6 +6,7 @@ import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/widgets/profile_text_field.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
+import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/user_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
@@ -107,12 +108,15 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
       _nameController.text = authUser.name;
       _emailController.text = authUser.email;
     }
+
+    // Load profile từ API
+    final userService = context.read<UserService>();
+    User? profile;
     try {
-      final userService = context.read<UserService>();
-      final profile = await userService.getProfile();
+      profile = await userService.getProfile();
       if (profile.isNotEmpty && mounted) {
         setState(() {
-          _nameController.text = profile.name;
+          _nameController.text = profile!.name;
           _emailController.text = profile.email;
           _phoneController.text = profile.phone ?? '';
           _addressController.text = profile.address ?? '';
@@ -137,23 +141,45 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
               profile.weight != null ? _formatNumForField(profile.weight!) : '';
           _heightController.text =
               profile.height != null ? _formatNumForField(profile.height!) : '';
+          _allergies
+            ..clear()
+            ..addAll(profile.allergies);
         });
       }
     } catch (_) {
       // Giữ data từ AuthBloc nếu API lỗi
     }
-    // Load allergies từ local storage (persist cross-session, không cần BE)
+
+    // Migrate 1 lần: nếu server trả allergies rỗng nhưng local có data
     try {
-      final savedAllergies = await LocalStorageService().getAllergies();
-      if (mounted && savedAllergies.isNotEmpty) {
-        setState(() {
-          _allergies
-            ..clear()
-            ..addAll(savedAllergies);
-        });
+      if (profile != null && profile.isNotEmpty && profile.allergies.isEmpty) {
+        final local = await LocalStorageService().getAllergies();
+        if (local.isNotEmpty && mounted) {
+          await userService.updateProfile(
+            name: profile.name,
+            phone: profile.phone,
+            address: profile.address,
+            gender: profile.gender,
+            birthday: profile.birthday,
+            weight: profile.weight,
+            height: profile.height,
+            bloodGroup: profile.bloodGroup,
+            timezone: profile.timezone,
+            allergies: local,
+          );
+          final updated = await userService.getProfile();
+          if (mounted) {
+            context.read<AuthBloc>().add(AuthUserUpdated(updated));
+            setState(() {
+              _allergies
+                ..clear()
+                ..addAll(updated.allergies);
+            });
+          }
+        }
       }
     } catch (_) {
-      // Không crash nếu storage lỗi — dùng list rỗng
+      // Không crash nếu migrate lỗi
     }
   }
 
@@ -259,12 +285,13 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
         height: h,
         bloodGroup: _selectedBloodGroup,
         timezone: context.read<AuthBloc>().state.user.timezone,
+        allergies: List<String>.from(_allergies),
       );
       final profile = await userService.getProfile();
       if (mounted) {
         context.read<AuthBloc>().add(AuthUserUpdated(profile));
-        // Persist allergies locally — không cần đợi kết quả
-        LocalStorageService().saveAllergies(List<String>.from(_allergies));
+        // Sync local cache với dữ liệu server đã lưu
+        LocalStorageService().saveAllergies(profile.allergies);
         setState(() {
           _isLoading = false;
           _isEditing = false;

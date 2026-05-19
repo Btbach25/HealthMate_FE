@@ -361,9 +361,15 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     List<ParsedPrescriptionLine> parsed,
     Map<String, dynamic>? meta,
   ) async {
+    if (!mounted) return;
     List<String> userAllergies;
     try {
-      userAllergies = await _localStorage.getAllergies();
+      final authAllergies = context.read<AuthBloc>().state.user.allergies;
+      if (authAllergies.isNotEmpty) {
+        userAllergies = authAllergies;
+      } else {
+        userAllergies = await _localStorage.getAllergies();
+      }
     } catch (_) {
       return; // Storage failure — skip silently, don't block scan flow
     }
