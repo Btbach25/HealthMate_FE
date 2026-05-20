@@ -34,15 +34,17 @@ android {
     signingConfigs {
         create("release") {
             keyAlias = "release"
-            keyPassword = "your_key_password"  // Thay bằng password bạn nhập khi tạo keystore
+            keyPassword = "healthmate"
             storeFile = file("release.keystore")
-            storePassword = "your_store_password"  // Thay bằng password bạn nhập khi tạo keystore
+            storePassword = "healthmate"
         }
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

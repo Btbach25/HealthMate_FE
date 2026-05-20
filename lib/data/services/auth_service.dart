@@ -44,6 +44,8 @@ class AuthApiService implements AuthService {
   Future<User?> login({required String email, required String password}) async {
     try {
       final url = Uri.parse('$baseUrl/auth/app');
+      debugPrint('[Auth] → POST $url');
+      final sw = Stopwatch()..start();
 
       final response = await http.post(
         url,
@@ -52,7 +54,9 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
+      sw.stop();
+      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
 
       if (response.body.isEmpty) {
         throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
@@ -103,21 +107,28 @@ class AuthApiService implements AuthService {
   Future<User?> loginWithGoogle({String? idToken}) async {
     try {
       if (!kIsWeb) {
+        debugPrint('[Auth] Google signIn() start');
         final googleUser = await _googleSignIn.signIn();
+        debugPrint('[Auth] Google signIn() done — user=${googleUser?.email}');
         if (googleUser == null) return null;
         final googleAuth = await googleUser.authentication;
         idToken = googleAuth.idToken;
+        debugPrint('[Auth] idToken=${idToken != null ? "ok (${idToken.length} chars)" : "null"}');
       }
       if (idToken == null) {
         throw Exception('Không hoàn tất đăng nhập Google. Vui lòng thử lại.');
       }
 
       final url = Uri.parse('$baseUrl/auth/google');
+      debugPrint('[Auth] → POST $url');
+      final sw = Stopwatch()..start();
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'id_token': idToken}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
+      sw.stop();
+      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
 
       if (response.body.isEmpty) {
         throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
@@ -139,9 +150,11 @@ class AuthApiService implements AuthService {
       } else {
         throw Exception(body['error'] ?? 'Đăng nhập Google thất bại');
       }
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      debugPrint('[Auth] ✗ TimeoutException: $e');
       throw Exception('Kết nối quá chậm, vui lòng thử lại.');
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[Auth] ✗ ${e.runtimeType}: $e\n$st');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
@@ -160,6 +173,8 @@ class AuthApiService implements AuthService {
   }) async {
     try {
       final url = Uri.parse('$baseUrl/auth/register');
+      debugPrint('[Auth] → POST $url (register)');
+      final sw = Stopwatch()..start();
 
       final response = await http.post(
         url,
@@ -168,7 +183,9 @@ class AuthApiService implements AuthService {
           'Accept': 'application/json',
         },
         body: jsonEncode({'email': email, 'password': password, 'name': name}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
+      sw.stop();
+      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
 
       if (response.statusCode == 500) {
         throw Exception(
@@ -206,9 +223,11 @@ class AuthApiService implements AuthService {
       }
 
       throw Exception(errorMessage);
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      debugPrint('[Auth] ✗ register TimeoutException: $e');
       throw Exception('Kết nối quá chậm, vui lòng thử lại.');
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[Auth] ✗ register ${e.runtimeType}: $e\n$st');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
@@ -236,7 +255,7 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({'email': email.trim(), 'otp': otpToSend}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
@@ -283,7 +302,7 @@ class AuthApiService implements AuthService {
         url,
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({'email': e}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) return;
 
@@ -326,7 +345,7 @@ class AuthApiService implements AuthService {
         Uri.parse('$baseUrl/auth/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': refreshToken}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;

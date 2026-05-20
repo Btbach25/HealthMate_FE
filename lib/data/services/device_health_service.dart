@@ -48,6 +48,8 @@ class DeviceHealthService {
     HealthDataType.DISTANCE_DELTA,
     HealthDataType.DISTANCE_WALKING_RUNNING,
     HealthDataType.DIETARY_ENERGY_CONSUMED,
+    HealthDataType.HEART_RATE_VARIABILITY_RMSSD,
+    HealthDataType.SKIN_TEMPERATURE,
   ];
 
   List<HealthDataType> get _supportedTypes =>

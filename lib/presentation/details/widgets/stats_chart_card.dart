@@ -55,16 +55,20 @@ class StatsChartCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                chart.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textBlack,
+              Expanded(
+                child: Text(
+                  chart.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textBlack,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -72,7 +76,7 @@ class StatsChartCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${chart.dataPointCount} điểm dữ liệu',
+                  '${chart.dataPointCount} điểm',
                   style: const TextStyle(
                     color: AppColors.textGrey,
                     fontWeight: FontWeight.w600,
@@ -86,7 +90,6 @@ class StatsChartCard extends StatelessWidget {
 
           if (chart.points.isNotEmpty)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildSummaryItem('Thấp nhất', minVal),
                 _buildSummaryItem('Mới nhất', latestVal, highlight: true),
@@ -112,22 +115,27 @@ class StatsChartCard extends StatelessWidget {
   }
 
   Widget _buildSummaryItem(String label, double value, {bool highlight = false}) {
-    return Column(
-      children: [
-        Text(
-          value.toStringAsFixed(0),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: highlight ? chart.lineColor : AppColors.textGrey,
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value.toStringAsFixed(0),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: highlight ? chart.lineColor : AppColors.textGrey,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '$label (${chart.unit})',
-          style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            '$label\n${chart.unit}',
+            style: const TextStyle(fontSize: 10, color: AppColors.textGrey),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 

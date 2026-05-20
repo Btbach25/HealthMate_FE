@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
@@ -6,11 +7,13 @@ import 'package:health/health.dart';
 import '../../../data/services/device_health_service.dart';
 import '../../../data/services/health_ws_service.dart';
 import '../../../data/services/readiness_service.dart';
+import '../../../data/services/stress_service.dart';
 import '../../../data/models/health/health_overview.dart';
 import '../../../data/models/health/heart_rate.dart';
 import '../../../data/models/health/blood_pressure.dart';
 import '../../../data/models/health/weight.dart';
 import '../../../data/models/health/temperature.dart';
+import '../../../data/models/health/stress_prediction.dart';
 
 class DeviceHealthState extends Equatable {
   final bool loading;
@@ -24,6 +27,10 @@ class DeviceHealthState extends Equatable {
   final String? error;
   // null = chưa kiểm tra / không áp dụng (non-Android)
   final bool? isHealthConnectConnected;
+  final StressPrediction? stressPrediction;
+  final bool stressLoading;
+  final bool stressDataEstimated;
+  final bool stressApiError;
 
   const DeviceHealthState({
     this.loading = false,
@@ -36,6 +43,10 @@ class DeviceHealthState extends Equatable {
     this.sleepHours,
     this.error,
     this.isHealthConnectConnected,
+    this.stressPrediction,
+    this.stressLoading = false,
+    this.stressDataEstimated = false,
+    this.stressApiError = false,
   });
 
   DeviceHealthState copyWith({
@@ -49,6 +60,10 @@ class DeviceHealthState extends Equatable {
     double? sleepHours,
     String? error,
     bool? isHealthConnectConnected,
+    StressPrediction? stressPrediction,
+    bool? stressLoading,
+    bool? stressDataEstimated,
+    bool? stressApiError,
   }) => DeviceHealthState(
     loading: loading ?? this.loading,
     lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -60,17 +75,22 @@ class DeviceHealthState extends Equatable {
     sleepHours: sleepHours ?? this.sleepHours,
     error: error,
     isHealthConnectConnected: isHealthConnectConnected ?? this.isHealthConnectConnected,
+    stressPrediction: stressPrediction ?? this.stressPrediction,
+    stressLoading: stressLoading ?? this.stressLoading,
+    stressDataEstimated: stressDataEstimated ?? this.stressDataEstimated,
+    stressApiError: stressApiError ?? this.stressApiError,
   );
 
   @override
   List<Object?> get props =>
-      [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, bloodOxygen, sleepHours, error, isHealthConnectConnected];
+      [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, bloodOxygen, sleepHours, error, isHealthConnectConnected, stressPrediction, stressLoading, stressDataEstimated, stressApiError];
 }
 
 class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   final DeviceHealthService _service;
   final HealthWsService _wsService;
   final ReadinessService _readinessService;
+  final StressService _stressService;
 
   Timer? _syncTimer;
   Timer? _fetchTimer;
@@ -102,8 +122,12 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     );
   }
 
-  DeviceHealthCubit(this._service, this._wsService, this._readinessService)
-      : super(const DeviceHealthState());
+  DeviceHealthCubit(
+    this._service,
+    this._wsService,
+    this._readinessService,
+    this._stressService,
+  ) : super(const DeviceHealthState());
 
   /// Fetch device health 1 lần + tính readiness.
   Future<void> poll() async {
@@ -133,6 +157,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       totalSteps: result.totalSteps,
       dataCount: result.dataPoints.length,
       readinessLoading: true,
+      stressLoading: true,
       error: null,
       isHealthConnectConnected: hcConnected,
     ));
@@ -145,6 +170,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     });
 
     _fetchReadiness(result);
+    _fetchStress(result);
   }
 
   /// Bắt đầu gửi dữ liệu lên BE mỗi 5 giây qua WebSocket
@@ -269,6 +295,78 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       bloodOxygen: bloodOxygen,
       sleepHours: sleepHours > 0 ? sleepHours : null,
     ));
+  }
+
+  Future<void> _fetchStress(DeviceHealthResult result) async {
+    final points = result.dataPoints;
+
+    // Log tổng số data points và các type có mặt
+    final typeCount = <String, int>{};
+    for (final p in points) {
+      typeCount[p.type.name] = (typeCount[p.type.name] ?? 0) + 1;
+    }
+    debugPrint('[Stress] Total points: ${points.length}, types: $typeCount');
+
+    final hrMeanStd = _hrMeanStd(points);
+    final hrMean = hrMeanStd.$1;
+    debugPrint('[Stress] HR points found: ${points.where((p) => p.type == HealthDataType.HEART_RATE).length}, hrMean=$hrMean');
+    if (hrMean == 0 || _stopped) {
+      debugPrint('[Stress] Skip — no HR data');
+      if (!_stopped) emit(state.copyWith(stressLoading: false));
+      return;
+    }
+
+    final rmssdRaw = _latestNumeric(points, HealthDataType.HEART_RATE_VARIABILITY_RMSSD);
+    debugPrint('[Stress] RMSSD raw=$rmssdRaw, HRV points: ${points.where((p) => p.type == HealthDataType.HEART_RATE_VARIABILITY_RMSSD).length}');
+    // Nếu không có RMSSD từ wearable, ước tính từ HR std (scale khác nhưng tương quan dương)
+    final hrStd = hrMeanStd.$2;
+    final rmssd = rmssdRaw ?? (hrStd > 0 ? (hrStd * 3.0).clamp(5.0, 80.0) : 25.0);
+    final isEstimated = rmssdRaw == null;
+
+    final skinTemp = _latestNumeric(points, HealthDataType.SKIN_TEMPERATURE) ?? 33.0;
+
+    debugPrint('[Stress] Input → hrMean=$hrMean, hrStd=$hrStd, rmssd=$rmssd${isEstimated ? "(estimated)" : ""}, temp=$skinTemp');
+
+    final prediction = await _stressService.predict(
+      hrMean: hrMean,
+      hrStd: hrMeanStd.$2,
+      rmssd: rmssd,
+      tempMean: skinTemp,
+    );
+
+    if (_stopped) return;
+
+    emit(state.copyWith(
+      stressPrediction: prediction,
+      stressLoading: false,
+      stressDataEstimated: isEstimated,
+      stressApiError: prediction == null,
+    ));
+  }
+
+  /// Tính mean và std của HR trong 60 giây gần nhất.
+  (double, double) _hrMeanStd(List<HealthDataPoint> points) {
+    final cutoff = DateTime.now().subtract(const Duration(seconds: 60));
+    var hrPoints = points
+        .where((p) => p.type == HealthDataType.HEART_RATE && p.dateFrom.isAfter(cutoff))
+        .toList();
+    if (hrPoints.isEmpty) {
+      hrPoints = points.where((p) => p.type == HealthDataType.HEART_RATE).toList();
+    }
+    if (hrPoints.isEmpty) return (0.0, 0.0);
+
+    final values = hrPoints
+        .map((p) => p.value)
+        .whereType<NumericHealthValue>()
+        .map((v) => v.numericValue.toDouble())
+        .where((v) => v > 0)
+        .toList();
+
+    if (values.isEmpty) return (0.0, 0.0);
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    if (values.length == 1) return (mean, 0.0);
+    final variance = values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) / values.length;
+    return (mean, math.sqrt(variance));
   }
 
   @override

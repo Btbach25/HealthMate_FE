@@ -8,11 +8,7 @@
       "name": "Dev – Debug (Mobile)",
       "request": "launch",
       "type": "dart",
-      "flutterMode": "debug",
-      "args": [
-        "--dart-define=ENV=mobile",
-        "--dart-define-from-file=.env.mobile"
-      ]
+      "flutterMode": "debug"
     },
     {
       "name": "Dev – Debug (Chrome)",
@@ -21,8 +17,7 @@
       "deviceId": "chrome",
       "flutterMode": "debug",
       "args": [
-        "--web-port=7000",
-        "--dart-define=ENV=dev"
+        "--web-port=7000"
       ]
     },
     {
@@ -30,10 +25,7 @@
       "request": "launch",
       "type": "dart",
       "deviceId": "windows",
-      "flutterMode": "debug",
-      "args": [
-        "--dart-define=ENV=dev"
-      ]
+      "flutterMode": "debug"
     },
     // ──────────────────────────────────────────────
     // PRODUCTION (release / profile)
@@ -42,21 +34,13 @@
       "name": "Prod – Release (Mobile)",
       "request": "launch",
       "type": "dart",
-      "flutterMode": "release",
-      "args": [
-        "--dart-define=ENV=prod",
-        "--dart-define-from-file=.env.prod"
-      ]
+      "flutterMode": "release"
     },
     {
       "name": "Prod – Profile (Mobile)",
       "request": "launch",
       "type": "dart",
-      "flutterMode": "profile",
-      "args": [
-        "--dart-define=ENV=prod",
-        "--dart-define-from-file=.env.prod"
-      ]
+      "flutterMode": "profile"
     },
     // ──────────────────────────────────────────────
     // ATTACH (attach to running app)
