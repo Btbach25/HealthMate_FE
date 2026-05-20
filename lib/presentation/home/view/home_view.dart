@@ -15,6 +15,7 @@ import '../widgets/health_overview_section.dart';
 import '../widgets/welcome_message.dart';
 import '../widgets/metric_carousel.dart';
 import '../bloc/device_health_cubit.dart';
+import '../../../data/models/health/stress_prediction.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -192,6 +193,19 @@ class _HomeViewState extends State<HomeView> {
                           },
                         ),
 
+                        const SizedBox(height: 8),
+
+                        BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
+                          builder: (context, dState) {
+                            if (dState.stressLoading) return _StressLoadingCard();
+                            return _StressCard(
+                              prediction: dState.stressPrediction,
+                              dataEstimated: dState.stressDataEstimated,
+                              apiUnavailable: dState.stressApiError,
+                            );
+                          },
+                        ),
+
                         const SizedBox(height: 16),
 
                         if (homeData.medicationProgress != null)
@@ -300,6 +314,121 @@ class _ReadinessScoreCard extends StatelessWidget {
                     colorBlendMode: BlendMode.srcIn,
                   )
                 : const SizedBox(width: 32),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StressLoadingCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: const [
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(width: 12),
+            Text('Đang phân tích mức độ căng thẳng...', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StressCard extends StatelessWidget {
+  final StressPrediction? prediction;
+  final bool dataEstimated;
+  final bool apiUnavailable;
+  const _StressCard({required this.prediction, this.dataEstimated = false, this.apiUnavailable = false});
+
+  Color _color(StressPrediction p) {
+    if (!p.isStress) return const Color(0xFF4CAF50);
+    if (p.probStress >= 0.7) return const Color(0xFFF44336);
+    return const Color(0xFFFFC107);
+  }
+
+  String _label(StressPrediction p) {
+    if (!p.isStress) return 'Bình thường';
+    if (p.probStress >= 0.7) return 'Đang căng thẳng';
+    return 'Có thể căng thẳng';
+  }
+
+  IconData _icon(StressPrediction p) {
+    if (!p.isStress) return Icons.sentiment_satisfied_alt;
+    if (p.probStress >= 0.7) return Icons.sentiment_very_dissatisfied;
+    return Icons.sentiment_neutral;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = prediction;
+    final hasData = p != null;
+    final color = hasData ? _color(p) : AppColors.textGrey;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: hasData
+                        ? Text(
+                            '${(p.probStress * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                          )
+                        : Icon(apiUnavailable ? Icons.cloud_off_outlined : Icons.psychology_outlined, color: color, size: 22),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Mức độ căng thẳng', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasData
+                            ? _label(p)
+                            : apiUnavailable
+                                ? 'Dịch vụ phân tích chưa sẵn sàng'
+                                : 'Chưa đủ dữ liệu (cần nhịp tim)',
+                        style: TextStyle(fontSize: 12, color: color),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasData) Icon(_icon(p), color: color, size: 28),
+              ],
+            ),
+            if (hasData && (dataEstimated || !p.calibrated)) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 13, color: AppColors.textGrey),
+                  const SizedBox(width: 4),
+                  Text(
+                    dataEstimated
+                        ? 'HRV không có — dùng dữ liệu HR để ước tính'
+                        : 'Kết quả chưa được hiệu chỉnh cá nhân',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

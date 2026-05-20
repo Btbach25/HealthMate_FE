@@ -60,27 +60,21 @@ flutter pub get
 
 **2) Tạo file môi trường**
 
-Các file `.env` đã được khai báo trong `pubspec.yaml` (assets). Tạo tại thư mục gốc nếu chưa có:
+File `.env` đã được khai báo trong `pubspec.yaml` (assets). Tạo tại thư mục gốc nếu chưa có:
 
 ```
-# .env.dev
-BASE_URL=http://localhost:8080
-
-# .env.prod
+# .env
 BASE_URL=https://api.yourdomain.com
 ```
 
 **3) Chạy dự án**
 
 ```bash
-# Development (Android/iOS/Desktop)
-flutter run --dart-define=ENV=dev
+# Android/iOS/Desktop
+flutter run
 
-# Development (Web) — dùng port cố định để Google OAuth hoạt động
-flutter run -d chrome --web-port=5000 --dart-define=ENV=dev
-
-# Chạy với file env cụ thể
-flutter run --dart-define-from-file=.env.dev
+# Web — dùng port cố định để Google OAuth hoạt động
+flutter run -d chrome --web-port=5000
 ```
 
 > Nếu vừa thêm package hoặc BLoC provider mới mà hot-reload lỗi, hãy thực hiện **hot-restart** (`R` trong terminal).
@@ -91,7 +85,7 @@ flutter run --dart-define-from-file=.env.dev
 
 Ứng dụng dùng `flutter_dotenv` để load biến môi trường dưới dạng asset (hỗ trợ Web).
 
-- `main.dart` đọc biến `ENV` từ `--dart-define` để load đúng file `.env.dev` hoặc `.env.prod`.
+- `main.dart` luôn load file `.env` ở thư mục gốc. Web và mobile dùng chung cấu hình vì BE đã host.
 - Biến bắt buộc: `BASE_URL` — URL gốc API (không có trailing slash).
 
 Ví dụ sử dụng trong service:
@@ -108,16 +102,16 @@ final baseUrl = dotenv.env['BASE_URL'];
 
 ```bash
 # Android APK
-flutter build apk --dart-define=ENV=prod
+flutter build apk
 
 # Android App Bundle
-flutter build appbundle --dart-define=ENV=prod
+flutter build appbundle
 
 # iOS (yêu cầu macOS + Xcode)
-flutter build ios --dart-define=ENV=prod
+flutter build ios
 
 # Web
-flutter build web --dart-define=ENV=prod
+flutter build web
 ```
 
 ---

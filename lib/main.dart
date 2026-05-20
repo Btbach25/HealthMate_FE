@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'dart:async' show unawaited;
 import 'dart:math' show min;
 
 import 'package:fe/core/constants/app_size.dart';
@@ -21,6 +22,7 @@ import 'package:fe/data/services/device_health_service.dart';
 import 'package:fe/data/services/fcm_debug_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
 import 'package:fe/data/services/readiness_service.dart';
+import 'package:fe/data/services/stress_service.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -55,30 +57,32 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi_VN', null);
 
-  // Load environment file. Use --dart-define=ENV=dev|prod to pick .env.dev/.env.prod
-  const env = String.fromEnvironment('ENV', defaultValue: 'dev');
+  // Load .env (web + mobile dùng chung — BE đã host nên cùng base URL)
+  var envLoaded = false;
   try {
-    await dotenv.load(fileName: '.env.$env');
+    await dotenv.load(fileName: '.env');
+    envLoaded = true;
     debugPrint(
-      '[env] ENV=$env BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}',
+      '[env] BASE_URL=${dotenv.env['BASE_URL'] ?? '(empty — Auth/API dùng fallback cổng 8080)'}',
     );
   } catch (e) {
-    // File .env không tồn tại, sử dụng giá trị mặc định từ code
-    debugPrint('Không tìm thấy file .env.$env, sử dụng giá trị mặc định');
+    debugPrint('Không tìm thấy file .env, sử dụng giá trị mặc định');
   }
+
+  final envMap = envLoaded ? dotenv.env : const <String, String>{};
 
   // Web requires FirebaseOptions for default app.
   // If not configured yet, keep app running without Firebase features.
   final hasFirebaseWebConfig =
-      (dotenv.env['FIREBASE_API_KEY'] ?? '').isNotEmpty &&
-      (dotenv.env['FIREBASE_APP_ID'] ?? '').isNotEmpty &&
-      (dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '').isNotEmpty &&
-      (dotenv.env['FIREBASE_PROJECT_ID'] ?? '').isNotEmpty;
+      (envMap['FIREBASE_API_KEY'] ?? '').isNotEmpty &&
+      (envMap['FIREBASE_APP_ID'] ?? '').isNotEmpty &&
+      (envMap['FIREBASE_MESSAGING_SENDER_ID'] ?? '').isNotEmpty &&
+      (envMap['FIREBASE_PROJECT_ID'] ?? '').isNotEmpty;
   try {
     if (Firebase.apps.isEmpty) {
       if (kIsWeb && !hasFirebaseWebConfig) {
         debugPrint(
-          '[Firebase] Missing web Firebase config in .env.$env, skip initializeApp().',
+          '[Firebase] Missing web Firebase config in .env, skip initializeApp().',
         );
       } else {
         await Firebase.initializeApp();
@@ -92,7 +96,8 @@ Future<void> main() async {
   }
 
   // Debug only: print FCM token for push notification testing.
-  await FcmDebugService.printTokenOnStartup();
+  // Không được chặn startup vì có thể làm app đứng ở splash native.
+  unawaited(FcmDebugService.printTokenOnStartup());
 
   final localStorage = LocalStorageService();
 
@@ -135,6 +140,10 @@ Future<void> main() async {
     localStorage,
     onRefresh: authRepository.refreshToken,
   );
+  final stressService = StressService(
+    localStorage,
+    onRefresh: authRepository.refreshToken,
+  );
 
   final fcmService = FcmService(localStorage);
   fcmService.init(); // fire-and-forget: xin permission + gửi token nếu đã login
@@ -150,6 +159,7 @@ Future<void> main() async {
       medicationRepository: medicationRepository,
       healthWsService: healthWsService,
       readinessService: readinessService,
+      stressService: stressService,
       fcmService: fcmService,
     ),
   );
@@ -165,6 +175,7 @@ class MyApp extends StatelessWidget {
   final MedicationRepository _medicationRepository;
   final HealthWsService _healthWsService;
   final ReadinessService _readinessService;
+  final StressService _stressService;
   final FcmService _fcmService;
 
   const MyApp({
@@ -178,6 +189,7 @@ class MyApp extends StatelessWidget {
     required MedicationRepository medicationRepository,
     required HealthWsService healthWsService,
     required ReadinessService readinessService,
+    required StressService stressService,
     required FcmService fcmService,
   }) : _authRepository = authRepository,
        _homeRepository = homeRepository,
@@ -188,6 +200,7 @@ class MyApp extends StatelessWidget {
        _medicationRepository = medicationRepository,
        _healthWsService = healthWsService,
        _readinessService = readinessService,
+       _stressService = stressService,
        _fcmService = fcmService;
 
   @override
@@ -219,6 +232,7 @@ class MyApp extends StatelessWidget {
               DeviceHealthService(),
               _healthWsService,
               _readinessService,
+              _stressService,
             ),
           ),
         ],

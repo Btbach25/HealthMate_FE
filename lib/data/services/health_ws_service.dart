@@ -102,11 +102,24 @@ class HealthWsService {
       await _socketSubscription?.cancel();
       _socketSubscription = null;
 
-      final uri = Uri.parse('$_wsBaseUrl/ws?token=$token');
+      // Dart's Uri không biết default port cho scheme ws/wss → set tường minh,
+      // tránh URI bị :0 khiến WebSocket.connect đi sai cổng.
+      final base = Uri.parse(_wsBaseUrl);
+      final port = base.hasPort ? base.port : (base.scheme == 'wss' ? 443 : 80);
+      final uri = Uri(
+        scheme: base.scheme,
+        host: base.host,
+        port: port,
+        path: '/ws',
+        queryParameters: {'token': token},
+      );
+      // URL hiển thị không kèm token (bảo mật) và có port đúng (không phải :0).
+      final displayUrl = '${base.scheme}://${base.host}:$port/ws';
+      debugPrint('[HealthWs] → connecting $displayUrl');
       _channel = WebSocketChannel.connect(uri);
       await _channel!.ready;
       _connected = true;
-      debugPrint('[HealthWs] Connected');
+      debugPrint('[HealthWs] ✓ Connected $displayUrl');
       if (kDebugMode) {
         final now = DateTime.now();
         debugPrint(
@@ -125,7 +138,11 @@ class HealthWsService {
     } catch (e) {
       _connected = false;
       _channel = null;
-      debugPrint('[HealthWs] Connect failed: $e');
+      // In URL thật + lý do gọn, thay vì raw exception (hay kèm 'http://...:0' gây hiểu nhầm).
+      final reason = e.toString().contains('not upgraded')
+          ? 'server không upgrade lên WebSocket (nginx thiếu Upgrade/Connection header cho /ws)'
+          : e.toString().replaceAll('WebSocketChannelException: ', '');
+      debugPrint('[HealthWs] ✗ Connect failed → $reason');
     }
   }
 

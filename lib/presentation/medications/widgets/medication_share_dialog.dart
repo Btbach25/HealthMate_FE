@@ -79,6 +79,7 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
         groupId: group.id,
         cachedGroup: group,
       );
+      if (!mounted) return;
       final currentUserId = context.read<AuthBloc>().state.user.id;
       final eligible = details.members
           .where((m) => m.userId != currentUserId && m.sharedMetrics.isNotEmpty)

@@ -184,7 +184,7 @@ class _FamilyMemberMetricsDialogState
     final statusBgColor = widget.member.healthStatus.backgroundColor;
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSize.r16),
       ),
@@ -244,16 +244,19 @@ class _FamilyMemberMetricsDialogState
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: AppColors.textGrey,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         const SizedBox(height: 6),
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
                           children: [
                             _Chip(
                               label: widget.member.healthStatus.displayLabel,
                               color: statusColor,
                               bgColor: statusBgColor,
                             ),
-                            const SizedBox(width: 6),
                             _Chip(
                               label:
                                   '${widget.member.sharedMetrics.length} chỉ số',
@@ -434,10 +437,15 @@ class _FamilyMemberMetricsDialogState
                                     label: 'Biểu đồ',
                                   ),
                                   const Spacer(),
-                                  Text(
-                                    '$pointsCount lần ghi · $_selectedRange',
-                                    style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.textGrey,
+                                  Flexible(
+                                    child: Text(
+                                      '$pointsCount lần ghi · $_selectedRange',
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.textGrey,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.end,
                                     ),
                                   ),
                                 ],
