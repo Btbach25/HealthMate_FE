@@ -389,8 +389,19 @@ class ApiFamilyService implements FamilyService {
       );
     }
     try {
-      // BE chỉ nhận đúng 1 field: email (InviteMemberRequest). Gửi rõ Content-Type để tránh "invalid request".
+      // BE originally only accepted email for invite requests. If the server
+      // supports sending metric types with an invite, include them here.
+      // We filter and normalize FE metric names to server-accepted names.
       final body = <String, dynamic>{'email': effectiveEmail};
+      try {
+        final metricTypes = await _metricTypesForPut(sharedMetrics);
+        if (metricTypes.isNotEmpty) {
+          body['metric_types'] = metricTypes;
+        }
+      } catch (_) {
+        // If fetching server metric names fails, continue and send email-only.
+      }
+
       await _apiClient.post<void>(
         ApiEndpoints.groupMembers(groupId),
         body: body,
@@ -541,9 +552,7 @@ class ApiFamilyService implements FamilyService {
         body: {'status': 'accepted'},
         parser: (_) {},
       );
-      // Best-effort: pre-set sharing while in pending_owner_approval state.
-      // BE allows this after Requirement A. Failure is non-fatal — member can
-      // configure from group details after owner approval.
+      // Best-effort: pre-set sharing while pending_owner_approval (non-fatal if fails).
       try {
         final metricTypes = await _metricTypesForPut(sharedMetrics);
         if (metricTypes.isNotEmpty) {

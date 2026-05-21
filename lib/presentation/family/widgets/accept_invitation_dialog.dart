@@ -40,7 +40,18 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
         .map((m) => m.type)
         .toSet();
-    _selectedMetrics.addAll(_selectableMetrics);
+    if (widget.invitation.sharedMetrics.isNotEmpty) {
+      for (final s in widget.invitation.sharedMetrics) {
+        try {
+          final t = MetricType.fromValue(s);
+          if (_selectableMetrics.contains(t)) {
+            _selectedMetrics.add(t);
+          }
+        } catch (_) {}
+      }
+    } else {
+      _selectedMetrics.addAll(_selectableMetrics);
+    }
     context.read<FamilyBloc>().add(
       FetchInvitationPreview(groupId: widget.invitation.groupId),
     );
@@ -197,7 +208,16 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                       current.status == FamilyStatus.error);
                             },
                             listener: (context, state) {
-                              _onPreviewLoaded();
+                              if (state.invitationPreviewGroupId !=
+                                  widget.invitation.groupId) {
+                                return;
+                              }
+                              // Không dùng group.sharedMetrics từ preview (là global của invitee, thường rỗng).
+                              if (state.status ==
+                                      FamilyStatus.invitationPreviewLoaded ||
+                                  state.status == FamilyStatus.error) {
+                                _onPreviewLoaded();
+                              }
                             },
                             builder: (context, state) =>
                                 _buildInvitationPreview(state),
@@ -325,7 +345,8 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    if (details == null) {
+    // Fallback: use invitation.group if preview details not available
+    if (details == null && widget.invitation.group == null) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
@@ -341,7 +362,10 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    final members = details.members;
+    final groupName = details?.group.name ?? widget.invitation.group?.name ?? 'Nhóm';
+    final memberCount = details?.members.length ?? widget.invitation.group?.memberCount ?? 0;
+    final members = details?.members ?? [];
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -354,12 +378,12 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            details.group.name,
+            groupName,
             style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Thành viên hiện tại: ${members.length}',
+            'Thành viên hiện tại: $memberCount',
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
           ),
           const SizedBox(height: 8),

@@ -484,7 +484,6 @@ class _HealthConnectDialog extends StatelessWidget {
             FilledButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                // TODO: navigate to Health Connect guide page
               },
               icon: const Icon(Icons.menu_book_rounded, size: 18),
               label: const Text('Xem hướng dẫn kết nối'),

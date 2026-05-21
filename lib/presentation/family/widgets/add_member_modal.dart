@@ -148,7 +148,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<RelationshipType>(
-                  initialValue: _selectedRelationship,
+                  value: _selectedRelationship,
                   decoration: const InputDecoration(
                     hintText: 'Chọn mối quan hệ',
                   ),
