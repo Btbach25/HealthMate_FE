@@ -148,26 +148,28 @@ class HealthDataFetcher {
   Future<HealthFetchResult> fetchAll({int hoursBack = 720}) async {
     final now = DateTime.now();
 
-    final results = await Future.wait([
-      fetchHeartRate(hoursBack: hoursBack),
-      fetchRestingHeartRate(hoursBack: hoursBack),
-      fetchSteps(hoursBack: hoursBack),
-      fetchBloodOxygen(hoursBack: hoursBack),
-      fetchBloodPressureSystolic(hoursBack: hoursBack),
-      fetchBloodPressureDiastolic(hoursBack: hoursBack),
-      fetchWeight(hoursBack: hoursBack),
-      fetchHeight(hoursBack: hoursBack),
-      fetchActiveEnergyBurned(hoursBack: hoursBack),
-      fetchSleepAsleep(hoursBack: hoursBack),
-      fetchSleepAwake(hoursBack: hoursBack),
-      fetchSleepDeep(hoursBack: hoursBack),
-      fetchSleepRem(hoursBack: hoursBack),
-      fetchBodyTemperature(hoursBack: hoursBack),
-      fetchRespiratoryRate(hoursBack: hoursBack),
-      fetchBloodGlucose(hoursBack: hoursBack),
-      fetchWorkout(hoursBack: hoursBack),
-      fetchDistanceDelta(hoursBack: hoursBack),
-    ]);
+    final results = await Future.wait(
+      [
+        _safeCall(fetchHeartRate(hoursBack: hoursBack)),
+        _safeCall(fetchRestingHeartRate(hoursBack: hoursBack)),
+        _safeCall(fetchSteps(hoursBack: hoursBack)),
+        _safeCall(fetchBloodOxygen(hoursBack: hoursBack)),
+        _safeCall(fetchBloodPressureSystolic(hoursBack: hoursBack)),
+        _safeCall(fetchBloodPressureDiastolic(hoursBack: hoursBack)),
+        _safeCall(fetchWeight(hoursBack: hoursBack)),
+        _safeCall(fetchHeight(hoursBack: hoursBack)),
+        _safeCall(fetchActiveEnergyBurned(hoursBack: hoursBack)),
+        _safeCall(fetchSleepAsleep(hoursBack: hoursBack)),
+        _safeCall(fetchSleepAwake(hoursBack: hoursBack)),
+        _safeCall(fetchSleepDeep(hoursBack: hoursBack)),
+        _safeCall(fetchSleepRem(hoursBack: hoursBack)),
+        _safeCall(fetchBodyTemperature(hoursBack: hoursBack)),
+        _safeCall(fetchRespiratoryRate(hoursBack: hoursBack)),
+        _safeCall(fetchBloodGlucose(hoursBack: hoursBack)),
+        _safeCall(fetchWorkout(hoursBack: hoursBack)),
+        _safeCall(fetchDistanceDelta(hoursBack: hoursBack)),
+      ],
+    );
 
     int? stepsToday;
     try {
@@ -208,11 +210,48 @@ class HealthDataFetcher {
 
   // ─── Internal ────────────────────────────────────────────────────────────
 
+  Future<List<HealthDataPoint>> _safeCall(
+    Future<List<HealthDataPoint>> future,
+  ) async {
+    try {
+      return await future;
+    } catch (e) {
+      debugPrint('[HealthFetcher] Unexpected error in fetch: $e');
+      return [];
+    }
+  }
+
+  /// Đảm bảo permission cho loại dữ liệu, yêu cầu lại nếu chưa được cấp.
+  /// Nhất là quan trọng cho WORKOUT (record type 9).
+  Future<bool> _ensurePermissionForType(HealthDataType type) async {
+    final hasPerm = await _health.hasPermissions([type]);
+    if (hasPerm == true) return true;
+    
+    // Nếu chưa được cấp (false hoặc null), thử request lại
+    try {
+      final granted = await _health.requestAuthorization([type]);
+      if (granted) {
+        debugPrint('[HealthFetcher] Permission granted for ${type.name}');
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[HealthFetcher] requestAuthorization error for ${type.name}: $e');
+    }
+    return false;
+  }
+
   Future<List<HealthDataPoint>> _fetch(
     HealthDataType type,
     int hoursBack,
   ) async {
     if (!_health.isDataTypeAvailable(type)) return [];
+    
+    // Đảm bảo quyền được cấp trước khi fetch, đặc biệt cho WORKOUT
+    if (!await _ensurePermissionForType(type)) {
+      debugPrint('[HealthFetcher] Permission denied for ${type.name}, skipping fetch');
+      return [];
+    }
+    
     try {
       final points = await _health.getHealthDataFromTypes(
         startTime: _start(hoursBack),
@@ -220,8 +259,14 @@ class HealthDataFetcher {
         types: [type],
       );
       return _deduplicate(points);
-    } catch (e) {
+    } on Exception catch (e) {
+      // Bắt tất cả exception bao gồm SecurityException từ Health Connect
       debugPrint('[HealthFetcher] ${type.name} error: $e');
+      if (e.toString().toLowerCase().contains('securityexception') ||
+          e.toString().toLowerCase().contains('permission')) {
+        debugPrint('[HealthFetcher] Permission issue detected for ${type.name}; '
+            'user may need to manually grant in Health Connect app');
+      }
       return [];
     }
   }

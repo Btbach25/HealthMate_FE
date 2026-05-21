@@ -138,7 +138,6 @@ class HealthWsService {
     } catch (e) {
       _connected = false;
       _channel = null;
-      // In URL thật + lý do gọn, thay vì raw exception (hay kèm 'http://...:0' gây hiểu nhầm).
       final reason = e.toString().contains('not upgraded')
           ? 'server không upgrade lên WebSocket (nginx thiếu Upgrade/Connection header cho /ws)'
           : e.toString().replaceAll('WebSocketChannelException: ', '');

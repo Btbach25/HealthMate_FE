@@ -69,25 +69,6 @@ class ApiFamilyService implements FamilyService {
       'Một số chỉ số bạn chọn hiện chưa dùng được trên ứng dụng. '
       'Hãy bỏ chọn các chỉ số đó rồi thử lại, hoặc liên hệ hỗ trợ nếu bạn cần đầy đủ loại chỉ số.';
 
-  /// PUT quyền bắt buộc có ít nhất một `metric_type` hợp lệ.
-  void _requireNonEmptyMetricTypesForPut(
-    List<String> feMetrics,
-    List<String> metricTypes,
-  ) {
-    if (metricTypes.isNotEmpty) return;
-    final base = MetricSelectionHelper.filterMetricTypesForBackend(feMetrics);
-    if (base.isNotEmpty) {
-      throw const ValidationException(
-        message: _metricTypesNotOnServerMessage,
-        statusCode: 422,
-      );
-    }
-    throw const ValidationException(
-      message: 'Vui lòng chọn ít nhất một chỉ số.',
-      statusCode: 422,
-    );
-  }
-
   /// Tạo/sửa nhóm: không bắt buộc PUT; chỉ lỗi nếu máy chủ loại hết chỉ số đã chọn.
   void _throwIfServerDroppedAllChosenMetrics(
     List<String> feMetrics,
@@ -442,8 +423,19 @@ class ApiFamilyService implements FamilyService {
       );
     }
     try {
-      // BE chỉ nhận đúng 1 field: email (InviteMemberRequest). Gửi rõ Content-Type để tránh "invalid request".
+      // BE originally only accepted email for invite requests. If the server
+      // supports sending metric types with an invite, include them here.
+      // We filter and normalize FE metric names to server-accepted names.
       final body = <String, dynamic>{'email': effectiveEmail};
+      try {
+        final metricTypes = await _metricTypesForPut(sharedMetrics);
+        if (metricTypes.isNotEmpty) {
+          body['metric_types'] = metricTypes;
+        }
+      } catch (_) {
+        // If fetching server metric names fails, continue and send email-only.
+      }
+
       await _apiClient.post<void>(
         ApiEndpoints.groupMembers(groupId),
         body: body,
@@ -608,12 +600,13 @@ class ApiFamilyService implements FamilyService {
         parser: (_) {},
       );
       final metricTypes = await _metricTypesForPut(sharedMetrics);
-      _requireNonEmptyMetricTypesForPut(sharedMetrics, metricTypes);
-      await _apiClient.put<void>(
-        ApiEndpoints.groupPermissions(groupId),
-        body: {'metric_types': metricTypes},
-        parser: (_) {},
-      );
+      if (metricTypes.isNotEmpty) {
+        await _apiClient.put<void>(
+          ApiEndpoints.groupPermissions(groupId),
+          body: {'metric_types': metricTypes},
+          parser: (_) {},
+        );
+      }
     } on ApiException {
       rethrow;
     } catch (e) {

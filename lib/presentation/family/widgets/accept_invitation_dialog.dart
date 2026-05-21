@@ -38,6 +38,11 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
   @override
   void initState() {
     super.initState();
+    // Fallback: nếu invitation đã có shared_metrics, dùng luôn
+    if (widget.invitation.sharedMetrics.isNotEmpty) {
+      _onPreviewSettled(widget.invitation.sharedMetrics.toSet());
+    }
+    // Cố gắng load full preview (members list, etc)
     context.read<FamilyBloc>().add(
       FetchInvitationPreview(groupId: widget.invitation.groupId),
     );
@@ -199,17 +204,24 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                       FamilyStatus.invitationPreviewLoaded &&
                                   current.invitationPreviewGroupId ==
                                       widget.invitation.groupId;
-                              // Catch success OR error transition (khi loading xong dù thành công hay lỗi)
                               return isNowLoaded ||
                                   (wasLoadingThis &&
                                       current.status == FamilyStatus.error);
                             },
                             listener: (context, state) {
-                              final metrics = state.invitationPreviewDetails
-                                      ?.group.sharedMetrics
-                                      .toSet() ??
-                                  {};
-                              _onPreviewSettled(metrics);
+                              if (state.status == FamilyStatus.invitationPreviewLoaded) {
+                                final metrics = state.invitationPreviewDetails
+                                        ?.group.sharedMetrics
+                                        .toSet() ??
+                                    {};
+                                _onPreviewSettled(metrics);
+                              } else if (state.status == FamilyStatus.error &&
+                                  state.invitationPreviewGroupId == widget.invitation.groupId) {
+                                // Fallback: lấy metrics từ invitation object (set bởi inviter)
+                                _onPreviewSettled(
+                                  widget.invitation.sharedMetrics.toSet(),
+                                );
+                              }
                             },
                             builder: (context, state) =>
                                 _buildInvitationPreview(state),
@@ -281,8 +293,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                           ],
                           const SizedBox(height: 8),
                           Builder(builder: (context) {
-                            final canAccept =
-                                _previewLoaded && _groupAllowedMetrics.isNotEmpty;
+                            final canAccept = _previewLoaded;
                             return Container(
                               width: double.infinity,
                               decoration: BoxDecoration(
@@ -339,7 +350,8 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    if (details == null) {
+    // Fallback: use invitation.group if preview details not available
+    if (details == null && widget.invitation.group == null) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
@@ -355,7 +367,10 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    final members = details.members;
+    final groupName = details?.group.name ?? widget.invitation.group?.name ?? 'Nhóm';
+    final memberCount = details?.members.length ?? widget.invitation.group?.memberCount ?? 0;
+    final members = details?.members ?? [];
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -368,12 +383,12 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            details.group.name,
+            groupName,
             style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Thành viên hiện tại: ${members.length}',
+            'Thành viên hiện tại: $memberCount',
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
           ),
           const SizedBox(height: 8),
