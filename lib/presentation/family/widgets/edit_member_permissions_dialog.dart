@@ -6,6 +6,7 @@ import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/data/enums/metric_type.dart';
+import 'package:fe/data/services/api_family_service.dart';
 import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -35,28 +36,50 @@ class _EditMemberPermissionsDialogState
     extends State<EditMemberPermissionsDialog> {
   final Set<MetricType> _selectedMetrics = {};
   late final List<MetricOption> _supportedMetrics;
+  late final Set<MetricType> _allowedByGroup;
   bool _isLoading = false;
+  bool _isLoadingPrefill = true;
   bool _allowMedicationReminderShare = false;
 
   @override
   void initState() {
     super.initState();
-    final allowedByGroup = widget.globalMetrics.toSet();
+    _allowedByGroup = widget.globalMetrics.toSet();
     _supportedMetrics = MetricHelper.availableMetrics
         .where((m) =>
-            allowedByGroup.contains(m.type) &&
+            _allowedByGroup.contains(m.type) &&
             MetricSelectionHelper.isMetricSupportedByBackend(m.type))
         .toList();
-    for (final metric in widget.member.sharedMetrics) {
-      if (allowedByGroup.contains(metric)) {
-        _selectedMetrics.add(metric);
+    _allowMedicationReminderShare = widget.member.medicationReminderShareAllowed;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPrefill());
+  }
+
+  Future<void> _loadPrefill() async {
+    final specifics = await context
+        .read<FamilyBloc>()
+        .repository
+        .getMySpecificMetricsForMember(
+          groupId: widget.groupId,
+          memberId: widget.member.userId,
+        );
+    if (!mounted) return;
+    setState(() {
+      _isLoadingPrefill = false;
+      if (specifics.length == 1 &&
+          specifics.first == ApiFamilyService.explicitNoMetricsForMember) {
+        return;
       }
-    }
-    if (_selectedMetrics.isEmpty && allowedByGroup.isNotEmpty) {
-      _selectedMetrics.addAll(allowedByGroup);
-    }
-    _allowMedicationReminderShare =
-        widget.member.medicationReminderShareAllowed;
+      if (specifics.isEmpty) {
+        _selectedMetrics.addAll(_allowedByGroup);
+      } else {
+        for (final s in specifics) {
+          try {
+            final t = MetricType.fromValue(s);
+            if (_allowedByGroup.contains(t)) _selectedMetrics.add(t);
+          } catch (_) {}
+        }
+      }
+    });
   }
 
   void _handleSave() {
@@ -105,7 +128,12 @@ class _EditMemberPermissionsDialogState
             child: Material(
               color: Colors.white,
               borderRadius: BorderRadius.circular(AppSize.r24),
-              child: SingleChildScrollView(
+              child: _isLoadingPrefill
+                  ? const SizedBox(
+                      height: 200,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSize.p24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,9 +145,9 @@ class _EditMemberPermissionsDialogState
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Chỉnh quyền thành viên',
-                                style: TextStyle(
+                              Text(
+                                'Giới hạn chỉ số tôi chia cho ${widget.member.name}',
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textBlack,
@@ -152,7 +180,7 @@ class _EditMemberPermissionsDialogState
                         border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: const Text(
-                        'Chỉ chọn trong phạm vi nhóm đã cho phép. Phần chia sẻ nhắc thuốc ở tab Thuốc cũng tuân theo quyền bạn đặt tại đây.',
+                        'Bạn đang thu hẹp chỉ số chia sẻ riêng với thành viên này, trong phạm vi chỉ số bạn đã chia sẻ với nhóm.',
                         style: AppTextStyles.caption,
                       ),
                     ),

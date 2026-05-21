@@ -1,5 +1,6 @@
 import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/data/enums/metric_type.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
@@ -68,25 +69,6 @@ class ApiFamilyService implements FamilyService {
   static const String _metricTypesNotOnServerMessage =
       'Một số chỉ số bạn chọn hiện chưa dùng được trên ứng dụng. '
       'Hãy bỏ chọn các chỉ số đó rồi thử lại, hoặc liên hệ hỗ trợ nếu bạn cần đầy đủ loại chỉ số.';
-
-  /// PUT quyền bắt buộc có ít nhất một `metric_type` hợp lệ.
-  void _requireNonEmptyMetricTypesForPut(
-    List<String> feMetrics,
-    List<String> metricTypes,
-  ) {
-    if (metricTypes.isNotEmpty) return;
-    final base = MetricSelectionHelper.filterMetricTypesForBackend(feMetrics);
-    if (base.isNotEmpty) {
-      throw const ValidationException(
-        message: _metricTypesNotOnServerMessage,
-        statusCode: 422,
-      );
-    }
-    throw const ValidationException(
-      message: 'Vui lòng chọn ít nhất một chỉ số.',
-      statusCode: 422,
-    );
-  }
 
   /// Tạo/sửa nhóm: không bắt buộc PUT; chỉ lỗi nếu máy chủ loại hết chỉ số đã chọn.
   void _throwIfServerDroppedAllChosenMetrics(
@@ -175,41 +157,6 @@ class ApiFamilyService implements FamilyService {
     final supported = names.contains(_medicationPermissionKey);
     _medicationPermissionSupportedCache = supported;
     return supported;
-  }
-
-  List<String> _extractSpecificMetricTypesFromPermissions(
-    dynamic rawPermissions,
-    String targetUserId,
-  ) {
-    if (rawPermissions is Map<String, dynamic>) {
-      final specific = rawPermissions['specific'];
-      if (specific is! List) return const [];
-      final metricTypes = <String>{};
-      for (final item in specific) {
-        if (item is! Map<String, dynamic>) continue;
-        final userId = item['user_id']?.toString() ?? '';
-        if (userId != targetUserId) continue;
-        final metrics = item['metrics'];
-        if (metrics is! List) continue;
-        for (final metric in metrics) {
-          final metricType = metric?.toString() ?? '';
-          if (metricType.isNotEmpty) metricTypes.add(metricType);
-        }
-      }
-      return metricTypes.toList();
-    }
-    final rawList = rawPermissions is List ? rawPermissions : const [];
-    final metricTypes = <String>{};
-    for (final item in rawList) {
-      if (item is! Map<String, dynamic>) continue;
-      final metricType = item['metric_type']?.toString() ?? '';
-      final sharedWith = item['shared_with_user_id']?.toString() ?? '';
-      if (metricType.isEmpty || sharedWith.isEmpty) continue;
-      if (sharedWith == targetUserId) {
-        metricTypes.add(metricType);
-      }
-    }
-    return metricTypes.toList();
   }
 
   @override
@@ -501,65 +448,52 @@ class ApiFamilyService implements FamilyService {
       // FE-side effective permissions:
       // - BE may return mixed global + specific rows.
       // - We derive global set once, then compute per-member effective set.
-      final globalPermissionsRaw = await _apiClient.get<dynamic>(
+      // Fetch the current user's own global sharing settings (used by the edit-permissions dialog).
+      final myPermissionsRaw = await _apiClient.get<dynamic>(
         ApiEndpoints.groupPermissions(groupId),
         parser: (data) => data,
       );
-      final globalMetricTypes =
-          _extractGlobalMetricTypesFromPermissions(globalPermissionsRaw);
-      final globalMetricTypeSet = globalMetricTypes.toSet();
-      final globalMetricsParsed = _toMetricTypes(globalMetricTypes);
-      final globalMedicationShareAllowed =
-          _isMedicationSharingAllowed(globalMetricTypes);
+      final myGlobalMetricTypes =
+          _extractGlobalMetricTypesFromPermissions(myPermissionsRaw);
+      final myGlobalMetricsParsed = _toMetricTypes(myGlobalMetricTypes);
+      final myMedicationShareAllowed =
+          _isMedicationSharingAllowed(myGlobalMetricTypes);
 
-      final effectiveMembers = await Future.wait(
-        members.map((member) async {
-          final memberPermissionsRaw = await _apiClient.get<dynamic>(
-            ApiEndpoints.groupPermissions(groupId),
-            queryParameters: {'target_user_id': member.userId},
-            parser: (data) => data,
-          );
-
-          final memberGlobalMetricTypes =
-              _extractGlobalMetricTypesFromPermissions(memberPermissionsRaw);
-          final effectiveGlobalSet = memberGlobalMetricTypes.isNotEmpty
-              ? memberGlobalMetricTypes.toSet()
-              : globalMetricTypeSet;
-
-          final specificMetricTypes = _extractSpecificMetricTypesFromPermissions(
-            memberPermissionsRaw,
-            member.userId,
-          ).toSet();
-          final memberSpecificMedicationTypes =
-              _extractSpecificMetricTypesFromPermissions(
-            memberPermissionsRaw,
-            member.userId,
-          );
-          final memberMedicationShareAllowed =
-              memberSpecificMedicationTypes.isEmpty
-                  ? globalMedicationShareAllowed
-                  : _isMedicationSharingAllowed(memberSpecificMedicationTypes);
-
-          // Default-open mode:
-          // - No specific rules for this member => inherits global.
-          // - Has specific rules => effective = global ∩ specific.
-          final effectiveMetricTypes = specificMetricTypes.isEmpty
-              ? effectiveGlobalSet
-              : effectiveGlobalSet.intersection(specificMetricTypes);
-
-          final parsed = _toMetricTypes(effectiveMetricTypes.toList());
-          return member.copyWith(
-            sharedMetrics: parsed,
-            medicationReminderShareAllowed: memberMedicationShareAllowed,
-          );
-        }),
+      // Single call: for each member, which of their metrics can the current user see.
+      // Replaces N individual GET /permissions?target_user_id=X calls (Bug 3 N+1 fix)
+      // and fixes the semantic error where viewer's own permissions were used instead
+      // of each member's sharing permissions (Bug 7).
+      final visibleMetricsRaw = await _apiClient.get<List<dynamic>>(
+        ApiEndpoints.groupMembersVisibleMetrics(groupId),
+        parser: (data) => data is List ? data : [],
       );
+      final visibleMetricsMap = <String, List<String>>{};
+      for (final item in visibleMetricsRaw) {
+        if (item is! Map<String, dynamic>) continue;
+        final memberId = item['member_id']?.toString() ?? '';
+        final metrics = item['metrics'];
+        if (memberId.isEmpty) continue;
+        visibleMetricsMap[memberId] = metrics is List
+            ? metrics.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList()
+            : const [];
+      }
 
+      final effectiveMembers = members.map((member) {
+        final rawMetrics = visibleMetricsMap[member.userId] ?? const [];
+        final parsed = _toMetricTypes(rawMetrics);
+        final medicationAllowed = _isMedicationSharingAllowed(rawMetrics);
+        return member.copyWith(
+          sharedMetrics: parsed,
+          medicationReminderShareAllowed: medicationAllowed,
+        );
+      }).toList();
+
+      // Always use the current user's own global metrics (empty = no sharing set).
+      // This prevents falling back to group-level data that may not reflect self.
       final groupWithCount = group.copyWith(
         memberCount: members.length,
-        sharedMetrics:
-            globalMetricsParsed.isNotEmpty ? globalMetricsParsed : group.sharedMetrics,
-        medicationSharingAllowed: _isMedicationSharingAllowed(globalMetricTypes),
+        sharedMetrics: myGlobalMetricsParsed,
+        medicationSharingAllowed: myMedicationShareAllowed,
       );
       return GroupDetails(group: groupWithCount, members: effectiveMembers);
     } on ApiException {
@@ -595,7 +529,7 @@ class ApiFamilyService implements FamilyService {
     }
   }
 
-  /// BE: PUT /groups/:id/members/me body {"status":"accepted"} rồi PUT permissions.
+  /// BE: PUT /groups/:id/members/me body {"status":"accepted"} then best-effort PUT permissions.
   @override
   Future<void> acceptInvitation({
     required String groupId,
@@ -607,13 +541,21 @@ class ApiFamilyService implements FamilyService {
         body: {'status': 'accepted'},
         parser: (_) {},
       );
-      final metricTypes = await _metricTypesForPut(sharedMetrics);
-      _requireNonEmptyMetricTypesForPut(sharedMetrics, metricTypes);
-      await _apiClient.put<void>(
-        ApiEndpoints.groupPermissions(groupId),
-        body: {'metric_types': metricTypes},
-        parser: (_) {},
-      );
+      // Best-effort: pre-set sharing while in pending_owner_approval state.
+      // BE allows this after Requirement A. Failure is non-fatal — member can
+      // configure from group details after owner approval.
+      try {
+        final metricTypes = await _metricTypesForPut(sharedMetrics);
+        if (metricTypes.isNotEmpty) {
+          await _apiClient.put<void>(
+            ApiEndpoints.groupPermissions(groupId),
+            body: {'metric_types': metricTypes},
+            parser: (_) {},
+          );
+        }
+      } catch (e) {
+        debugPrint('acceptInvitation: PUT permissions failed: $e');
+      }
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -818,6 +760,32 @@ class ApiFamilyService implements FamilyService {
     }
   }
 
+  /// Returned by [getMySpecificMetricsForMember] when access_control exists with no metrics.
+  static const explicitNoMetricsForMember = '__explicit_no_share__';
+
+  @override
+  Future<void> updateMySharing({
+    required String groupId,
+    required List<String> sharedMetrics,
+  }) async {
+    try {
+      final metricTypes = await _metricTypesForPut(sharedMetrics);
+      _throwIfServerDroppedAllChosenMetrics(sharedMetrics, metricTypes);
+      await _apiClient.put<void>(
+        ApiEndpoints.groupPermissions(groupId),
+        body: {'metric_types': metricTypes},
+        parser: (_) {},
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Lỗi khi cập nhật chỉ số chia sẻ.',
+        originalError: e,
+      );
+    }
+  }
+
   /// Owner only: POST /groups/:id/approve/:memberId
   @override
   Future<void> approveJoinRequest({
@@ -857,6 +825,81 @@ class ApiFamilyService implements FamilyService {
         message: 'Lỗi khi từ chối yêu cầu tham gia.',
         originalError: e,
       );
+    }
+  }
+
+  // Parses a list of metric strings, discarding 'access_control' and blank values.
+  List<String> _parseMetricList(dynamic list) {
+    if (list is! List) return const [];
+    return list
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty && e != 'access_control')
+        .toList();
+  }
+
+  @override
+  Future<List<String>> getMySpecificMetricsForMember({
+    required String groupId,
+    required String memberId,
+  }) async {
+    // Response shape (Map format):
+    // {
+    //   "global": ["heart_rate", "steps_count"],
+    //   "specific": [
+    //     { "user_id": "<memberId>", "metrics": ["heart_rate"] }
+    //   ]
+    // }
+    // Empty list returned → dialog pre-selects all globalMetrics (inherit global).
+    try {
+      final raw = await _apiClient.get<dynamic>(
+        ApiEndpoints.groupPermissions(groupId),
+        queryParameters: {'target_user_id': memberId},
+        parser: (data) => data,
+      );
+
+      // Map format: { global: [...], specific: [{user_id, metrics}, ...] }
+      if (raw is Map<String, dynamic>) {
+        final specific = raw['specific'];
+        if (specific is! List) return const [];
+        for (final entry in specific) {
+          if (entry is! Map<String, dynamic>) continue;
+          final uid = entry['user_id']?.toString() ?? '';
+          if (uid != memberId) continue;
+          final metrics = _parseMetricList(entry['metrics']);
+          final hasAccessControl = metrics.contains('access_control');
+          final filtered =
+              metrics.where((m) => m != 'access_control').toList();
+          if (hasAccessControl && filtered.isEmpty) {
+            return const [explicitNoMetricsForMember];
+          }
+          return filtered;
+        }
+        return const [];
+      }
+
+      // Legacy list format: [{metric_type, shared_with_user_id}, ...]
+      final rawList = raw is List ? raw : const [];
+      bool hasAccessControl = false;
+      final specificMetrics = <String>[];
+      for (final item in rawList) {
+        if (item is! Map<String, dynamic>) continue;
+        final metricType = item['metric_type']?.toString() ?? '';
+        final sharedWith = item['shared_with_user_id']?.toString();
+        if (metricType.isEmpty || sharedWith != memberId) continue;
+        if (metricType == 'access_control') {
+          hasAccessControl = true;
+        } else {
+          specificMetrics.add(metricType);
+        }
+      }
+      if (hasAccessControl && specificMetrics.isEmpty) {
+        return const [explicitNoMetricsForMember];
+      }
+      return (hasAccessControl && specificMetrics.isNotEmpty)
+          ? specificMetrics
+          : const [];
+    } catch (_) {
+      return const [];
     }
   }
 

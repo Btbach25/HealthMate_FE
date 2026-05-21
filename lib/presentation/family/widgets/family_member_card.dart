@@ -23,6 +23,8 @@ class FamilyMemberCard extends StatelessWidget {
   final VoidCallback? onFollow;
   /// Bấm "Chỉnh quyền" cho thành viên (chỉ chủ nhóm).
   final VoidCallback? onEditPermissions;
+  /// Bấm "Chia sẻ chỉ số" trên thẻ của chính người dùng.
+  final VoidCallback? onShareMyMetrics;
 
   static final _dateFormat = DateFormat('dd/MM/yyyy');
   static const _maxConditionChips = 3;
@@ -37,6 +39,7 @@ class FamilyMemberCard extends StatelessWidget {
     this.onViewMetrics,
     this.onFollow,
     this.onEditPermissions,
+    this.onShareMyMetrics,
   });
 
   @override
@@ -44,7 +47,7 @@ class FamilyMemberCard extends StatelessWidget {
     final statusColor = member.healthStatus.color;
     final statusBgColor = member.healthStatus.backgroundColor;
     final showEditPermissions = onEditPermissions != null && !isCurrentUser;
-    final secondaryLabel = showEditPermissions ? 'Chỉnh quyền' : 'Theo dõi';
+    final secondaryLabel = showEditPermissions ? 'Giới hạn' : 'Theo dõi';
     final secondaryIcon = showEditPermissions ? Icons.tune_rounded : Icons.favorite_outline;
 
     return Container(
@@ -210,6 +213,24 @@ class FamilyMemberCard extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textBlack,
                       side: const BorderSide(color: AppColors.cardBorder),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (isCurrentUser && onShareMyMetrics != null) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onShareMyMetrics,
+                    icon: const Icon(Icons.share_outlined, size: 18),
+                    label: const Text('Chia sẻ chỉ số'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),

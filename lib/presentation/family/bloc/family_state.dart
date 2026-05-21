@@ -22,6 +22,9 @@ enum FamilyStatus {
   // Owner duyệt/từ chối yêu cầu tham gia. [BE-REQ-01] [BE-REQ-02]
   joinRequestApproved,
   joinRequestRejected,
+  mySharingUpdated,
+  // Bước 1 tạo nhóm: POST /groups thành công, chờ bước 2 cài đặt chia sẻ.
+  groupNameCreated,
 }
 
 const _familyStateUnset = Object();
@@ -33,6 +36,8 @@ class FamilyState extends Equatable {
   /// True khi lỗi 401 (phiên hết hạn) → nút "Thử lại" chuyển sang đăng nhập.
   final bool isSessionExpired;
   final String? createdGroupName;
+  /// ID nhóm vừa tạo (bước 1 của 2-step create flow). Null nếu chưa tạo.
+  final String? createdGroupId;
   final GroupDetails? groupDetails;
   final String? currentGroupId;
   final List<IncomingInvitation> incomingInvitations;
@@ -50,6 +55,7 @@ class FamilyState extends Equatable {
     this.errorMessage,
     this.isSessionExpired = false,
     this.createdGroupName,
+    this.createdGroupId,
     this.groupDetails,
     this.currentGroupId,
     this.incomingInvitations = const [],
@@ -84,6 +90,7 @@ class FamilyState extends Equatable {
     Object? errorMessage = _familyStateUnset,
     Object? isSessionExpired = _familyStateUnset,
     Object? createdGroupName = _familyStateUnset,
+    Object? createdGroupId = _familyStateUnset,
     Object? groupDetails = _familyStateUnset,
     Object? currentGroupId = _familyStateUnset,
     Object? incomingInvitations = _familyStateUnset,
@@ -105,6 +112,9 @@ class FamilyState extends Equatable {
       createdGroupName: identical(createdGroupName, _familyStateUnset)
           ? this.createdGroupName
           : createdGroupName as String?,
+      createdGroupId: identical(createdGroupId, _familyStateUnset)
+          ? this.createdGroupId
+          : createdGroupId as String?,
       groupDetails: identical(groupDetails, _familyStateUnset)
           ? this.groupDetails
           : groupDetails as GroupDetails?,
@@ -141,6 +151,7 @@ class FamilyState extends Equatable {
         errorMessage,
         isSessionExpired,
         createdGroupName,
+        createdGroupId,
         groupDetails,
         currentGroupId,
         incomingInvitations,

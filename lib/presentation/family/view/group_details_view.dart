@@ -16,6 +16,7 @@ import 'package:fe/presentation/family/widgets/family_member_card.dart';
 import 'package:fe/presentation/family/widgets/add_member_modal.dart';
 import 'package:fe/presentation/family/widgets/family_member_metrics_dialog.dart';
 import 'package:fe/presentation/family/widgets/edit_member_permissions_dialog.dart';
+import 'package:fe/presentation/family/widgets/edit_my_sharing_dialog.dart';
 import 'package:fe/presentation/family/widgets/group_medication_share_dialog.dart';
 import 'package:fe/presentation/family/widgets/transfer_ownership_modal.dart';
 import 'package:flutter/material.dart';
@@ -141,11 +142,13 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
 
               void tryOpenMemberMetrics(FamilyMember member) {
                 if (member.sharedMetrics.isEmpty) {
+                  final isSelf = sameUserId(member.userId, authUser.id);
+                  final msg = isSelf
+                      ? "Bạn chưa bật chia sẻ chỉ số. Bấm 'Chia sẻ chỉ số' để thiết lập."
+                      : '${member.name} chưa bật chia sẻ chỉ số trong nhóm.';
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        '${member.name} chưa chia sẻ chỉ số trong nhóm hoặc bạn chưa được cấp quyền xem.',
-                      ),
+                      content: Text(msg),
                       backgroundColor: AppColors.primary,
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -156,6 +159,19 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                   context: context,
                   member: member,
                   groupId: details.group.id,
+                );
+              }
+
+              void openMySharingDialog() {
+                showDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => BlocProvider.value(
+                    value: context.read<FamilyBloc>(),
+                    child: EditMySharingDialog(
+                      groupId: details.group.id,
+                      currentMetrics: details.group.sharedMetrics,
+                    ),
+                  ),
                 );
               }
               final isCurrentUserOwner =
@@ -391,6 +407,52 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                             ],
                           ),
                         ),
+                        // Banner: current user has no sharing configured yet.
+                        if (details.group.sharedMetrics.isEmpty) ...[
+                          const SizedBox(height: AppSize.spacing16),
+                          InkWell(
+                            onTap: openMySharingDialog,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.share_outlined,
+                                    size: 20,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Bạn chưa chia sẻ chỉ số với nhóm. Bấm để thiết lập.',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: AppSize.spacing20),
                         // Khu vực "Yêu cầu chờ duyệt" — chỉ chủ nhóm thấy.
                         // Dữ liệu thực từ GET /groups/:id/pending-approvals.
@@ -452,6 +514,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                 isCurrentUser: sameUserId(member.userId, authUser.id),
                                 onViewMetrics: () => tryOpenMemberMetrics(member),
                                 onFollow: () => tryOpenMemberMetrics(member),
+                                onShareMyMetrics: sameUserId(member.userId, authUser.id)
+                                    ? openMySharingDialog
+                                    : null,
                                 onEditPermissions: isCurrentUserOwner &&
                                         !sameUserId(member.userId, authUser.id)
                                     ? () {

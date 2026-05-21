@@ -545,6 +545,23 @@ class MockFamilyService implements FamilyService {
   }
 
   @override
+  Future<void> updateMySharing({
+    required String groupId,
+    required List<String> sharedMetrics,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
+
+  @override
+  Future<List<String>> getMySpecificMetricsForMember({
+    required String groupId,
+    required String memberId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return const []; // Mock: no specific rules → inherit global.
+  }
+
+  @override
   Future<void> acceptInvitation({
     required String groupId,
     required List<String> sharedMetrics,

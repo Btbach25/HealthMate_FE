@@ -40,8 +40,8 @@ List<FamilyMember> buildEffectiveMembersForGroupDetails({
           name: authUser.name.isNotEmpty ? authUser.name : 'Bạn',
           email: authUser.email,
           avatar: authUser.picture,
-          sharedMetrics:
-              m.sharedMetrics.isEmpty ? groupMetricsPlaceholder : m.sharedMetrics,
+          // visible-metrics excludes self; use own global metrics from group.sharedMetrics.
+          sharedMetrics: groupMetricsPlaceholder,
         ),
       );
     } else {

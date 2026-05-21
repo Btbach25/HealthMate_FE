@@ -30,6 +30,11 @@ class ApiEndpoints {
   static String groupPendingApprovals(String groupId) =>
       '/groups/$groupId/pending-approvals';
 
+  /// Metrics mà người dùng hiện tại được xem của từng thành viên trong nhóm
+  /// (dựa theo quyền chia sẻ của từng thành viên, không phải quyền của viewer).
+  static String groupMembersVisibleMetrics(String groupId) =>
+      '/groups/$groupId/members/visible-metrics';
+
   /// Chủ nhóm duyệt một yêu cầu tham gia.
   static String groupApprove(String groupId, String memberId) =>
       '/groups/$groupId/approve/$memberId';

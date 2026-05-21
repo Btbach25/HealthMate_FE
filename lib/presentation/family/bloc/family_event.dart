@@ -21,6 +21,16 @@ class ResetFamily extends FamilyEvent {
   const ResetFamily();
 }
 
+/// Bước 1 của 2-step create: chỉ POST /groups với tên. Bước 2 PUT permissions qua UpdateGroup.
+class CreateGroupName extends FamilyEvent {
+  final String name;
+
+  const CreateGroupName({required this.name});
+
+  @override
+  List<Object?> get props => [name];
+}
+
 class CreateGroup extends FamilyEvent {
   final String name;
   final List<String> sharedMetrics;
@@ -216,6 +226,20 @@ class RejectJoinRequest extends FamilyEvent {
 
   @override
   List<Object?> get props => [groupId, memberId];
+}
+
+/// Updates current user's own global sharing metrics in a group.
+class UpdateMySharing extends FamilyEvent {
+  final String groupId;
+  final List<String> sharedMetrics;
+
+  const UpdateMySharing({
+    required this.groupId,
+    required this.sharedMetrics,
+  });
+
+  @override
+  List<Object?> get props => [groupId, sharedMetrics];
 }
 
 class UpdateMemberPermissions extends FamilyEvent {
