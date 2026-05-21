@@ -59,7 +59,6 @@ void setupWithApiServices() {
 
   // API Services
   final familyService = ApiFamilyService(apiClient: apiClient);
-  // TODO: Implement other API services
   // final authService = ApiAuthService(apiClient: apiClient);
   // final homeService = ApiHomeService(apiClient: apiClient);
   // final statsService = ApiStatsService(apiClient: apiClient);
