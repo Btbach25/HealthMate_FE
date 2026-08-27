@@ -35,6 +35,16 @@ String _formatNumForField(double v) {
   return v.toString();
 }
 
+/// Gán text an toàn khi đồng bộ từ API: tránh selection/composing cũ (đặc biệt web)
+/// không khớp độ dài chuỗi → assert trong [TextEditingValue] / text_input.dart.
+void _setControllerText(TextEditingController controller, String text) {
+  controller.value = TextEditingValue(
+    text: text,
+    selection: TextSelection.collapsed(offset: text.length),
+    composing: TextRange.empty,
+  );
+}
+
 class ProfileSettingsTab extends StatefulWidget {
   const ProfileSettingsTab({super.key});
 
@@ -105,8 +115,8 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   Future<void> _loadUserData() async {
     final authUser = context.read<AuthBloc>().state.user;
     if (authUser.isNotEmpty) {
-      _nameController.text = authUser.name;
-      _emailController.text = authUser.email;
+      _setControllerText(_nameController, authUser.name);
+      _setControllerText(_emailController, authUser.email);
     }
 
     // Load profile từ API
@@ -116,10 +126,10 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
       profile = await userService.getProfile();
       if (profile.isNotEmpty && mounted) {
         setState(() {
-          _nameController.text = profile!.name;
-          _emailController.text = profile.email;
-          _phoneController.text = profile.phone ?? '';
-          _addressController.text = profile.address ?? '';
+          _setControllerText(_nameController, profile!.name);
+          _setControllerText(_emailController, profile.email);
+          _setControllerText(_phoneController, profile.phone ?? '');
+          _setControllerText(_addressController, profile.address ?? '');
           _selectedGender = _genderUiFromApi(profile.gender);
           _selectedBloodGroup = profile.bloodGroup;
           if (profile.birthday != null && profile.birthday!.isNotEmpty) {
@@ -137,10 +147,14 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
             _birthdayMonthPart = null;
             _birthdayYearPart = null;
           }
-          _weightController.text =
-              profile.weight != null ? _formatNumForField(profile.weight!) : '';
-          _heightController.text =
-              profile.height != null ? _formatNumForField(profile.height!) : '';
+          _setControllerText(
+            _weightController,
+            profile.weight != null ? _formatNumForField(profile.weight!) : '',
+          );
+          _setControllerText(
+            _heightController,
+            profile.height != null ? _formatNumForField(profile.height!) : '',
+          );
           _allergies
             ..clear()
             ..addAll(profile.allergies);

@@ -75,6 +75,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   String? _error;
   bool _requireReselect = false;
   List<_DraftEntry>? _entries;
+  /// Bumped whenever OCR replaces the whole draft list so [AnimatedSwitcher] and
+  /// list rows do not reuse [TextField] elements across different controllers
+  /// (avoids stale selection/composing asserts on web: text_input.dart).
+  int _entriesGeneration = 0;
   List<AllergyMatch> _allergyMatches = [];
 
   @override
@@ -339,6 +343,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       }
       setState(() {
         _disposeEntries();
+        _entriesGeneration++;
         _entries = parsed.map((p) => _DraftEntry.fromParsed(p)).toList();
         _requireReselect = false;
       });
@@ -705,7 +710,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   Widget _buildAnimatedStateContent() {
     final stateKey = _busy
         ? 'busy'
-        : (_error != null ? 'error' : (_entries != null ? 'entries' : 'idle'));
+        : (_error != null
+            ? 'error'
+            : (_entries != null ? 'entries|$_entriesGeneration' : 'idle'));
 
     return AnimatedSwitcher(
       duration: _stateSwitchDuration,
@@ -786,6 +793,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _PlanItemCard(
+                          key: ObjectKey(e),
                           index: index + 1,
                           entry: e,
                           onRemove: () => _removeEntry(index),
@@ -1088,6 +1096,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
 
 class _PlanItemCard extends StatelessWidget {
   const _PlanItemCard({
+    super.key,
     required this.index,
     required this.entry,
     required this.onRemove,

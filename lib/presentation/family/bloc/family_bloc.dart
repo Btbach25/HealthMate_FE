@@ -19,6 +19,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     : _familyRepository = familyRepository,
       super(FamilyState.initial()) {
     on<FetchFamilyGroups>(_onFetchFamilyGroups);
+    on<CreateGroupName>(_onCreateGroupName);
     on<CreateGroup>(_onCreateGroup);
     on<UpdateGroup>(_onUpdateGroup);
     on<DeleteGroup>(_onDeleteGroup);
@@ -32,12 +33,16 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<AcceptInvitation>(_onAcceptInvitation);
     on<DeclineInvitation>(_onDeclineInvitation);
     on<RemoveMember>(_onRemoveMember);
+    on<UpdateMySharing>(_onUpdateMySharing);
     on<UpdateMemberPermissions>(_onUpdateMemberPermissions);
     on<FetchPendingApprovals>(_onFetchPendingApprovals);
     on<ApproveJoinRequest>(_onApproveJoinRequest);
     on<RejectJoinRequest>(_onRejectJoinRequest);
     on<ResetFamily>(_onResetFamily);
   }
+
+  /// Exposes repository for dialogs that need direct async calls (e.g. getMySpecificMetricsForMember).
+  FamilyRepository get repository => _familyRepository;
 
   void _onResetFamily(ResetFamily event, Emitter<FamilyState> emit) {
     emit(FamilyState.initial());
@@ -119,6 +124,35 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           isSessionExpired: isUnauthorized,
         ),
       );
+    }
+  }
+
+  Future<void> _onCreateGroupName(
+    CreateGroupName event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null));
+    try {
+      // POST /groups with name only; service skips PUT when sharedMetrics is empty.
+      final newGroup = await _familyRepository.createGroup(
+        name: event.name,
+        sharedMetrics: const [],
+      );
+      final updatedGroups = [newGroup, ...state.summary.groups];
+      emit(state.copyWith(
+        status: FamilyStatus.groupNameCreated,
+        summary: state.summary.copyWith(
+          groups: updatedGroups,
+          groupsJoined: updatedGroups.length,
+        ),
+        createdGroupId: newGroup.id,
+        errorMessage: null,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: FamilyStatus.error,
+        errorMessage: UserFacingError.message(e),
+      ));
     }
   }
 
@@ -679,6 +713,29 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
           errorMessage: UserFacingError.message(e),
         ),
       );
+    }
+  }
+
+  Future<void> _onUpdateMySharing(
+    UpdateMySharing event,
+    Emitter<FamilyState> emit,
+  ) async {
+    emit(state.copyWith(errorMessage: null));
+    try {
+      await _familyRepository.updateMySharing(
+        groupId: event.groupId,
+        sharedMetrics: event.sharedMetrics,
+      );
+      emit(state.copyWith(
+        status: FamilyStatus.mySharingUpdated,
+        errorMessage: null,
+      ));
+      add(FetchGroupDetails(groupId: event.groupId));
+    } catch (e) {
+      emit(state.copyWith(
+        status: FamilyStatus.error,
+        errorMessage: UserFacingError.message(e),
+      ));
     }
   }
 

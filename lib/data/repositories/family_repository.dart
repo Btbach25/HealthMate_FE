@@ -154,4 +154,22 @@ class FamilyRepository {
     required String memberId,
   }) =>
       _familyService.rejectJoinRequest(groupId: groupId, memberId: memberId);
+
+  Future<void> updateMySharing({
+    required String groupId,
+    required List<String> sharedMetrics,
+  }) =>
+      _familyService.updateMySharing(
+        groupId: groupId,
+        sharedMetrics: sharedMetrics,
+      );
+
+  Future<List<String>> getMySpecificMetricsForMember({
+    required String groupId,
+    required String memberId,
+  }) =>
+      _familyService.getMySpecificMetricsForMember(
+        groupId: groupId,
+        memberId: memberId,
+      );
 }

@@ -3,10 +3,7 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/mixins/inline_message_mixin.dart';
 import 'package:fe/core/utils/form_validation_helper.dart';
 import 'package:fe/core/utils/family_bloc_listener_helper.dart';
-import 'package:fe/core/utils/metric_helper.dart';
-import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/core/widgets/loading_button.dart';
-import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/enums/relationship_type.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
@@ -32,8 +29,6 @@ class _AddMemberModalState extends State<AddMemberModal>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   RelationshipType? _selectedRelationship;
-  final Set<MetricType> _selectedMetrics = {};
-  bool _allowMedicationReminderShare = false;
   bool _isLoading = false;
 
   static final List<RelationshipType> _relationships = RelationshipType.all;
@@ -47,30 +42,9 @@ class _AddMemberModalState extends State<AddMemberModal>
   void _handleInvite() {
     if (_isLoading) return;
 
-    final allowedMetrics = widget.groupAllowedMetrics.toSet();
-    final invalidSelections = _selectedMetrics.difference(allowedMetrics);
-    if (invalidSelections.isNotEmpty) {
-      setState(() {
-        _selectedMetrics.removeAll(invalidSelections);
-      });
-      showInlineMessage(
-        'Bạn chỉ có thể chọn chỉ số nằm trong quyền chia sẻ của nhóm.',
-        backgroundColor: AppColors.error,
-      );
-      return;
-    }
-    
     if (!_formKey.currentState!.validate()) {
       showInlineMessage(
         'Vui lòng điền đầy đủ thông tin',
-        backgroundColor: AppColors.error,
-      );
-      return;
-    }
-
-    if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
-      showInlineMessage(
-        MetricSelectionHelper.getValidationErrorMessage(),
         backgroundColor: AppColors.error,
       );
       return;
@@ -88,7 +62,7 @@ class _AddMemberModalState extends State<AddMemberModal>
             email: email,
             relationship: _selectedRelationship?.value,
             age: null,
-            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+            sharedMetrics: const [],
             userId: null,
           ),
         );
@@ -118,8 +92,8 @@ class _AddMemberModalState extends State<AddMemberModal>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Nhập email tài khoản đã đăng ký — họ tên hiển thị theo hồ sơ khi họ tham gia. '
-                      'Chọn dữ liệu được phép xem.',
+                      'Nhập email tài khoản đã đăng ký. Sau khi được duyệt, '
+                      'thành viên tự chọn chỉ số chia sẻ trong nhóm.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textGrey.withValues(alpha:0.8),
@@ -190,88 +164,13 @@ class _AddMemberModalState extends State<AddMemberModal>
                     });
                   },
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Dữ liệu chia sẻ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textBlack,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
-                  'Chọn thông tin sức khỏe mà người này được xem sau khi họ chấp nhận lời mời.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textGrey.withValues(alpha:0.8),
-                  ),
-                ),
-                const SizedBox(height: AppSize.spacing12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final itemWidth =
-                        (constraints.maxWidth - AppSize.spacing12) / 2;
-                    final allowedMetrics = widget.groupAllowedMetrics.toSet();
-                    final selectableMetrics = MetricHelper.availableMetrics
-                        .where((m) => allowedMetrics.contains(m.type))
-                        .where((m) =>
-                            MetricSelectionHelper.isMetricSupportedByBackend(
-                              m.type,
-                            ))
-                        .toList();
-                    return Wrap(
-                      spacing: AppSize.spacing12,
-                      runSpacing: AppSize.spacing12,
-                      children: selectableMetrics
-                          .map(
-                            (metric) => SizedBox(
-                              width: itemWidth,
-                              child: MetricCheckbox(
-                                metric: metric,
-                                isSelected: _selectedMetrics.contains(metric.type),
-                                showCheckbox: false,
-                                showCheckIcon: true,
-                                onChanged: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      _selectedMetrics.add(metric.type);
-                                    } else {
-                                      _selectedMetrics.remove(metric.type);
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                          )
-                          .toList()
-                        ..add(
-                          SizedBox(
-                            width: itemWidth,
-                            child: _MedicationPermissionTile(
-                              selected: _allowMedicationReminderShare,
-                              onTap: () {
-                                setState(() {
-                                  _allowMedicationReminderShare =
-                                      !_allowMedicationReminderShare;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSize.spacing8),
-                Text(
-                  widget.groupAllowedMetrics.isEmpty
-                      ? 'Nhóm hiện chưa cấu hình chỉ số chia sẻ, hãy cập nhật quyền chia sẻ của nhóm trước khi mời.'
-                      : (_allowMedicationReminderShare
-                          ? 'Đã chọn chia sẻ nhắc nhở uống thuốc cho thành viên này (sẽ áp dụng sau khi thành viên tham gia).'
-                          : 'Bạn có thể bật thêm quyền chia sẻ nhắc nhở uống thuốc cho thành viên.'),
+                  'Người được mời sẽ tự cấu hình chỉ số chia sẻ sau khi bạn duyệt tham gia nhóm.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textGrey.withValues(alpha: 0.8),
+                    color: AppColors.textGrey.withValues(alpha: 0.85),
+                    height: 1.35,
                   ),
                 ),
                 const SizedBox(height: 20),

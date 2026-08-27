@@ -30,39 +30,42 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
     with InlineMessageMixin {
   final Set<MetricType> _selectedMetrics = {};
   bool _isLoading = false;
-  // Metrics nhóm cho phép chia sẻ — lấy từ invitationPreviewDetails.group.sharedMetrics
-  // (invitation.sharedMetrics từ BE luôn rỗng vì lời mời chỉ mang email, không mang metrics)
-  Set<MetricType> _groupAllowedMetrics = {};
+  late final Set<MetricType> _selectableMetrics;
   bool _previewLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    // Fallback: nếu invitation đã có shared_metrics, dùng luôn
+    _selectableMetrics = MetricHelper.availableMetrics
+        .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
+        .map((m) => m.type)
+        .toSet();
     if (widget.invitation.sharedMetrics.isNotEmpty) {
-      _onPreviewSettled(widget.invitation.sharedMetrics.toSet());
+      for (final s in widget.invitation.sharedMetrics) {
+        try {
+          final t = MetricType.fromValue(s);
+          if (_selectableMetrics.contains(t)) {
+            _selectedMetrics.add(t);
+          }
+        } catch (_) {}
+      }
+    } else {
+      _selectedMetrics.addAll(_selectableMetrics);
     }
-    // Cố gắng load full preview (members list, etc)
     context.read<FamilyBloc>().add(
       FetchInvitationPreview(groupId: widget.invitation.groupId),
     );
   }
 
-  void _onPreviewSettled(Set<MetricType> groupMetrics) {
+  void _onPreviewLoaded() {
     if (!mounted) return;
-    setState(() {
-      _previewLoaded = true;
-      _groupAllowedMetrics = groupMetrics;
-      _selectedMetrics
-        ..clear()
-        ..addAll(groupMetrics);
-    });
+    setState(() => _previewLoaded = true);
   }
 
   void _handleAccept() {
     if (_isLoading) return;
-    
-    if (_selectedMetrics.isEmpty && _groupAllowedMetrics.isNotEmpty) {
+
+    if (_selectedMetrics.isEmpty) {
       showInlineMessage(
         'Vui lòng chọn ít nhất một loại chỉ số để chia sẻ',
         backgroundColor: AppColors.error,
@@ -77,9 +80,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
     context.read<FamilyBloc>().add(
       AcceptInvitation(
         groupId: widget.invitation.groupId,
-        sharedMetrics: MetricSelectionHelper.toApiFormat(
-          _selectedMetrics.intersection(_groupAllowedMetrics),
-        ),
+        sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
         currentMemberCount: widget.invitation.memberCount,
       ),
     );
@@ -93,8 +94,6 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         showInlineMessage: showInlineMessage,
         successStatus: FamilyStatus.invitationAccepted,
         shouldPop: true,
-        // Không navigate vào nhóm ngay: user phải chờ chủ nhóm duyệt.
-        // Toast "chờ duyệt" được hiển thị bởi FamilyGroupManagementView.BlocListener.
       ),
       child: Dialog(
         backgroundColor: Colors.transparent,
@@ -209,27 +208,22 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                       current.status == FamilyStatus.error);
                             },
                             listener: (context, state) {
-                              if (state.status == FamilyStatus.invitationPreviewLoaded) {
-                                final metrics = state.invitationPreviewDetails
-                                        ?.group.sharedMetrics
-                                        .toSet() ??
-                                    {};
-                                _onPreviewSettled(metrics);
-                              } else if (state.status == FamilyStatus.error &&
-                                  state.invitationPreviewGroupId == widget.invitation.groupId) {
-                                // Fallback: lấy metrics từ invitation object (set bởi inviter)
-                                _onPreviewSettled(
-                                  widget.invitation.sharedMetrics.toSet(),
-                                );
+                              if (state.invitationPreviewGroupId !=
+                                  widget.invitation.groupId) {
+                                return;
+                              }
+                              // Không dùng group.sharedMetrics từ preview (là global của invitee, thường rỗng).
+                              if (state.status ==
+                                      FamilyStatus.invitationPreviewLoaded ||
+                                  state.status == FamilyStatus.error) {
+                                _onPreviewLoaded();
                               }
                             },
                             builder: (context, state) =>
                                 _buildInvitationPreview(state),
                           ),
                           const SizedBox(height: AppSize.spacing16),
-                          if (!_previewLoaded)
-                            const SizedBox(height: 8)
-                          else if (_groupAllowedMetrics.isEmpty)
+                          if (_selectableMetrics.isEmpty)
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
@@ -239,7 +233,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                 border: Border.all(color: AppColors.cardBorder),
                               ),
                               child: const Text(
-                                'Hiện chủ nhóm chưa bật quyền chia sẻ chỉ số nào cho lời mời này.',
+                                'Không có loại chỉ số khả dụng. Vui lòng thử lại sau.',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textGrey,
@@ -256,7 +250,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                     ? constraints.maxWidth
                                     : (constraints.maxWidth - AppSize.spacing12) / 2;
                                 final allowedMetrics = MetricHelper.availableMetrics
-                                    .where((m) => _groupAllowedMetrics.contains(m.type))
+                                    .where((m) => _selectableMetrics.contains(m.type))
                                     .toList();
                                 return Wrap(
                                   spacing: AppSize.spacing12,
@@ -293,7 +287,8 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                           ],
                           const SizedBox(height: 8),
                           Builder(builder: (context) {
-                            final canAccept = _previewLoaded;
+                            final canAccept =
+                                _previewLoaded && _selectableMetrics.isNotEmpty;
                             return Container(
                               width: double.infinity,
                               decoration: BoxDecoration(
@@ -361,7 +356,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
           border: Border.all(color: AppColors.cardBorder),
         ),
         child: Text(
-          'Không tải được chi tiết nhóm, bạn vẫn có thể dựa vào lời mời để quyết định.',
+          'Không tải được chi tiết nhóm, bạn vẫn có thể gửi yêu cầu tham gia.',
           style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
         ),
       );
@@ -411,5 +406,3 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
     );
   }
 }
-
-

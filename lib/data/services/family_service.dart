@@ -66,6 +66,21 @@ abstract class FamilyService {
     required String groupId,
     required String memberId,
   });
+
+  /// PUT /groups/:id/permissions without target_user_id.
+  /// Updates the current user's own global sharing metrics.
+  Future<void> updateMySharing({
+    required String groupId,
+    required List<String> sharedMetrics,
+  });
+
+  /// GET /groups/:id/permissions?target_user_id=memberId — parse specific rows for memberId.
+  /// Returns metric type strings set specifically for that member (excluding access_control).
+  /// Empty list = no specific rules (caller should pre-select all global metrics).
+  Future<List<String>> getMySpecificMetricsForMember({
+    required String groupId,
+    required String memberId,
+  });
 }
 
 
