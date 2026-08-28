@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:fe/core/config/api_base_url.dart';
+
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/data/enums/metric_status.dart';
@@ -18,7 +19,7 @@ class ApiStatsService implements StatsService {
   ApiStatsService(this._localStorage, {Future<String?> Function()? onRefresh})
     : _http = AuthHttpHelper(_localStorage, onRefresh);
 
-  String get _baseUrl => resolveApiBaseUrl();
+  String get _baseUrl => AppConfig.apiBaseUrl;
 
   static const _metricTypes = [
     'heart_rate',

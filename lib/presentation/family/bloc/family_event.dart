@@ -1,5 +1,7 @@
 part of 'family_bloc.dart';
 
+/// Lớp cha của mọi event trong miền nhóm gia đình.
+/// Xem [FamilyBloc] để biết event nào dẫn tới status nào và kéo theo reload gì.
 abstract class FamilyEvent extends Equatable {
   const FamilyEvent();
 
@@ -7,6 +9,8 @@ abstract class FamilyEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+/// Tải danh sách nhóm của người dùng (GET /groups) và bắn kèm 2 event lời mời.
+/// Lưu ý: xoá `currentGroupId`/`groupDetails` nên đừng gọi khi đang ở màn chi tiết nhóm.
 class FetchFamilyGroups extends FamilyEvent {
   /// True khi đây là lần gọi lại sau 401 (tránh retry vô hạn).
   final bool isRetryAfter401;
@@ -31,6 +35,8 @@ class CreateGroupName extends FamilyEvent {
   List<Object?> get props => [name];
 }
 
+/// Tạo nhóm trong một lần gọi (tên + quyền chia sẻ). Luồng UI hiện tại dùng
+/// [CreateGroupName] rồi [UpdateGroup]; event này giữ cho các lối vào tạo nhanh.
 class CreateGroup extends FamilyEvent {
   final String name;
   final List<String> sharedMetrics;
@@ -47,6 +53,8 @@ class CreateGroup extends FamilyEvent {
       [name, sharedMetrics, enableMedicationReminderShare];
 }
 
+/// Sửa cài đặt chung của nhóm (chỉ chủ nhóm). Cũng là bước 2 của luồng tạo nhóm.
+/// Field nào để `null` thì không đụng tới trên server.
 class UpdateGroup extends FamilyEvent {
   final String groupId;
   final String? name;
@@ -65,6 +73,7 @@ class UpdateGroup extends FamilyEvent {
       [groupId, name, sharedMetrics, enableMedicationReminderShare];
 }
 
+/// Xoá hẳn nhóm (chỉ chủ nhóm). Dùng khi chủ nhóm rời lúc chỉ còn một mình.
 class DeleteGroup extends FamilyEvent {
   final String groupId;
 
@@ -74,6 +83,8 @@ class DeleteGroup extends FamilyEvent {
   List<Object?> get props => [groupId];
 }
 
+/// Tự rời nhóm. Chủ nhóm phải chuyển quyền trước (xem [TransferOwnership]).
+/// 404 được coi là thành công vì nghĩa là đã không còn trong nhóm.
 class LeaveGroup extends FamilyEvent {
   final String groupId;
 
@@ -83,6 +94,8 @@ class LeaveGroup extends FamilyEvent {
   List<Object?> get props => [groupId];
 }
 
+/// Tải chi tiết một nhóm (thành viên + quyền). Đồng thời đồng bộ lại
+/// `memberCount` của nhóm đó trong summary để 2 màn hình không lệch nhau.
 class FetchGroupDetails extends FamilyEvent {
   final String groupId;
   /// True khi đây là lần gọi lại sau 401 (tránh retry vô hạn).
@@ -94,6 +107,8 @@ class FetchGroupDetails extends FamilyEvent {
   List<Object?> get props => [groupId, isRetryAfter401];
 }
 
+/// Chủ nhóm mời một tài khoản đã đăng ký vào nhóm bằng email.
+/// Lời mời sinh ra ở trạng thái `pending`, chờ người được mời phản hồi.
 class InviteMember extends FamilyEvent {
   final String groupId;
   final String email;
@@ -119,6 +134,8 @@ class InviteMember extends FamilyEvent {
   List<Object?> get props => [groupId, email, name, relationship, age, sharedMetrics, userId];
 }
 
+/// Chủ nhóm chuyển quyền sở hữu cho thành viên khác (PUT /groups/:id/owner).
+/// Bắt buộc trước khi chủ nhóm rời một nhóm còn thành viên khác.
 class TransferOwnership extends FamilyEvent {
   final String groupId;
   final String newOwnerId;
@@ -132,14 +149,19 @@ class TransferOwnership extends FamilyEvent {
   List<Object?> get props => [groupId, newOwnerId];
 }
 
+/// Tải lời mời người khác gửi cho mình (tab "Lời mời tham gia").
 class FetchIncomingInvitations extends FamilyEvent {
   const FetchIncomingInvitations();
 }
 
+/// Tải lời mời mình đã gửi đi (tab "Lời mời đã gửi"), gồm cả các yêu cầu
+/// đang ở trạng thái `pendingOwnerApproval` chờ chính mình duyệt.
 class FetchOutgoingInvitations extends FamilyEvent {
   const FetchOutgoingInvitations();
 }
 
+/// Xem trước nhóm trước khi chấp nhận lời mời. Ghi vào cặp field riêng
+/// (`invitationPreview*`) để không đè lên `groupDetails` của nhóm đang mở.
 class FetchInvitationPreview extends FamilyEvent {
   final String groupId;
   final bool isRetryAfter401;
@@ -153,7 +175,11 @@ class FetchInvitationPreview extends FamilyEvent {
   List<Object?> get props => [groupId, isRetryAfter401];
 }
 
-/// BE dùng group ID trong path: POST /groups/:id/accept.
+/// Người được mời chấp nhận lời mời.
+/// BE: `PUT /groups/:groupId/members/me` body `{"status":"accepted"}`, sau đó
+/// PUT quyền chia sẻ theo kiểu best-effort (lỗi ở bước quyền không làm hỏng việc chấp nhận).
+/// Sau bước này người dùng **chưa** phải thành viên: trạng thái là `pendingOwnerApproval`,
+/// còn chờ chủ nhóm bấm duyệt ([ApproveJoinRequest]).
 class AcceptInvitation extends FamilyEvent {
   final String groupId;
   final List<String> sharedMetrics;
@@ -171,7 +197,9 @@ class AcceptInvitation extends FamilyEvent {
   List<Object?> get props => [groupId, sharedMetrics, currentMemberCount];
 }
 
-/// BE dùng group ID trong path: POST /groups/:id/reject.
+/// Người được mời từ chối lời mời.
+/// BE: `PUT /groups/:groupId/members/me` body `{"status":"rejected"}`.
+/// 404 nghĩa là nhóm đã bị xoá — UI báo lỗi rồi tải lại danh sách lời mời.
 class DeclineInvitation extends FamilyEvent {
   final String groupId;
 
@@ -181,6 +209,11 @@ class DeclineInvitation extends FamilyEvent {
   List<Object?> get props => [groupId];
 }
 
+/// Chủ nhóm loại một thành viên khỏi nhóm (DELETE /groups/:id/members/:memberId).
+/// Cạm bẫy: nơi gọi truyền `FamilyMember.id`, nơi khác truyền `FamilyMember.userId`,
+/// nhưng `GroupApiMapper.toFamilyMember` gán `id = userId` nên hai đường hiện cho
+/// ra cùng một giá trị. Đừng dựa vào sự trùng khớp đó: nếu sau này BE trả `id`
+/// riêng cho bản ghi thành viên thì mọi chỗ dùng `member.id` sẽ hỏng âm thầm.
 class RemoveMember extends FamilyEvent {
   final String groupId;
   final String memberId;
@@ -194,7 +227,9 @@ class RemoveMember extends FamilyEvent {
   List<Object?> get props => [groupId, memberId];
 }
 
-/// Owner: fetch danh sách thành viên đang chờ duyệt từ GET /groups/:id/pending-approvals.
+/// Chỉ chủ nhóm: tải danh sách người đã chấp nhận lời mời và đang chờ mình duyệt
+/// (GET /groups/:id/pending-approvals). Lỗi được nuốt và trả danh sách rỗng —
+/// khu vực "Yêu cầu chờ duyệt" không đáng làm hỏng cả màn chi tiết nhóm.
 class FetchPendingApprovals extends FamilyEvent {
   final String groupId;
 
@@ -204,8 +239,8 @@ class FetchPendingApprovals extends FamilyEvent {
   List<Object?> get props => [groupId];
 }
 
-/// Chủ nhóm duyệt yêu cầu tham gia.
-/// Endpoint: POST /groups/:groupId/approve/:memberId
+/// Chủ nhóm duyệt yêu cầu tham gia — chặng cuối để invitee thành thành viên thật.
+/// Endpoint: POST /groups/:groupId/approve/:memberId ([memberId] là user id của invitee).
 class ApproveJoinRequest extends FamilyEvent {
   final String groupId;
   final String memberId;
@@ -217,7 +252,7 @@ class ApproveJoinRequest extends FamilyEvent {
 }
 
 /// Chủ nhóm từ chối yêu cầu tham gia.
-/// Endpoint: POST /groups/:groupId/reject-approval/:memberId
+/// Endpoint: POST /groups/:groupId/reject-approval/:memberId ([memberId] là user id của invitee).
 class RejectJoinRequest extends FamilyEvent {
   final String groupId;
   final String memberId;
@@ -228,7 +263,9 @@ class RejectJoinRequest extends FamilyEvent {
   List<Object?> get props => [groupId, memberId];
 }
 
-/// Updates current user's own global sharing metrics in a group.
+/// Người dùng tự đặt bộ chỉ số mình chia sẻ với cả nhóm (ai cũng gọi được cho
+/// chính mình). Đây là tầng chung; muốn thu hẹp riêng với một người thì dùng
+/// [UpdateMemberPermissions].
 class UpdateMySharing extends FamilyEvent {
   final String groupId;
   final List<String> sharedMetrics;
@@ -242,6 +279,9 @@ class UpdateMySharing extends FamilyEvent {
   List<Object?> get props => [groupId, sharedMetrics];
 }
 
+/// Thu hẹp bộ chỉ số mà **tôi** chia sẻ riêng cho một thành viên cụ thể,
+/// trong phạm vi những chỉ số đã bật ở tầng nhóm.
+/// [memberId] được gửi lên dưới dạng `target_user_id`, nên phải là `FamilyMember.userId`.
 class UpdateMemberPermissions extends FamilyEvent {
   final String groupId;
   final String memberId;

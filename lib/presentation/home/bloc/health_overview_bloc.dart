@@ -11,6 +11,32 @@ import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 part 'health_overview_event.dart';
 part 'health_overview_state.dart';
 
+/// Gộp hai nguồn chỉ số sức khoẻ thành một [HealthOverview] duy nhất cho UI:
+/// dữ liệu từ backend và dữ liệu đọc trực tiếp từ thiết bị qua [DeviceHealthCubit].
+///
+/// Máy trạng thái:
+///
+///   initial --HealthOverviewRequested--> loading --+-- BE trả về -> success (nguồn = BE)
+///                                                  +-- BE lỗi ----+-- đã có overview -> success (giữ nguyên)
+///                                                                 +-- chưa có -------> failure
+///
+///   (bất kỳ lúc nào) HealthOverviewDeviceLoaded  -> success, nhưng chỉ ghi đè khi
+///                    overview hiện tại chưa phải của backend.
+///   (bất kỳ lúc nào) HealthOverviewManualPatched -> success, ghi đè vô điều kiện.
+///
+/// Ai bắn event:
+/// - [HealthOverviewSection] bắn [HealthOverviewRequested] trong post-frame callback
+///   của `initState`, và [HealthOverviewRetried] khi người dùng bấm "Thử lại".
+/// - Chính bloc này bắn [HealthOverviewDeviceLoaded] từ subscription vào
+///   [DeviceHealthCubit.stream] mở trong constructor.
+/// - Dialog nhập tay trong `widgets/metric_carousel.dart` bắn
+///   [HealthOverviewManualPatched] để cập nhật lạc quan ngay sau khi đẩy WebSocket
+///   thành công, khỏi phải chờ vòng poll kế tiếp.
+///
+/// Quy tắc ưu tiên: dữ liệu backend luôn thắng dữ liệu thiết bị (xem [_isDeviceOverview]).
+///
+/// Vòng đời: bloc mở subscription trong constructor nên **bắt buộc** phải được
+/// scope theo màn hình và đóng lại; xem cách [HomeView] provide nó.
 class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> {
   final HealthRepository _repository;
   final DeviceHealthCubit _deviceCubit;
@@ -27,13 +53,15 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
     on<HealthOverviewDeviceLoaded>(_onDeviceLoaded);
     on<HealthOverviewManualPatched>(_onManualPatched);
 
-    // Nếu device đã có data ngay từ đầu, dispatch luôn
+    // Cubit sống ở app-level nên rất có thể đã poll xong trước khi bloc này ra đời.
+    // Stream chỉ phát các state *tương lai*, vì vậy phải đọc state hiện tại một lần
+    // ở đây, nếu không màn hình sẽ trống cho tới lần poll kế tiếp.
     if (_deviceCubit.lastPoints.isNotEmpty) {
       final ov = _deviceCubit.deviceHealthOverview;
       if (ov != null) { add(HealthOverviewDeviceLoaded(ov)); }
     }
 
-    // Subscribe stream để bắt khi data thay đổi
+    // Sau đó bám theo stream để bắt các lần poll tiếp theo.
     _deviceSub = _deviceCubit.stream.listen((deviceState) {
       if (deviceState.dataCount > 0) {
         final ov = _deviceCubit.deviceHealthOverview;
@@ -48,7 +76,8 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
       final overview = await _repository.getOverview();
       emit(state.copyWith(status: HealthOverviewStatus.success, overview: overview));
     } catch (e) {
-      // Nếu đã có device data, không hiển thị lỗi
+      // Đã có sẵn dữ liệu (thường là từ thiết bị) thì không hạ xuống failure:
+      // người dùng vẫn đang thấy số liệu thật, hiện banner lỗi lúc này chỉ gây hoang mang.
       if (state.overview != null) {
         emit(state.copyWith(status: HealthOverviewStatus.success));
       } else {
@@ -65,7 +94,7 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
   }
 
   void _onDeviceLoaded(HealthOverviewDeviceLoaded event, Emitter<HealthOverviewState> emit) {
-    // Chỉ dùng device data nếu chưa có BE data
+    // Không để dữ liệu thiết bị ghi đè dữ liệu backend đã tải được.
     if (state.status == HealthOverviewStatus.success &&
         state.overview != null &&
         !_isDeviceOverview(state.overview!)) {
@@ -85,7 +114,10 @@ class HealthOverviewBloc extends Bloc<HealthOverviewEvent, HealthOverviewState> 
     ));
   }
 
-  /// BE overview có userId thực; device overview luôn có userId rỗng
+  /// Phân biệt nguồn dữ liệu qua `userId`: bản dựng từ thiết bị trong
+  /// [DeviceHealthCubit.deviceHealthOverview] luôn đặt `userId: ''`, còn bản từ backend
+  /// luôn mang userId thật. Đây là hợp đồng ngầm giữa hai lớp — sửa một bên thì phải
+  /// sửa bên kia, nếu không dữ liệu backend sẽ bị device ghi đè.
   bool _isDeviceOverview(HealthOverview o) =>
       (o.heartRate?.userId.isEmpty ?? false) ||
       (o.weight?.userId.isEmpty ?? false) ||

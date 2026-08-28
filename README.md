@@ -1,118 +1,147 @@
-# HealthMate - Frontend
+<h1 align="center">HealthMate — Frontend</h1>
 
-Ứng dụng Flutter đa nền tảng (Android, iOS, Web, Desktop) theo dõi sức khỏe cá nhân và gia đình. Hỗ trợ theo dõi các chỉ số sức khỏe (nhịp tim, bước chân, calo, huyết áp, nhiệt độ, cân nặng), quản lý nhóm gia đình, nhắc nhở uống thuốc và xem thống kê sức khỏe.
+<p align="center">
+  Ứng dụng Flutter đa nền tảng theo dõi sức khoẻ cá nhân và gia đình.<br>
+  Android · iOS · Web
+</p>
 
----
-
-## Nội dung
-
-- [Kiến trúc dự án](#kiến-trúc-dự-án)
-- [Cài đặt & chạy dự án](#cài-đặt--chạy-dự-án)
-- [Quản lý môi trường (.env)](#quản-lý-môi-trường-env)
-- [Build & phát hành](#build--phát-hành)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-- [Hướng dẫn phát triển](#hướng-dẫn-phát-triển)
-- [Ghi chú / Troubleshooting](#ghi-chú--troubleshooting)
+<p align="center">
+  <a href="#chạy-thử-trong-2-phút">Chạy thử</a> ·
+  <a href="#cài-đặt-đầy-đủ">Cài đặt</a> ·
+  <a href="ARCHITECTURE.md">Kiến trúc</a> ·
+  <a href="CONTRIBUTING.md">Đóng góp</a> ·
+  <a href="API_DOC.md">API</a>
+</p>
 
 ---
 
-## Kiến trúc dự án
+## Tính năng
 
-Ứng dụng áp dụng **Clean Architecture** với 3 lớp chính, sử dụng BLoC pattern cho state management:
-
-- `core/`: thành phần dùng chung (theme, routing, helpers, widgets tái sử dụng)
-- `data/`: làm việc với dữ liệu
-  - `models/`: các cấu trúc dữ liệu / domain models
-  - `services/`: gọi API, lưu trữ local
-  - `repositories/`: điều phối nguồn dữ liệu (service + cache) cho UI
-- `presentation/`: UI + State (Flutter + flutter_bloc)
-  - `bloc/`: BLoC/Cubit quản lý luồng dữ liệu UI
-  - `view/` + `widgets/`: màn hình và widget
-
-Dòng chảy dữ liệu:
-
-```
-UI (Widget) ⇄ Bloc ⇄ Repository ⇄ Service ⇄ API
-```
+| Nhóm | Mô tả |
+|---|---|
+| **Chỉ số sức khoẻ** | Nhịp tim, bước chân, calo, huyết áp, SpO₂, nhiệt độ, cân nặng — đồng bộ từ Health Connect (Android) / HealthKit (iOS), cập nhật realtime qua WebSocket |
+| **Thống kê** | Biểu đồ 7 / 30 / 90 ngày cho từng chỉ số, kèm tóm tắt xu hướng |
+| **Nhóm gia đình** | Tạo nhóm, mời thành viên, duyệt yêu cầu tham gia, phân quyền xem từng chỉ số, chuyển quyền chủ nhóm |
+| **Nhắc uống thuốc** | Lịch uống theo ngày/giờ, chia sẻ thuốc cho người thân, push notification qua FCM |
+| **Quét đơn thuốc (OCR)** | Chụp ảnh đơn thuốc → tự nhận diện tên thuốc, liều và tần suất |
+| **Tài khoản** | Đăng nhập email/mật khẩu hoặc Google, xác thực OTP, quên/đặt lại mật khẩu |
 
 ---
 
-## Cài đặt & chạy dự án
+## Chạy thử trong 2 phút
 
-**Yêu cầu hệ thống:**
-
-- Flutter SDK 3.24.0 trở lên
-- Dart SDK 3.8.1 trở lên
-- Android Studio hoặc Visual Studio Code (với extension Flutter)
-- Để build iOS: macOS + Xcode 15+ + CocoaPods
-- Để build Android: Android SDK (API 21+)
-- Trình duyệt Chrome để chạy Web
-
-**1) Clone và cài dependencies**
+Không cần backend, không cần cấu hình — app chạy bằng **dữ liệu giả lập**:
 
 ```bash
-git clone https://github.com/<owner>/HealthMate_FE.git
-cd HealthMate_FE
-flutter doctor
-flutter pub get
+git clone <repo-url> && cd HealthMate_FE
+make setup
+make run-demo
 ```
 
-**2) Tạo file môi trường**
-
-File `.env` đã được khai báo trong `pubspec.yaml` (assets). Tạo tại thư mục gốc nếu chưa có:
+Đăng nhập bằng tài khoản demo:
 
 ```
-# .env
-BASE_URL=https://api.yourdomain.com
+Email    : demo@healthmate.vn
+Mật khẩu : demo1234
+Mã OTP   : 123456
 ```
 
-**3) Chạy dự án**
+Chế độ demo dùng toàn bộ dữ liệu trong [`lib/data/mock_data/`](lib/data/mock_data/)
+và **không phát sinh request mạng nào**. Đây là cách nhanh nhất để xem hết tính
+năng — dùng khi onboarding người mới hoặc review PR mà chưa dựng backend.
 
-```bash
-# Android/iOS/Desktop
-flutter run
-
-# Web — dùng port cố định để Google OAuth hoạt động
-flutter run -d chrome --web-port=5000
-```
-
-> Nếu vừa thêm package hoặc BLoC provider mới mà hot-reload lỗi, hãy thực hiện **hot-restart** (`R` trong terminal).
+> **Windows chưa cài `make`?** Mọi lệnh đều có bản PowerShell tương đương:
+> `.\tool\dev.ps1 setup`, `.\tool\dev.ps1 run-demo`, …
 
 ---
 
-## Quản lý môi trường (.env)
+## Cài đặt đầy đủ
 
-Ứng dụng dùng `flutter_dotenv` để load biến môi trường dưới dạng asset (hỗ trợ Web).
+### Yêu cầu
 
-- `main.dart` luôn load file `.env` ở thư mục gốc. Web và mobile dùng chung cấu hình vì BE đã host.
-- Biến bắt buộc: `BASE_URL` — URL gốc API (không có trailing slash).
+| Thành phần | Phiên bản |
+|---|---|
+| Flutter SDK | 3.24 trở lên (kênh `stable`) |
+| Dart SDK | 3.8 trở lên (đi kèm Flutter) |
+| Android | SDK API 21+ |
+| iOS | macOS + Xcode 15+ + CocoaPods |
+| Web | Chrome |
 
-Ví dụ sử dụng trong service:
+Kiểm tra môi trường: `make doctor`
 
-```dart
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+### Các bước
 
-final baseUrl = dotenv.env['BASE_URL'];
+```bash
+git clone <repo-url> && cd HealthMate_FE
+make setup            # tạo .env từ .env.example + flutter pub get
 ```
+
+Mở `.env` và điền:
+
+```dotenv
+BASE_URL=http://<địa-chỉ-api-gateway>          # KHÔNG có dấu / ở cuối
+GOOGLE_CLIENT_ID=<oauth-web-client-id>.apps.googleusercontent.com
+DEMO_MODE=false
+```
+
+Rồi chạy:
+
+```bash
+make run          # thiết bị / emulator đang kết nối
+make run-web      # Chrome, cố định port 5000 cho Google OAuth
+```
+
+> **Quan trọng:** `.env` được khai báo là *asset* trong `pubspec.yaml` nên
+> **bắt buộc phải tồn tại**, thiếu là build báo lỗi asset. `make setup` tạo sẵn
+> cho bạn. File này **không được commit**.
 
 ---
 
-## Build & phát hành
+## Bảng lệnh
 
-```bash
-# Android APK
-flutter build apk
+Xem đầy đủ bằng `make` (hoặc `.\tool\dev.ps1`).
 
-# Android App Bundle
-flutter build appbundle
+| Lệnh | Việc |
+|---|---|
+| `make setup` | Cài đặt lần đầu sau khi clone |
+| `make run` · `make run-web` | Chạy app (API thật) |
+| `make run-demo` · `make run-web-demo` | Chạy app bằng dữ liệu giả lập |
+| `make check` | `dart format` + `flutter analyze` + `flutter test` — **chạy trước khi mở PR** |
+| `make fmt` | Format toàn bộ code |
+| `make build-apk` · `build-aab` · `build-web` | Build bản release |
+| `make build-demo-apk` · `build-demo-web` | Build bản demo mock data để chia sẻ |
+| `make adb-reverse` | Trỏ `localhost:8080` của máy Android thật về máy tính |
+| `make icons` · `make splash` | Sinh lại app icon / splash screen |
+| `make reset` | `clean` + `pub get` khi build lỗi lạ |
 
-# iOS (yêu cầu macOS + Xcode)
-flutter build ios
+---
 
-# Web
-flutter build web
-```
+## Cấu hình môi trường
+
+Toàn bộ URL và khoá nằm trong `.env` (không commit). Template đầy đủ kèm mô tả
+từng biến: [`.env.example`](.env.example).
+
+| Biến | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `BASE_URL` | ✅ | URL gốc api-gateway, không có `/` ở cuối |
+| `GOOGLE_CLIENT_ID` | ✅ | OAuth 2.0 **Web** client ID (mobile dùng lại qua `serverClientId`) |
+| `DEMO_MODE` | — | `true` → chạy bằng mock data |
+| `FIREBASE_*` | Chỉ Web | `FirebaseOptions` cho push notification trên trình duyệt |
+
+Trong code, **chỉ đọc cấu hình qua [`AppConfig`](lib/core/config/app_config.dart)** —
+không gọi `dotenv.env[...]` trực tiếp ở bất kỳ đâu khác.
+
+Chọn `BASE_URL` theo môi trường chạy:
+
+| Chạy ở đâu | `BASE_URL` |
+|---|---|
+| Backend đã deploy | `http://<ip-hoặc-domain>` |
+| Web / desktop, backend local | `http://localhost:8080` |
+| Android **emulator** | `http://10.0.2.2:8080` (`localhost` là chính máy ảo) |
+| Android **máy thật** qua USB | `make adb-reverse` rồi dùng `http://localhost:8080` |
+
+> Sửa `.env` xong phải **hot-restart** (`R`), không phải hot-reload — asset chỉ
+> được đọc một lần lúc khởi động.
 
 ---
 
@@ -120,151 +149,139 @@ flutter build web
 
 ```
 lib/
-├── core/
-│   ├── constants/               # Hằng số (kích thước, style, icon path)
-│   ├── extensions/              # Extension cho Dart/Flutter
-│   ├── mixins/                  # Mixin tái sử dụng
-│   ├── routing/                 # Cấu hình điều hướng (GoRouter)
-│   ├── theme/                   # Theme, màu sắc, font chữ, text styles
-│   ├── utils/                   # Hàm tiện ích (converter, toast, helpers)
-│   └── widgets/                 # Widget dùng chung toàn app
+├── main.dart                 # entry point: nạp config → dựng dependency → runApp
+├── app.dart                  # root widget: Provider + MaterialApp.router + auth listener
 │
-├── data/
-│   ├── core/                    # API client (interface + implementation)
-│   ├── enums/                   # Enum domain (MetricType, UserRole, ...)
-│   ├── exceptions/              # Custom exceptions (ApiException, ...)
-│   ├── models/
-│   │   ├── group/               # FamilyGroup, GroupMember, Invitation, ...
-│   │   ├── health/              # HeartRate, StepsCount, BloodPressure, ...
-│   │   ├── home_page/           # HomeData
-│   │   ├── settings/            # GeneralSettings, NotificationSettings, ...
-│   │   └── user/                # User, AuthResponse
-│   ├── repositories/            # AuthRepository, FamilyRepository, ...
-│   └── services/                # AuthService, HomeService, FamilyService, ...
+├── core/                     # dùng chung, KHÔNG phụ thuộc feature nào
+│   ├── config/               # AppConfig (biến môi trường) · khởi tạo Firebase
+│   ├── di/                   # AppDependencies — composition root duy nhất
+│   ├── routing/              # GoRouter + auth guard
+│   ├── theme/                # AppTheme · AppColors · AppTextStyles
+│   ├── constants/            # AppSize, AppStyles
+│   ├── widgets/              # widget dùng chung nhiều feature
+│   ├── utils/                # helper thuần (converter, validation, toast, …)
+│   ├── mixins/               # mixin tái sử dụng
+│   ├── allergy/              # đối chiếu dị ứng thuốc
+│   └── prescription/         # OCR đơn thuốc (conditional import io/web)
 │
-├── presentation/
-│   ├── auth/                    # Đăng nhập, đăng ký, OTP, đổi mật khẩu
-│   │   ├── bloc/
-│   │   ├── view/
-│   │   └── widgets/
-│   ├── home/                    # Tổng quan sức khỏe hôm nay
-│   │   ├── bloc/
-│   │   ├── view/
-│   │   └── widgets/
-│   ├── family/                  # Quản lý nhóm gia đình
-│   ├── details/                 # Thống kê chi tiết theo chỉ số
-│   ├── settings/                # Cài đặt tài khoản, thông báo, bảo mật
-│   └── main_tabs/               # Shell điều hướng chính (bottom nav)
+├── data/                     # dữ liệu — KHÔNG import gì từ presentation/
+│   ├── core/                 # ApiClient (base) + ApiClientImpl (token, retry 401)
+│   ├── models/               # model bất biến + fromJson/toJson
+│   ├── enums/                # MetricType, UserRole, GroupMemberStatus, …
+│   ├── exceptions/           # cây ApiException theo status code
+│   ├── services/             # gọi REST / WebSocket / SharedPreferences / Health Connect
+│   ├── repositories/         # điều phối service, là API duy nhất Bloc được gọi
+│   └── mock_data/            # dữ liệu giả lập cho chế độ demo
 │
-└── main.dart                    # Entry point
-
-assets/
-├── fonts/                       # Lato (Regular, Bold, Italic)
-├── icons/
-└── images/
+└── presentation/             # UI + state, mỗi feature một thư mục
+    ├── auth/                 # đăng nhập, đăng ký, OTP, quên mật khẩu
+    ├── home/                 # tổng quan sức khoẻ hôm nay
+    ├── details/              # thống kê chi tiết theo chỉ số
+    ├── family/               # nhóm gia đình
+    ├── medications/          # thuốc, nhắc nhở, OCR đơn
+    ├── settings/             # cài đặt tài khoản, thông báo, bảo mật, đồng bộ
+    └── main_tabs/            # shell bottom-navigation
 ```
 
-### Điều hướng (GoRouter)
+Mỗi feature trong `presentation/` theo cùng một khuôn:
 
-| Tab | Route | Mô tả |
-|-----|-------|--------|
-| Tổng quan | `/home` | Chỉ số sức khỏe hôm nay |
-| Gia đình | `/family` | Quản lý nhóm gia đình |
+```
+<feature>/
+├── bloc/       # <feature>_bloc.dart · _event.dart · _state.dart
+├── view/       # <feature>_page.dart (cung cấp Bloc) + <feature>_view.dart (vẽ UI)
+└── widgets/    # widget riêng của feature này
+```
+
+Quy tắc phụ thuộc giữa các lớp, vòng đời Bloc, cách thêm tính năng mới:
+xem **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
+---
+
+## Điều hướng
+
+| Tab | Route | Màn hình |
+|---|---|---|
+| Tổng quan | `/home` | Chỉ số sức khoẻ hôm nay |
+| Gia đình | `/family` | Nhóm gia đình |
 | Chỉ số | `/stats` | Thống kê dài hạn |
-| Thuốc | `/medications` | Nhắc nhở uống thuốc |
-| Cài đặt | `/settings` | Cài đặt tài khoản |
+| Thuốc | `/medications` | Lịch uống thuốc |
+| Cài đặt | `/settings` | Tài khoản và tuỳ chọn |
 
-Router tự động redirect về màn hình đăng nhập nếu chưa xác thực.
-
----
-
-## Công nghệ sử dụng
-
-| Package | Phiên bản | Mục đích |
-|---------|-----------|----------|
-| `flutter_bloc` | ^8.1.5 | State management (BLoC pattern) |
-| `go_router` | ^16.2.5 | Điều hướng khai báo |
-| `flutter_dotenv` | ^5.0.2 | Biến môi trường từ file .env |
-| `http` | ^1.6.0 | HTTP client gọi REST API |
-| `shared_preferences` | ^2.5.3 | Lưu trữ local (token, session) |
-| `get_it` | ^7.6.7 | Service locator / Dependency injection |
-| `equatable` | ^2.0.5 | So sánh object theo giá trị |
-| `json_annotation` | ^4.9.0 | Serialization JSON |
-| `permission_handler` | ^12.0.1 | Xin quyền truy cập thiết bị |
-| `pinput` | ^5.0.2 | Widget nhập mã OTP |
-| `fl_chart` | ^1.1.1 | Biểu đồ sức khỏe |
-| `intl` | ^0.20.2 | Định dạng ngày giờ, số |
-| `health` | ^13.2.0 | Đọc dữ liệu sức khỏe từ thiết bị |
+Router tự redirect về `/login` khi chưa đăng nhập hoặc phiên hết hạn —
+[`app_router.dart`](lib/core/routing/app_router.dart).
 
 ---
 
-## Hướng dẫn phát triển
+## Công nghệ chính
 
-### Thêm feature mới
+| Package | Dùng để |
+|---|---|
+| `flutter_bloc` · `bloc` · `equatable` | State management |
+| `go_router` | Điều hướng khai báo + auth guard |
+| `http` · `web_socket_channel` | REST + realtime |
+| `shared_preferences` | Lưu token và hồ sơ ở local |
+| `flutter_dotenv` | Nạp `.env` (chạy được cả trên Web) |
+| `health` · `permission_handler` | Health Connect / HealthKit |
+| `firebase_core` · `firebase_messaging` | Push notification |
+| `google_sign_in` · `google_sign_in_web` | Đăng nhập Google |
+| `google_mlkit_text_recognition` · `image_picker` | OCR đơn thuốc (mobile) |
+| `fl_chart` | Biểu đồ |
+| `pinput` · `intl` | Nhập OTP · định dạng tiếng Việt |
 
-1. Tạo thư mục trong `presentation/<feature>/` với cấu trúc:
-   ```
-   <feature>/
-   ├── bloc/        # Event, State, Bloc/Cubit
-   ├── view/        # Page + View widget
-   └── widgets/     # Widget nhỏ dùng trong feature này
-   ```
-2. Tạo model trong `data/models/<feature>/` nếu cần.
-3. Tạo service trong `data/services/` và repository trong `data/repositories/`.
-4. Khai báo route trong [lib/core/routing/app_router.dart](lib/core/routing/app_router.dart).
-
-### Thêm chỉ số sức khỏe mới
-
-1. Thêm giá trị vào `MetricType` trong `data/enums/metric_type.dart`.
-2. Tạo model trong `data/models/health/`.
-3. Cập nhật service đọc dữ liệu thiết bị (`device_health_service.dart`).
-
-### Quy ước code
-
-- Mỗi BLoC chỉ xử lý một domain logic cụ thể.
-- Không gọi API trực tiếp từ UI — luôn thông qua Repository.
-- Dùng `Equatable` cho tất cả BLoC Event/State và Model.
-- Chạy `flutter analyze` trước khi tạo PR.
-
-### Tài khoản mock (development)
-
-Khi chưa kết nối backend, ứng dụng dùng `MockAuthService`:
-- **Email**: `admin@gmail.com`
-- **Mật khẩu**: `admin`
-
-### Kiểm thử
-
-```bash
-flutter test          # Chạy unit test
-flutter analyze       # Kiểm tra code style
-```
+Danh sách đầy đủ kèm ghi chú: [`pubspec.yaml`](pubspec.yaml).
 
 ---
 
-## Ghi chú / Troubleshooting
+## Đăng nhập Google
 
-- **Hot-reload lỗi sau khi thêm BLoC provider**: thực hiện hot-restart (`R`).
-- **404 khi tải `.env` trên Web**: đảm bảo đã khai báo `.env.*` trong `pubspec.yaml` assets → `flutter pub get` → chạy lại.
-- **Sai API prefix**: đảm bảo `BASE_URL` trong `.env` không có trailing slash và đúng prefix backend yêu cầu.
-- **OTP flow**: sau đăng ký / quên mật khẩu, app tự điều hướng sang màn hình OTP, xác thực xong sẽ redirect phù hợp.
+Dùng GIS credential flow. Phải đăng ký origin trong
+[Google Cloud Console](https://console.cloud.google.com/) →
+**APIs & Services** → **Credentials** → OAuth 2.0 Web client →
+**Authorized JavaScript origins**:
 
-### Google Sign-In (Web)
-
-Đăng nhập Google trên Web dùng GIS credential flow (`renderButton`), yêu cầu đăng ký origin trong [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → OAuth 2.0 Web client → **Authorized JavaScript origins**.
-
-| Môi trường | Origin cần đăng ký |
-|------------|---------------------|
+| Môi trường | Origin |
+|---|---|
 | Development | `http://localhost:5000` |
-| Production | `https://your-domain.com` |
+| Production | `https://<domain-thật>` |
 
-> Khi release production: thêm domain thật vào authorized origins trước khi deploy.
->
-> Lỗi `Error 400: origin_mismatch` = origin chưa được đăng ký hoặc chạy web không dùng `--web-port=5000`.
+Client ID lấy được điền vào `GOOGLE_CLIENT_ID` trong `.env`. Trên Android/iOS,
+cùng client ID này được dùng làm `serverClientId` để backend verify `idToken`.
+
+---
+
+## Push notification (Firebase)
+
+- **Android / iOS** — đọc cấu hình từ `android/app/google-services.json` và
+  `ios/Runner/GoogleService-Info.plist`. Đây là *client config*, không phải khoá
+  bí mật, nhưng đổi project Firebase thì phải thay hai file này.
+- **Web** — bắt buộc truyền `FirebaseOptions` thủ công; điền các biến
+  `FIREBASE_*` trong `.env`. Thiếu thì app vẫn chạy bình thường, chỉ không có
+  push notification.
+
+---
+
+## Troubleshooting
+
+| Triệu chứng | Nguyên nhân và cách xử lý |
+|---|---|
+| Build báo thiếu asset `.env` | Chưa tạo `.env` → chạy `make setup` |
+| Emulator Android gọi API luôn timeout | `BASE_URL` đang là `localhost` → đổi sang `http://10.0.2.2:8080` |
+| Máy Android thật không gọi được backend local | `make adb-reverse`, giữ cáp USB, bật USB debugging |
+| Web báo lỗi CORS / `err_failed` | App và API khác origin. Dùng `localhost` cho cả hai, hoặc bật CORS ở gateway |
+| `Error 400: origin_mismatch` khi đăng nhập Google | Origin chưa đăng ký, hoặc chạy web không dùng `--web-port=5000` |
+| Nút Google không hiện trên Web | `GOOGLE_CLIENT_ID` rỗng trong `.env` |
+| Sửa `.env` mà không thấy tác dụng | Hot-reload không nạp lại asset → hot-restart (`R`) |
+| Hot-reload lỗi sau khi thêm Bloc provider | Hot-restart (`R`) |
+| Build lỗi linh tinh sau khi đổi nhánh | `make reset` |
+| Không đọc được dữ liệu sức khoẻ trên Android | Máy chưa cài Health Connect, hoặc chưa cấp quyền trong Cài đặt |
 
 ---
 
 ## Đóng góp
 
-- Tạo branch từ `dev`, đặt tên theo convention: `feat/<tên-feature>` hoặc `fix/<tên-bug>`.
-- Chạy `flutter analyze` và `flutter test` trước khi tạo PR.
-- PR phải target branch `dev`, không push thẳng vào `master`.
+Đọc **[CONTRIBUTING.md](CONTRIBUTING.md)** trước khi mở PR. Tóm tắt:
+
+- Tạo nhánh từ `dev`: `feat/…`, `fix/…`, `refactor/…`
+- Chạy `make check` — CI chạy đúng bộ lệnh này
+- PR target `dev`, không push thẳng vào `master`
+- Tính năng mới nên kèm mock data để chế độ demo vẫn xem được

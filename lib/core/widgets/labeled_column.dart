@@ -2,7 +2,20 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Cột nhãn + [child] (TextField, v.v.) — tái dùng form.
+/// Nhãn (kèm dấu * bắt buộc và gợi ý trong ngoặc) đặt trên một [child].
+///
+/// Dùng khi cần gắn nhãn cho ô nhập KHÔNG có `labelText` sẵn — dropdown tự
+/// chế, ô chọn giờ, chip… Nếu [child] là `ProfileTextField` hay
+/// `SettingsDropdown` thì đừng bọc thêm, hai widget đó đã có label riêng.
+///
+/// ```dart
+/// LabeledColumn(
+///   label: 'Giờ uống',
+///   requiredField: true,
+///   hintInParens: 'giờ địa phương',
+///   child: _TimePickerRow(...),
+/// )
+/// ```
 class LabeledColumn extends StatelessWidget {
   final String label;
   final String? hintInParens;

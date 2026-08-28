@@ -1,17 +1,26 @@
+import 'dart:async';
+
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
-import 'dart:async';
-
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:fe/presentation/medications/widgets/medication_dialog_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Form thêm thuốc — hiển thị trong [showDialog].
+/// Form nhập tay một thuốc mới: tên, liều, tần suất, danh sách giờ nhắc,
+/// khoảng ngày dùng và người kê.
+///
+/// Mở bằng [showDialog] và PHẢI bọc trong `BlocProvider.value` với
+/// [MedicationBloc] của tab Thuốc; cũng cần [AuthBloc] để lấy `userId`. Không
+/// nhận tham số — luôn tạo mới, không dùng để sửa thuốc đã có.
+///
+/// Sau khi bắn [AddMedication], dialog chờ state có thêm thuốc rồi mới tự đóng
+/// (có timeout), nên người dùng thấy được kết quả thật chứ không phải đóng
+/// ngay rồi mới biết lỗi.
 class AddMedicationDialog extends StatefulWidget {
   const AddMedicationDialog({super.key});
 

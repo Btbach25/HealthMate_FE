@@ -1,6 +1,13 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
+/// Lời chào đầu màn hình kèm ngày hôm nay, ví dụ "Chào buổi sáng, An! 👋".
+///
+/// [name] là tên hiển thị của người dùng; phía gọi tự quyết định lấy từ đâu.
+///
+/// Tái sử dụng được ở bất kỳ màn hình nào cần một tiêu đề chào hỏi: widget không phụ
+/// thuộc bloc nào, chỉ đọc [DateTime.now]. Đổi lại, nó không tự cập nhật khi đồng hồ
+/// vượt qua mốc giờ hay sang ngày mới — chỉ đúng tại thời điểm build.
 class WelcomeMessage extends StatelessWidget {
   final String name;
   const WelcomeMessage({super.key, required this.name});

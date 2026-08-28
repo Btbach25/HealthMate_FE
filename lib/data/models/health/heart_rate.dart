@@ -1,5 +1,6 @@
 import 'package:fe/core/utils/converter.dart';
 
+/// Chỉ số nhịp tim (bpm) — `metric_type = heart_rate`.
 class HeartRate {
   final DateTime time;
   final String userId;

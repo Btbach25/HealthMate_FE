@@ -2,6 +2,18 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
+/// Thẻ tóm tắt nằm dưới tiêu đề màn Chỉ số: icon + hai chip đếm nhanh.
+///
+/// Tham số bắt buộc:
+/// - [totalReadings]: tổng số lần đo trong khoảng thời gian đang chọn.
+/// - [totalTypes]: số loại chỉ số khác nhau.
+///
+/// Cả hai đều là số đã tính sẵn ở `StatsPageData`; widget không tự cộng lại từ
+/// danh sách chỉ số.
+///
+/// Khi nào nên tái sử dụng: đầu các màn thống kê cần một dòng "tổng quan"
+/// ngắn. Muốn thêm chip thì thêm vào Row bên trong — `_Chip` là private nên
+/// nếu cần dùng ở nơi khác hãy tách nó ra widget riêng.
 class StatsHeaderCard extends StatelessWidget {
   final int totalReadings;
   final int totalTypes;

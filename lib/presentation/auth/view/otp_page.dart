@@ -1,19 +1,31 @@
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:fe/presentation/auth/widgets/auth_form_layout.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/toast_utils.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../bloc/auth_form_bloc.dart';
-import '../widgets/auth_logo_header.dart';
-
+/// Luồng nào dẫn tới màn OTP — quyết định điều hướng SAU KHI xác thực thành
+/// công, chứ không đổi giao diện.
+///
+/// - [login] / [signup]: verify xong BE đã cấp token nên vào thẳng `/`.
+/// - [forgot]: verify xong mới sang `/reset-password` để đặt mật khẩu mới.
+///
+/// Giá trị này đi kèm email trong `GoRouter.extra` dạng
+/// `{ 'email': String, 'flow': String }`.
 enum OtpFlow { login, signup, forgot }
 
+/// Màn nhập OTP 6 số (route `/otp`).
+///
+/// [email] bắt buộc và được nạp ngay vào bloc bằng [AuthFormInitialized]: mỗi
+/// màn auth có [AuthFormBloc] riêng, nếu không nạp thì state.email rỗng và mọi
+/// lần submit đều fail.
 class OtpPage extends StatelessWidget {
   final String email;
   final OtpFlow flow;
@@ -26,8 +38,7 @@ class OtpPage extends StatelessWidget {
       body: BlocProvider(
         create: (context) => AuthFormBloc(
           authRepository: RepositoryProvider.of<AuthRepository>(context),
-        )..add(AuthFormInitialized(email: email)), 
-        
+        )..add(AuthFormInitialized(email: email)),
         child: OtpView(flow: flow),
       ),
     );
@@ -46,47 +57,22 @@ class OtpView extends StatelessWidget {
         if (state.status == FormStatus.failure) {
           ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
         }
+        // Chỉ OtpSubmitted mới emit success. OtpResendRequested cố ý không emit
+        // success, nếu không người dùng sẽ bị điều hướng đi ngay khi vừa bấm
+        // "Gửi lại".
         if (state.status == FormStatus.success) {
           ToastUtils.showCustomToast(context, 'Xác thực thành công!', ToastType.success);
           if (flow == OtpFlow.forgot) {
             context.go('/reset-password');
           } else {
-            // For login/signup verification, tokens may have been saved → go home
+            // Login/signup: BE đã lưu token khi verify nên vào thẳng trang chủ.
             context.go('/');
           }
         }
       },
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            // horizontal: AppSize.p24, 
-            // vertical: AppSize.p32
-            ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AuthLogoHeader(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.p24),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(AppSize.r12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        spreadRadius: 5,
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: const OtpForm(),
-                ),
-              ),
-            ],
-          ),
-        ),
+      child: const AuthFormLayout(
+        cardColor: AppColors.background,
+        child: OtpForm(),
       ),
     );
   }
@@ -112,10 +98,13 @@ class OtpForm extends StatelessWidget {
         const SizedBox(height: AppSize.p8),
         BlocBuilder<AuthFormBloc, AuthFormState>(
           buildWhen: (previous, current) => previous.email != current.email,
+          // ValueKey theo email: khi email đổi (người dùng quay lại đổi email),
+          // widget bị dựng mới nên controller và các ô nhập được xoá sạch thay
+          // vì giữ lại mã cũ.
           builder: (context, state) => _OtpInput(key: ValueKey('otp_${state.email}'), email: state.email),
         ),
         const SizedBox(height: AppSize.p12),
-        
+
         BlocBuilder<AuthFormBloc, AuthFormState>(
           buildWhen: (previous, current) => previous.email != current.email,
           builder: (context, state) {
@@ -172,6 +161,8 @@ class _OtpInputState extends State<_OtpInput> {
       decoration: BoxDecoration(
         color: AppColors.inputBackground,
         borderRadius: BorderRadius.circular(AppSize.r12),
+        // Viền trong suốt (thay vì bỏ hẳn viền) để ô không nhảy 1px khi
+        // focusedPinTheme thêm viền màu vào lúc focus.
         border: Border.all(color: Colors.transparent),
       ),
     );
@@ -187,6 +178,8 @@ class _OtpInputState extends State<_OtpInput> {
         ),
       ),
       submittedPinTheme: defaultPinTheme,
+      // Trên web autofocus làm trang tự cuộn và có thể cướp focus khỏi phần
+      // còn lại của form, nên chỉ bật trên native.
       autofocus: !kIsWeb,
       showCursor: true,
       onChanged: (value) {
@@ -236,6 +229,8 @@ class _ChangeEmailButton extends StatelessWidget {
         ),
         side: BorderSide(color: Colors.grey.shade300),
       ),
+      // pop() chứ không go(): quay lại đúng màn đã đẩy tới đây (login, đăng ký
+      // hoặc quên mật khẩu) để người dùng sửa email rồi gửi lại.
       onPressed: () => context.pop(),
       child: const Text('Thay đổi email', style: TextStyle(fontSize: 16, color: Colors.black87)),
     );

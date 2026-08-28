@@ -1,8 +1,8 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/mixins/inline_message_mixin.dart';
-import 'package:fe/core/utils/form_validation_helper.dart';
+import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/utils/family_bloc_listener_helper.dart';
+import 'package:fe/core/utils/form_validation_helper.dart';
 import 'package:fe/core/widgets/loading_button.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/enums/relationship_type.dart';
@@ -10,8 +10,17 @@ import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Modal mời thành viên mới bằng email — chỉ mở từ màn chi tiết nhóm.
+///
+/// Chỉ gửi email và mối quan hệ: `sharedMetrics` cố tình để rỗng vì người được
+/// mời tự chọn chỉ số chia sẻ của họ trong [AcceptInvitationDialog], chủ nhóm
+/// không quyết thay. Email phải là tài khoản đã đăng ký, nếu không BE trả lỗi.
+///
+/// Bắn [InviteMember]; thành công thì đóng modal, không trả về giá trị.
 class AddMemberModal extends StatefulWidget {
   final String groupId;
+  /// Bộ chỉ số nhóm đang cho phép. Hiện chỉ để tham chiếu/dự phòng — form không
+  /// còn cho chủ nhóm chọn hộ chỉ số của người được mời nữa.
   final List<MetricType> groupAllowedMetrics;
 
   const AddMemberModal({
@@ -232,70 +241,3 @@ class _AddMemberModalState extends State<AddMemberModal>
     );
   }
 }
-
-class _MedicationPermissionTile extends StatelessWidget {
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _MedicationPermissionTile({
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSize.p16),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryContainer : Colors.white,
-          borderRadius: BorderRadius.circular(AppSize.r12),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.cardBorder,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.inputBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.medication_outlined,
-                color: selected ? Colors.white : AppColors.textGrey,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Nhắc nhở uống thuốc',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                  color: selected ? AppColors.primaryDark : AppColors.textBlack,
-                ),
-              ),
-            ),
-            if (selected) ...[
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.check_circle,
-                size: 18,
-                color: AppColors.primary,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-

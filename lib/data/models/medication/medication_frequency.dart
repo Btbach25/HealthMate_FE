@@ -15,6 +15,8 @@ extension MedicationFrequencyTypeX on MedicationFrequencyType {
   }
 }
 
+/// Tần suất uống thuốc (hằng ngày / hằng tuần / hằng tháng / khi cần)
+/// gửi kèm khi tạo hoặc cập nhật thuốc.
 class MedicationFrequency {
   final MedicationFrequencyType type;
   final int timesPerDay;

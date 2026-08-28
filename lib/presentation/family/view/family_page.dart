@@ -6,6 +6,10 @@ import 'package:fe/presentation/family/view/family_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Màn hình gốc của tab Gia đình — route `/family` (nhánh 2 của shell điều hướng).
+///
+/// Chỉ lo phần vòng đời dữ liệu: chờ đăng nhập xong rồi mới nạp danh sách nhóm,
+/// và nạp lại khi người dùng đăng nhập lại. Phần giao diện nằm ở [FamilyView].
 class FamilyPage extends StatefulWidget {
   const FamilyPage({super.key});
 

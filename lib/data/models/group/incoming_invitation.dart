@@ -1,13 +1,16 @@
 import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/converter.dart';
-import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/login_provider.dart';
+import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/enums/user_role.dart';
 import 'package:fe/data/enums/user_status.dart';
-import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/models/group/family_group.dart';
+import 'package:fe/data/models/user/user.dart';
 
+/// Lời mời vào nhóm mà tôi nhận được.
+/// Ánh xạ phần tử của `GET /groups/invitations` (có khối lồng `group` và
+/// `inviter`).
 class IncomingInvitation extends Equatable {
   final String id;
   final String groupId;

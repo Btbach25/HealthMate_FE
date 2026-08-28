@@ -7,6 +7,20 @@ import 'package:fe/core/widgets/settings_switch_row.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Tab "Đồng bộ" trong [SettingsView]: quyền truy cập dữ liệu sức khoẻ, đồng
+/// bộ tay và cấu hình đồng bộ tự động.
+///
+/// CẢNH BÁO: TAB NÀY ĐANG LÀ GIAO DIỆN GIẢ, CHƯA NỐI BACKEND.
+/// `_requestPermissions` chỉ chờ 1 giây rồi tự đặt `_hasPermissions = true`
+/// mà không hề xin quyền Health Connect; `_performSync` chờ 2 giây rồi báo
+/// "Đồng bộ thành công" mà không gọi service nào. Mọi lựa chọn ở đây chỉ nằm
+/// trong [State], không được lưu và mất sạch khi rời tab.
+///
+/// Trạng thái kết nối THẬT do `DeviceHealthCubit` giữ (xem huy hiệu Health
+/// Connect trên AppBar ở `app_shell.dart`) — khi nối thật, hãy lấy nguồn từ đó
+/// thay vì các cờ cục bộ trong file này.
+///
+/// Không nhận tham số; đặt ở đâu cũng chạy vì chưa phụ thuộc bloc/service nào.
 class HealthSyncTab extends StatefulWidget {
   const HealthSyncTab({super.key});
 
@@ -20,8 +34,10 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
   bool _autoSyncEnabled = false;
   String _syncInterval = '5 phút';
   bool _isSyncing = false;
+  // Đã ghi khi đồng bộ nhưng chưa hiển thị ở đâu — để dành cho dòng "lần đồng
+  // bộ gần nhất" khi tab này được nối vào backend thật.
   // ignore: unused_field
-  DateTime? _lastSyncTime; // Reserved for future use
+  DateTime? _lastSyncTime;
 
   final Map<String, bool> _healthDataTypes = {
     'heart_rate': true,
@@ -30,6 +46,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     'sleep': false,
   };
 
+  /// TẠM: giả lập cấp quyền. Chưa gọi Health Connect / HealthKit.
   Future<void> _requestPermissions() async {
     await Future.delayed(const Duration(seconds: 1));
     if (mounted) {
@@ -45,6 +62,7 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
     }
   }
 
+  /// TẠM: giả lập đồng bộ. Chưa gọi service nào, chỉ chờ rồi báo thành công.
   Future<void> _performSync() async {
     if (!_hasPermissions) {
       ScaffoldMessenger.of(context).showSnackBar(

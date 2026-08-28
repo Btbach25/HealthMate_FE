@@ -1,26 +1,37 @@
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/data/models/health/blood_pressure.dart';
+import 'package:fe/data/models/health/health_overview.dart';
+import 'package:fe/data/models/health/heart_rate.dart';
+import 'package:fe/data/models/user/user.dart';
+import 'package:fe/data/services/user_service.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
+import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_icons.dart';
-import '../../../data/models/health/blood_pressure.dart';
-import '../../../data/models/health/health_overview.dart';
-import '../../../data/models/health/heart_rate.dart';
-import '../../../data/models/user/user.dart';
-import '../../../data/services/user_service.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../bloc/device_health_cubit.dart';
-import '../bloc/health_overview_bloc.dart';
 
-// ─── WS metric type keys ──────────────────────────────────────────────────────
+// Khoá metric backend quy ước cho kênh WebSocket. Chuỗi phải khớp đúng phía server
+// (xem DeviceHealthCubit.pushManualMetric) — gõ sai thì gói tin bị bỏ im lặng, không lỗi.
 const _kHeartRate     = 'heart_rate';
 const _kBloodPressure = 'blood_pressure';
 const _kSpo2          = 'spo2';
 const _kSteps         = 'steps_count';
 
-// ─── How to submit manual entry ───────────────────────────────────────────────
+/// Đường ghi dữ liệu người dùng nhập tay: [ws] đẩy chỉ số đo được qua WebSocket,
+/// [profile] gọi REST cập nhật hồ sơ (cân nặng, chiều cao). Hai đường khác nhau vì
+/// chỉ số đo là chuỗi thời gian, còn hồ sơ là thuộc tính của tài khoản.
 enum _UpdateType { ws, profile }
 
+/// Băng chuyền tám thẻ chỉ số sức khoẻ, vuốt ngang, cuộn vô hạn hai chiều.
+///
+/// Không nhận tham số — tự đọc [DeviceHealthCubit], [HealthOverviewBloc], [AuthBloc]
+/// và [UserService] từ context, nên chỉ đặt được bên dưới các provider đó.
+///
+/// Mỗi thẻ tự biết cách nhập tay giá trị của mình (hoặc chỉ đọc từ thiết bị); xem
+/// [_CardData]. Muốn thêm chỉ số mới thì thêm một [_CardData] trong [_buildCards],
+/// không cần đụng vào phần dựng PageView.
 class MetricCarousel extends StatefulWidget {
   const MetricCarousel({super.key});
 
@@ -31,6 +42,9 @@ class MetricCarousel extends StatefulWidget {
 class _MetricCarouselState extends State<MetricCarousel> {
   late final PageController _controller;
   int _currentPage = 0;
+
+  // Cuộn vô hạn: PageView không hỗ trợ vòng lặp, nên bắt đầu ở giữa một dải trang rất
+  // lớn và lấy modulo số thẻ. Người dùng vuốt ngược từ thẻ đầu vẫn còn trang để đi.
   static const int _virtualBase = 50000;
 
   @override
@@ -199,8 +213,7 @@ class _MetricCarouselState extends State<MetricCarousel> {
   }
 }
 
-// ─── Dot indicator ────────────────────────────────────────────────────────────
-
+/// Dãy chấm chỉ vị trí; chấm đang chọn giãn thành gạch ngang.
 class _DotIndicator extends StatelessWidget {
   final int count;
   final int current;
@@ -228,11 +241,18 @@ class _DotIndicator extends StatelessWidget {
   }
 }
 
-// ─── Data model ───────────────────────────────────────────────────────────────
-
+/// Kiểu bố cục của thẻ — quyết định [_MetricCard] dựng widget nào.
 enum _CardType { steps, simple, bloodPressure, sleep }
+/// Trường hồ sơ được cập nhật khi [_UpdateType.profile].
 enum _ProfileField { weight, height }
 
+/// Mô tả đầy đủ một thẻ chỉ số: hiển thị gì, và nhập tay bằng đường nào.
+///
+/// Bất biến cần giữ khi thêm thẻ mới:
+/// - [updateType] null  -> thẻ chỉ đọc từ thiết bị, không hiện nút thêm/sửa.
+/// - [updateType] ws    -> phải có [wsKey].
+/// - [updateType] profile -> phải có [profileField].
+/// [value] null nghĩa là "chưa có dữ liệu" và làm thẻ chuyển sang [_EmptyState].
 class _CardData {
   final _CardType type;
   final IconData icon;
@@ -241,7 +261,7 @@ class _CardData {
   final String label;
   final String? value;
   final String unit;
-  final _UpdateType? updateType;   // null = device-only, no manual input
+  final _UpdateType? updateType;
   final String? wsKey;
   final _ProfileField? profileField;
   final String? inputLabel;
@@ -270,8 +290,7 @@ class _CardData {
   bool get canManualAdd => updateType != null;
 }
 
-// ─── Card dispatcher ─────────────────────────────────────────────────────────
-
+/// Chọn bố cục thẻ theo [_CardData.type].
 class _MetricCard extends StatelessWidget {
   final _CardData data;
   const _MetricCard({required this.data});
@@ -287,8 +306,8 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-// ─── Empty state ─────────────────────────────────────────────────────────────
-
+/// Phần thân thẻ khi chưa có số liệu: nút "Thêm thủ công" nếu chỉ số đó nhập tay
+/// được, ngược lại chỉ ghi chú rằng dữ liệu đến từ thiết bị.
 class _EmptyState extends StatelessWidget {
   final _CardData data;
   const _EmptyState({required this.data});
@@ -350,8 +369,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// ─── Edit button (for cards that already have data) ───────────────────────────
-
+/// Nút bút chì mở dialog nhập tay cho thẻ đã có sẵn giá trị.
 class _EditButton extends StatelessWidget {
   final _CardData data;
   const _EditButton({required this.data});
@@ -385,8 +403,7 @@ class _EditButton extends StatelessWidget {
   }
 }
 
-// ─── Steps card ───────────────────────────────────────────────────────────────
-
+/// Thẻ bước chân: số bước, thanh tiến độ so với mục tiêu, và thời điểm đồng bộ gần nhất.
 class _StepsCard extends StatelessWidget {
   final _CardData data;
   const _StepsCard({required this.data});
@@ -486,8 +503,8 @@ class _StepsCard extends StatelessWidget {
   }
 }
 
-// ─── Blood pressure card ──────────────────────────────────────────────────────
-
+/// Thẻ huyết áp. Tách khỏi [_SimpleCard] vì giá trị là cặp "tâm thu/tâm trương"
+/// nên chữ dài hơn và luôn hiện nút sửa kể cả khi đã có dữ liệu.
 class _BloodPressureCard extends StatelessWidget {
   final _CardData data;
   const _BloodPressureCard({required this.data});
@@ -538,8 +555,7 @@ class _BloodPressureCard extends StatelessWidget {
   }
 }
 
-// ─── Simple metric card ───────────────────────────────────────────────────────
-
+/// Thẻ một-giá-trị-một-đơn-vị, dùng cho nhịp tim, SpO2, cân nặng, chiều cao, nhiệt độ.
 class _SimpleCard extends StatelessWidget {
   final _CardData data;
   const _SimpleCard({required this.data});
@@ -590,8 +606,7 @@ class _SimpleCard extends StatelessWidget {
   }
 }
 
-// ─── Sleep card ───────────────────────────────────────────────────────────────
-
+/// Thẻ giấc ngủ; chỉ đọc từ thiết bị, không cho nhập tay.
 class _SleepCard extends StatelessWidget {
   final _CardData data;
   const _SleepCard({required this.data});
@@ -673,8 +688,11 @@ class _SleepCard extends StatelessWidget {
   }
 }
 
-// ─── Manual entry dialog ──────────────────────────────────────────────────────
-
+/// Hộp thoại nhập tay một chỉ số.
+///
+/// Nhận sẵn bloc/cubit/service qua constructor thay vì đọc từ context, vì dialog được
+/// dựng bởi [showDialog] ở một nhánh cây widget khác, nơi các provider của trang Home
+/// không còn nhìn thấy được.
 class _ManualEntryDialog extends StatefulWidget {
   final _CardData data;
   final DeviceHealthCubit cubit;
@@ -696,7 +714,7 @@ class _ManualEntryDialog extends StatefulWidget {
 class _ManualEntryDialogState extends State<_ManualEntryDialog> {
   final _formKey = GlobalKey<FormState>();
   final _ctrl1   = TextEditingController();
-  final _ctrl2   = TextEditingController(); // diastolic cho BP
+  final _ctrl2   = TextEditingController(); // chỉ dùng cho tâm trương của huyết áp
 
   bool _loading = false;
 
@@ -709,6 +727,10 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
     super.dispose();
   }
 
+  /// Ghi giá trị vừa nhập vào state ngay, không chờ vòng đọc thiết bị kế tiếp.
+  ///
+  /// Chỉ gọi sau khi WebSocket báo gửi thành công. Backend vẫn là nguồn sự thật; lần
+  /// poll sau sẽ ghi đè giá trị này nếu server hiểu khác.
   void _applyOptimisticUpdate(double v1) {
     final now = DateTime.now();
     final userId = widget.authBloc.state.user.id;
@@ -817,7 +839,6 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Warning banner
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
@@ -918,8 +939,7 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
   }
 }
 
-// ─── Shared shell & helpers ───────────────────────────────────────────────────
-
+/// Nền, bo góc và đổ bóng dùng chung cho mọi thẻ trong băng chuyền.
 class _CardShell extends StatelessWidget {
   final Widget child;
   const _CardShell({required this.child});
@@ -938,6 +958,7 @@ class _CardShell extends StatelessWidget {
   }
 }
 
+/// Ô icon vuông bo góc ở góc trên trái mỗi thẻ.
 class _IconBadge extends StatelessWidget {
   final _CardData data;
   const _IconBadge({required this.data});

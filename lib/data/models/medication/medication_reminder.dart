@@ -1,3 +1,4 @@
+/// Một lần nhắc uống thuốc trong ngày (giờ nhắc + đã uống hay chưa).
 class MedicationReminder {
   final String id;
   final String medicationId;

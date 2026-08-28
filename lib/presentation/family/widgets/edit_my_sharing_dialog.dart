@@ -1,16 +1,22 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/widgets/loading_button.dart';
-import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/loading_button.dart';
+import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Dialog người dùng tự chọn bộ chỉ số **của mình** chia sẻ với cả nhóm.
+/// Mọi thành viên đều mở được, nhưng chỉ cho chính mình — vào từ nút
+/// "Chia sẻ chỉ số" trên thẻ của bản thân, hoặc từ banner nhắc chưa chia sẻ.
+///
+/// Bắn [UpdateMySharing]; đây là tầng quyền chung. Chủ nhóm vẫn có thể thu hẹp
+/// thêm ở tầng riêng ([EditMemberPermissionsDialog]). Tự đóng khi thành công.
 class EditMySharingDialog extends StatefulWidget {
   final String groupId;
   final List<MetricType> currentMetrics;

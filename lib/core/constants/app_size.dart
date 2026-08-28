@@ -1,3 +1,13 @@
+/// Các con số cố định về khoảng cách, bo góc, cỡ icon/chữ và thời lượng
+/// animation — dùng thay vì gõ số trực tiếp trong widget.
+///
+/// Quy ước tên: `p*` padding, `spacing*` khoảng cách giữa các phần tử, `r*`
+/// bán kính bo góc, `icon*` cỡ icon, `fontSize*` cỡ chữ. Hậu tố chính là giá
+/// trị (`p16` = 16.0), nên đọc code là biết ngay con số.
+///
+/// `p*` và `spacing*` trùng giá trị nhau ở nhiều mức; chọn theo ngữ nghĩa
+/// (đệm bên trong hay khoảng cách bên ngoài) để sau này chỉnh thang đo còn
+/// biết chỗ nào là chỗ nào.
 class AppSize {
   // Padding
   static const double p4 = 4.0;

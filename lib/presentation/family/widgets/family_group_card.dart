@@ -7,6 +7,8 @@ import 'package:fe/data/models/group/family_group.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// Thẻ một nhóm trong danh sách ở tab Gia đình. Bấm vào mở `/family/group/:id`.
+/// Nhãn "Chủ nhóm"/"Thành viên" suy ra từ [currentUserId] so với `group.ownerId`.
 class FamilyGroupCard extends StatelessWidget {
   final FamilyGroup group;
   final String? currentUserId;

@@ -1,11 +1,25 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Helper class for settings management
-/// Provides reusable methods for loading and updating settings
-/// Reduces code duplication across settings tabs
+/// Hai khuôn xử lý lặp đi lặp lại ở các tab Cài đặt: tải cài đặt và lưu cài
+/// đặt, kèm sẵn `try/catch`, kiểm tra `context.mounted` và SnackBar báo kết quả.
+///
+/// Có helper này để không tab nào quên bước `if (context.mounted)` sau `await`
+/// — bỏ sót là app ném lỗi khi người dùng rời màn hình giữa lúc đang gọi API.
 class SettingsManagementHelper {
-  /// Loads settings with error handling
+  /// Tải cài đặt, tự báo lỗi bằng SnackBar nếu hỏng.
+  ///
+  /// [onSuccess] chỉ chạy khi widget còn gắn trên cây; [onError] là chỗ tắt
+  /// cờ loading của màn hình.
+  ///
+  /// ```dart
+  /// SettingsManagementHelper.loadSettingsWithErrorHandling<UserSettings>(
+  ///   context: context,
+  ///   loadFunction: () => repo.fetchSettings(),
+  ///   onSuccess: (s) => setState(() => _settings = s),
+  ///   onError: () => setState(() => _isLoading = false),
+  /// );
+  /// ```
   static Future<void> loadSettingsWithErrorHandling<T>({
     required BuildContext context,
     required Future<T> Function() loadFunction,
@@ -31,7 +45,28 @@ class SettingsManagementHelper {
     }
   }
 
-  /// Updates settings with optimistic update and error handling
+  /// Lưu cài đặt theo kiểu **optimistic**: đổi giao diện trước, gọi API sau,
+  /// hỏng thì trả về giá trị cũ.
+  ///
+  /// Nhờ vậy công tắc trong Cài đặt phản hồi tức thì thay vì đứng chờ mạng.
+  /// Cái giá phải trả: giao diện có thể nháy về trạng thái cũ khi API lỗi —
+  /// chỉ dùng cho thao tác nhanh, dễ hoàn tác (bật/tắt, đổi lựa chọn), đừng
+  /// dùng cho thao tác phá huỷ.
+  ///
+  /// [update] phải trả về **bản sao đã sửa** (`copyWith`), không được sửa
+  /// tại chỗ đối tượng cũ — sửa tại chỗ thì [onRevert] không còn gì để khôi
+  /// phục.
+  ///
+  /// ```dart
+  /// SettingsManagementHelper.updateSettingWithErrorHandling<UserSettings>(
+  ///   context: context,
+  ///   currentSettings: _settings,
+  ///   update: (s) => s.copyWith(reminderEnabled: value),
+  ///   saveFunction: repo.saveSettings,
+  ///   onUpdate: (s) => setState(() => _settings = s),
+  ///   onRevert: (s) => setState(() => _settings = s),
+  /// );
+  /// ```
   static Future<void> updateSettingWithErrorHandling<T extends Object>({
     required BuildContext context,
     required T currentSettings,
@@ -45,7 +80,6 @@ class SettingsManagementHelper {
     final previousSettings = currentSettings;
     final updatedSettings = update(currentSettings);
 
-    // Optimistic update
     onUpdate(updatedSettings);
 
     try {
@@ -61,7 +95,6 @@ class SettingsManagementHelper {
       }
     } catch (e) {
       if (context.mounted) {
-        // Revert on error
         onRevert(previousSettings);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -73,11 +106,13 @@ class SettingsManagementHelper {
     }
   }
 
-  /// Builds loading indicator widget
+  /// Vòng quay chờ căn giữa cho các tab Cài đặt.
+  ///
+  /// Cần kèm thông điệp hoặc chiếm cả màn thì dùng `LoadingWidget` thay vì
+  /// hàm này.
   static Widget buildLoadingIndicator() {
     return const Center(
       child: CircularProgressIndicator(),
     );
   }
 }
-

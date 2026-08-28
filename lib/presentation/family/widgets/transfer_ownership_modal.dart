@@ -6,6 +6,13 @@ import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Modal chuyển quyền chủ nhóm. Chỉ chủ nhóm mở được, và chỉ tự động bật lên khi
+/// chủ nhóm bấm "Rời nhóm" trong lúc nhóm vẫn còn thành viên khác — nhóm không
+/// được phép tồn tại mà không có chủ.
+///
+/// [members] đã lọc bỏ chính người dùng hiện tại. Bắn [TransferOwnership]; khi
+/// `ownershipTransferred` về thì modal tự đóng và hỏi tiếp có rời nhóm luôn không.
+/// Không trả về giá trị; việc điều hướng sau khi rời do `GroupDetailsView` lo.
 class TransferOwnershipModal extends StatefulWidget {
   final String groupId;
   final List<FamilyMember> members;
@@ -23,6 +30,9 @@ class TransferOwnershipModal extends StatefulWidget {
 class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
   String? _selectedMemberId;
 
+  /// Gửi yêu cầu chuyển quyền (PUT /groups/:id/owner, body `new_owner_id`).
+  /// `newOwnerId` lấy từ `member.id`, hiện luôn bằng `member.userId` vì
+  /// `GroupApiMapper.toFamilyMember` gán `id = userId`.
   void _handleTransfer() {
     if (_selectedMemberId == null) {
       ScaffoldMessenger.of(context).showSnackBar(

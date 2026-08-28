@@ -2,9 +2,24 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Card nổi bật: icon gradient + tiêu đề + mô tả.
-/// - [onTap]: cả phần nội dung chính bấm được (vd. điều hướng).
-/// - [footer]: nút / widget phía dưới (vd. quét đơn — không dùng [onTap] trên footer).
+/// Card giới thiệu một tính năng: icon nền gradient + tiêu đề + mô tả,
+/// tuỳ chọn thêm nút ở chân card.
+///
+/// Dùng cho các lối tắt/tính năng nổi bật trên trang chủ và tab Thuốc.
+/// - [onTap]: làm cả card bấm được (thường để điều hướng). Có [onTap] thì card
+///   được bọc `InkWell` nên có hiệu ứng ripple.
+/// - [footer]: nút riêng ở chân card (vd. "Quét đơn thuốc"). Footer có
+///   callback riêng của nó — đừng trông chờ [onTap] bắt được cú bấm ở đây.
+/// - [showTrailingChevron]: chỉ bật khi card thực sự điều hướng sang màn khác.
+///
+/// ```dart
+/// FeatureHighlightCard(
+///   leadingIcon: Icons.document_scanner_outlined,
+///   title: 'Quét đơn thuốc',
+///   subtitle: 'Chụp ảnh đơn để tự tạo lịch uống.',
+///   footer: LoadingButton(text: 'Quét ngay', onPressed: _scan),
+/// )
+/// ```
 class FeatureHighlightCard extends StatelessWidget {
   final IconData leadingIcon;
   final String title;

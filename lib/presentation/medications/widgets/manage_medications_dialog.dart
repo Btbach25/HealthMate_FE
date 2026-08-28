@@ -5,7 +5,15 @@ import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Danh sách thuốc đang lưu — cho phép xóa khỏi lịch (DB).
+/// Danh sách thuốc đang lưu, cho phép xoá khỏi lịch.
+///
+/// Mở bằng [showDialog] và PHẢI bọc trong `BlocProvider.value` với
+/// [MedicationBloc] — dialog đọc thẳng `state.medications` nên luôn khớp với
+/// màn hình phía sau, và tự cập nhật khi bloc phát state mới.
+///
+/// Xoá là thao tác THẬT trên server (không phải ẩn ở máy) và không hoàn tác
+/// được; trong lúc chờ, dòng tương ứng hiện spinner theo
+/// [MedicationState.deletingMedicationId].
 class ManageMedicationsDialog extends StatelessWidget {
   const ManageMedicationsDialog({super.key});
 

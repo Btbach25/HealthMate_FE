@@ -3,6 +3,14 @@ import 'package:fe/core/theme/app_icons.dart';
 import 'package:fe/data/models/health/medication_progress.dart';
 import 'package:flutter/material.dart';
 
+/// Thẻ tóm tắt tiến độ uống thuốc trong ngày: tổng số lượt, đã uống, còn lại và
+/// một thanh tiến độ.
+///
+/// [progress] bắt buộc. Phía gọi phải tự kiểm tra null trước khi dựng widget —
+/// [HomeView] chỉ render thẻ này khi `homeData.medicationProgress != null`.
+///
+/// Tái sử dụng được ở màn hình quản lý thuốc: widget thuần trình bày, không đọc bloc
+/// và tự xử lý trường hợp `total == 0` (chia cho 0) nên nhận dữ liệu rỗng vẫn an toàn.
 class MedicationCard extends StatelessWidget {
   final MedicationProgress progress;
   const MedicationCard({super.key, required this.progress});
@@ -91,6 +99,7 @@ class MedicationCard extends StatelessWidget {
   }
 }
 
+/// Một ô số liệu trong hàng ba cột của [MedicationCard].
 class _StatBox extends StatelessWidget {
   final String label;
   final String value;

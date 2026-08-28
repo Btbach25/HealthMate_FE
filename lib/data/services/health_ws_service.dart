@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:fe/core/config/api_base_url.dart';
+
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/data/services/local_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:fe/data/services/local_storage_service.dart';
 
 /// Sự kiện chỉ số realtime khi đang subscribe theo thành viên nhóm (payload từ realtime-service).
 class FamilyMetricWatchEvent {
@@ -45,12 +46,7 @@ class HealthWsService {
   /// BE realtime-service giới hạn ~512 byte / tin nhắn client → gửi subscribe theo lô nhỏ.
   static const int _maxSubscribeItemsPerMessage = 2;
 
-  String get _wsBaseUrl {
-    final httpBase = resolveApiBaseUrl();
-    return httpBase
-        .replaceFirst('https://', 'wss://')
-        .replaceFirst('http://', 'ws://');
-  }
+  String get _wsBaseUrl => AppConfig.wsBaseUrl;
 
   static const Map<HealthDataType, String> _metricMap = {
     HealthDataType.HEART_RATE: 'heart_rate',

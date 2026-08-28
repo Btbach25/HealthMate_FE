@@ -1,26 +1,24 @@
-// lib/core/routing/app_router.dart
 import 'dart:async';
 
-import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
-import 'package:fe/presentation/details/view/stats_page.dart';
-import 'package:fe/presentation/main_tabs/shell/view/app_shell.dart';
-
-import 'package:fe/presentation/family/view/family_page.dart';
-import 'package:fe/presentation/family/view/family_group_management_page.dart';
-import 'package:fe/presentation/family/view/create_group_page.dart';
-import 'package:fe/presentation/family/view/group_details_page.dart';
-import 'package:fe/presentation/main_tabs/settings_page.dart';
 import 'package:fe/data/repositories/medication_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/auth/present.dart';
+import 'package:fe/presentation/details/view/stats_page.dart';
+import 'package:fe/presentation/family/view/create_group_page.dart';
+import 'package:fe/presentation/family/view/family_group_management_page.dart';
+import 'package:fe/presentation/family/view/family_page.dart';
+import 'package:fe/presentation/family/view/group_details_page.dart';
+import 'package:fe/presentation/home/view/home_page.dart';
+import 'package:fe/presentation/main_tabs/settings_page.dart';
+import 'package:fe/presentation/main_tabs/shell/view/app_shell.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:fe/presentation/medications/view/medication_view.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/repositories/auth_repository.dart';
-import '../../presentation/auth/present.dart';
-import '../../presentation/home/view/home_page.dart';
-
+/// Navigator gốc — dùng cho dialog/bottom-sheet cần nằm trên cả shell
+/// (`Navigator.of(context, rootNavigator: true)`).
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class AppRouter {
@@ -31,7 +29,7 @@ class AppRouter {
   late final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
     routes: <RouteBase>[
-      // --- CÁC ROUTE XÁC THỰC (BÊN NGOÀLI SHELL) ---
+      // --- ROUTE XÁC THỰC: nằm NGOÀI shell nên không có bottom nav ---
       GoRoute(
         path: '/login',
         builder: (BuildContext context, GoRouterState state) =>
@@ -50,7 +48,9 @@ class AppRouter {
       GoRoute(
         path: '/otp',
         builder: (context, state) {
-          // Expect extra as Map: { email: String, flow: OtpFlow }
+          // `state.extra` chuẩn là Map { email: String, flow: OtpFlow }.
+          // Vẫn chấp nhận `flow` dạng String và `extra` là String thuần
+          // (chỉ email) để không vỡ các lời gọi điều hướng cũ.
           final extra = state.extra;
           String email = '';
           OtpFlow flow = OtpFlow.login;
@@ -170,7 +170,8 @@ class AppRouter {
       ),
     ],
 
-    // Logic redirect giữ nguyên
+    // Gác cổng đăng nhập: chưa đăng nhập → ép về /login;
+    // đã đăng nhập mà còn ở màn auth → đẩy về trang chủ.
     redirect: (BuildContext context, GoRouterState state) {
       final loggedIn = authBloc.state.status == AuthStatus.authenticated;
 
@@ -197,7 +198,8 @@ class AppRouter {
   );
 }
 
-// GoRouterRefreshStream giữ nguyên
+/// Cầu nối Stream (AuthBloc) → Listenable cho `GoRouter.refreshListenable`,
+/// để router chạy lại `redirect` mỗi khi trạng thái đăng nhập đổi.
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();

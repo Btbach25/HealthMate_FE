@@ -1,6 +1,6 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_dropdown.dart';
@@ -11,6 +11,15 @@ import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Tab "Chung" trong [SettingsView]: giao diện, ngôn ngữ, định dạng ngày/giờ
+/// và nút Đăng xuất.
+///
+/// Không nhận tham số — tự tạo [SettingsService] và tự nạp [GeneralSettings]
+/// ở [State.initState]. Vì vậy chỉ dùng được bên trong cây widget đã có
+/// [AuthBloc] (nút Đăng xuất bắn `AuthLogoutRequested`).
+///
+/// Mọi thay đổi đi qua `_updateSetting`: cập nhật lạc quan trên UI rồi tự trả
+/// lại giá trị cũ nếu lưu thất bại.
 class GeneralSettingsTab extends StatefulWidget {
   const GeneralSettingsTab({super.key});
 
@@ -76,6 +85,8 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
     );
   }
 
+  /// Dùng cho các mục đã có trong UI nhưng chưa nối backend. Giữ nguyên vị trí
+  /// mục trên màn hình để bố cục không nhảy khi tính năng hoàn thiện.
   void _showComingSoonSnack() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Tính năng đang phát triển')),

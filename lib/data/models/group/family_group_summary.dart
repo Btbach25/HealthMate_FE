@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/converter.dart';
 import 'package:fe/data/models/group/family_group.dart';
 
+/// Kết quả `GET /groups/` sau khi FE tách thành nhóm tôi sở hữu và nhóm tôi
+/// tham gia, phục vụ trang danh sách nhóm.
 class FamilyGroupSummary extends Equatable {
   final int groupsJoined;
   final int pendingInvitations;

@@ -1,20 +1,31 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fe/data/models/health/blood_pressure.dart';
+import 'package:fe/data/models/health/health_overview.dart';
+import 'package:fe/data/models/health/heart_rate.dart';
+import 'package:fe/data/models/health/stress_prediction.dart';
+import 'package:fe/data/models/health/temperature.dart';
+import 'package:fe/data/models/health/weight.dart';
+import 'package:fe/data/services/device_health_service.dart';
+import 'package:fe/data/services/health_ws_service.dart';
+import 'package:fe/data/services/readiness_service.dart';
+import 'package:fe/data/services/stress_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
-import '../../../data/services/device_health_service.dart';
-import '../../../data/services/health_ws_service.dart';
-import '../../../data/services/readiness_service.dart';
-import '../../../data/services/stress_service.dart';
-import '../../../data/models/health/health_overview.dart';
-import '../../../data/models/health/heart_rate.dart';
-import '../../../data/models/health/blood_pressure.dart';
-import '../../../data/models/health/weight.dart';
-import '../../../data/models/health/temperature.dart';
-import '../../../data/models/health/stress_prediction.dart';
 
+/// Ảnh chụp dữ liệu sức khoẻ đọc từ thiết bị, cộng với kết quả của hai API suy luận
+/// (readiness và stress) chạy trên dữ liệu đó.
+///
+/// Ba nhóm cờ loading tách biệt vì chúng hoàn tất ở các thời điểm khác nhau:
+/// [loading] cho lần đọc Health Connect/HealthKit, [readinessLoading] và
+/// [stressLoading] cho hai lời gọi API chạy song song sau đó.
+///
+/// Cạm bẫy của [copyWith]: chỉ riêng [error] là gán thẳng (nên truyền error: null
+/// sẽ xoá được lỗi); mọi trường còn lại dùng toán tử ?? nên không thể đặt lại về null.
+/// Đây là chủ ý — dữ liệu cũ vẫn hiển thị được khi vòng đọc mới chưa có số liệu.
 class DeviceHealthState extends Equatable {
   final bool loading;
   final DateTime? lastUpdated;
@@ -25,7 +36,8 @@ class DeviceHealthState extends Equatable {
   final double? bloodOxygen;
   final double? sleepHours;
   final String? error;
-  // null = chưa kiểm tra / không áp dụng (non-Android)
+  /// Chỉ có nghĩa trên Android, nơi ứng dụng bắt buộc phải đi qua Health Connect.
+  /// null = chưa kiểm tra, hoặc nền tảng không áp dụng (iOS/web).
   final bool? isHealthConnectConnected;
   final StressPrediction? stressPrediction;
   final bool stressLoading;
@@ -86,6 +98,36 @@ class DeviceHealthState extends Equatable {
       [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, bloodOxygen, sleepHours, error, isHealthConnectConnected, stressPrediction, stressLoading, stressDataEstimated, stressApiError];
 }
 
+/// Nguồn dữ liệu sức khoẻ đọc từ thiết bị (Health Connect trên Android, HealthKit
+/// trên iOS) và là cầu nối đẩy dữ liệu đó lên backend qua WebSocket.
+///
+/// Cubit này được provide ở app-level (xem lib/app.dart) chứ không theo màn hình,
+/// vì việc đồng bộ phải sống xuyên suốt các tab.
+///
+/// Luồng state:
+///
+///   [poll]  -> loading=true
+///           -> đọc thiết bị thất bại -> loading=false, error != null,
+///              isHealthConnectConnected=false (chỉ trên Android)
+///           -> đọc thành công        -> loading=false, cập nhật dataCount/totalSteps/
+///              lastUpdated, readinessLoading=true, stressLoading=true; sau đó hai
+///              nhánh async độc lập [_fetchReadiness] và [_fetchStress] lần lượt hạ
+///              cờ loading tương ứng của mình.
+///
+///   [startPeriodicSync] -> dựng hai Timer nền, mỗi lần chạy chỉ cập nhật
+///                          dataCount/totalSteps/lastUpdated (không đụng readiness/stress).
+///   [stopPeriodicSync]  -> huỷ Timer, đóng WebSocket, bật cờ chặn emit.
+///
+/// Ai gọi:
+/// - [HomeView] gọi [poll] + [startPeriodicSync] khi vào tab Tổng quan và
+///   [stopPeriodicSync] khi rời đi.
+/// - lib/app.dart gọi [stopPeriodicSync] khi người dùng đăng xuất.
+/// - StatsBloc và stats_view.dart đọc state làm dữ liệu dự phòng khi API thống kê lỗi.
+/// - Dialog nhập tay trong widgets/metric_carousel.dart gọi [pushManualMetric],
+///   [patchBloodOxygen], [patchTotalSteps].
+///
+/// Ai nghe: [HealthOverviewBloc] subscribe [stream] để lấy số liệu thiết bị làm nguồn
+/// dự phòng khi backend chưa có dữ liệu.
 class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   final DeviceHealthService _service;
   final HealthWsService _wsService;
@@ -95,13 +137,19 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   Timer? _syncTimer;
   Timer? _fetchTimer;
   List<HealthDataPoint> _lastPoints = [];
-  // Ngăn emit sau khi logout — DeviceHealthCubit sống ở app-level (không bị close),
-  // nên cần flag thủ công để bảo vệ BlocBuilder trong shell đang bị dispose.
+  // Ngăn emit sau khi logout. Cubit sống ở app-level nên không bao giờ được close(),
+  // do đó isClosed luôn false và không bảo vệ được gì; cần cờ thủ công để các tác vụ
+  // async đang bay (readiness/stress) không emit vào lúc shell đang bị dispose.
   bool _stopped = false;
 
   List<HealthDataPoint> get lastPoints => List.unmodifiable(_lastPoints);
 
-  /// Convert local Health Connect data → HealthOverview (dùng khi BE không có).
+  /// Dựng [HealthOverview] từ dữ liệu thiết bị, dùng làm nguồn dự phòng khi backend
+  /// chưa có số liệu.
+  ///
+  /// Hợp đồng quan trọng: mọi bản ghi ở đây đều đặt userId rỗng. Đó chính là dấu hiệu
+  /// [HealthOverviewBloc] dùng để nhận ra "đây là dữ liệu thiết bị" và cho phép dữ liệu
+  /// backend ghi đè lên. Đừng điền userId thật vào đây.
   HealthOverview? get deviceHealthOverview {
     if (_lastPoints.isEmpty) return null;
     final now = DateTime.now();
@@ -129,9 +177,12 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     this._stressService,
   ) : super(const DeviceHealthState());
 
-  /// Fetch device health 1 lần + tính readiness.
+  /// Đọc dữ liệu thiết bị một lần, rồi kích hoạt tính readiness và stress.
+  ///
+  /// Gọi lại [poll] cũng đồng thời bỏ cờ chặn emit mà [stopPeriodicSync] đã đặt trước
+  /// đó, nên đây là điểm "hồi sinh" cubit sau khi người dùng rời màn hình rồi quay lại.
   Future<void> poll() async {
-    _stopped = false; // reset khi user đang active
+    _stopped = false; // người dùng active trở lại → cho phép emit
     final onAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     emit(state.copyWith(loading: true, error: null));
     final result = await _service.fetchAll();
@@ -146,7 +197,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     _lastPoints = result.dataPoints;
 
-    // 0 điểm + không có steps trên Android = coi như chưa kết nối được HC
+    // Android không có API nào cho biết "đã cấp quyền Health Connect chưa" một cách
+    // đáng tin, nên phải suy luận gián tiếp: đọc được 0 điểm dữ liệu và cũng không có
+    // số bước thì gần như chắc chắn là chưa kết nối/chưa cấp quyền. iOS không cần
+    // suy luận này nên để null.
     final hcConnected = onAndroid
         ? (result.dataPoints.isNotEmpty || result.totalSteps != null)
         : null;
@@ -162,7 +216,7 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       isHealthConnectConnected: hcConnected,
     ));
 
-    // Kết nối WS (nếu chưa) và gửi ngay lần đầu
+    // Cố ý không await: màn hình không được chờ WebSocket bắt tay xong mới hiện số liệu.
     _wsService.connect().then((_) {
       _wsService.sendLatestMetrics(_lastPoints);
     }).catchError((e) {
@@ -173,8 +227,17 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     _fetchStress(result);
   }
 
-  /// Bắt đầu gửi dữ liệu lên BE mỗi 5 giây qua WebSocket
-  /// và re-fetch Health Connect mỗi 60 giây để lấy data mới từ Samsung Health.
+  /// Bật hai Timer nền: đẩy chỉ số mới nhất lên backend qua WebSocket mỗi 5 giây,
+  /// và đọc lại Health Connect cũng mỗi 5 giây.
+  ///
+  /// Nhịp 5 giây là vì Samsung Health ghi vào Health Connect theo lô và có độ trễ;
+  /// đọc thưa hơn thì biểu đồ nhịp tim trực tiếp bị giật. Hai Timer tách riêng để một
+  /// lần đọc thiết bị thất bại không làm gián đoạn việc đẩy WebSocket.
+  ///
+  /// Chỉ cập nhật dataCount/totalSteps/lastUpdated — cố ý không gọi lại readiness và
+  /// stress; hai API đó tốn kém và do [poll] lo (xem HomeView._startPolling).
+  ///
+  /// Không có tác dụng trên web vì ở đó không tồn tại Health Connect/HealthKit.
   void startPeriodicSync() {
     if (kIsWeb) return;
     _syncTimer?.cancel();
@@ -217,7 +280,11 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     }
   }
 
-  /// Gửi một chỉ số nhập tay lên BE. Trả về true nếu gửi thành công.
+  /// Gửi một chỉ số người dùng nhập tay lên backend qua WebSocket.
+  ///
+  /// [metricType] phải khớp khoá backend quy ước (heart_rate, blood_pressure, spo2,
+  /// steps_count — xem các hằng _k* trong widgets/metric_carousel.dart).
+  /// Trả về false thay vì ném lỗi, để phía gọi hiện snackbar mà không cần try/catch.
   Future<bool> pushManualMetric(String metricType, double value) async {
     if (kIsWeb) return false;
     try {
@@ -230,7 +297,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     }
   }
 
-  /// Dừng gửi định kỳ và đóng WS.
+  /// Dừng đồng bộ định kỳ, đóng WebSocket và chặn mọi emit về sau.
+  ///
+  /// Phải gọi khi rời màn hình hoặc khi đăng xuất: cubit không bị close nên nếu không
+  /// chặn, một [_fetchReadiness] đang bay có thể emit vào lúc widget tree đã đổi.
   void stopPeriodicSync() {
     _stopped = true; // chặn emit từ async ops đang bay (vd: _fetchReadiness)
     _syncTimer?.cancel();
@@ -279,7 +349,8 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     if (score != null) {
       debugPrint('[Readiness] Source=BE score=$score');
     } else {
-      // Tính điểm cục bộ nếu BE không trả về
+      // Backend không trả về (lỗi mạng hoặc chưa deploy) thì tính cục bộ, để người dùng
+      // luôn thấy một điểm số thay vì ô trống.
       score = _computeLocalScore(
         heartRate: heartRate,
         sleepHours: sleepHours,
@@ -300,7 +371,6 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   Future<void> _fetchStress(DeviceHealthResult result) async {
     final points = result.dataPoints;
 
-    // Log tổng số data points và các type có mặt
     final typeCount = <String, int>{};
     for (final p in points) {
       typeCount[p.type.name] = (typeCount[p.type.name] ?? 0) + 1;
@@ -318,7 +388,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     final rmssdRaw = _latestNumeric(points, HealthDataType.HEART_RATE_VARIABILITY_RMSSD);
     debugPrint('[Stress] RMSSD raw=$rmssdRaw, HRV points: ${points.where((p) => p.type == HealthDataType.HEART_RATE_VARIABILITY_RMSSD).length}');
-    // Nếu không có RMSSD từ wearable, ước tính từ HR std (scale khác nhưng tương quan dương)
+    // Chỉ thiết bị đeo cao cấp mới ghi HRV RMSSD. Khi thiếu, ước tính từ độ lệch chuẩn
+    // nhịp tim: khác thang đo nhưng tương quan dương, đủ để mô hình xếp hạng. Kết quả
+    // được đánh dấu qua stressDataEstimated để UI hạ mức tin cậy khi hiển thị.
     final hrStd = hrMeanStd.$2;
     final rmssd = rmssdRaw ?? (hrStd > 0 ? (hrStd * 3.0).clamp(5.0, 80.0) : 25.0);
     final isEstimated = rmssdRaw == null;
@@ -344,7 +416,11 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     ));
   }
 
-  /// Tính mean và std của HR trong 60 giây gần nhất.
+  /// Trung bình và độ lệch chuẩn nhịp tim trong 60 giây gần nhất.
+  ///
+  /// Nếu cửa sổ 60 giây trống thì lùi về toàn bộ điểm dữ liệu có được — thà dùng số
+  /// liệu cũ còn hơn không dự đoán được stress. Trả về (0, 0) khi hoàn toàn không có
+  /// nhịp tim; phía gọi coi mean == 0 là "không có dữ liệu".
   (double, double) _hrMeanStd(List<HealthDataPoint> points) {
     final cutoff = DateTime.now().subtract(const Duration(seconds: 60));
     var hrPoints = points
@@ -375,8 +451,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     return super.close();
   }
 
-  // ── Helpers ──────────────────────────────────────────────
-
+  /// Giá trị số mới nhất của một [HealthDataType], hoặc null nếu không có điểm nào.
+  ///
+  /// Health Connect trả về dữ liệu không đảm bảo thứ tự thời gian nên phải tự sắp xếp,
+  /// và bỏ qua các điểm không phải kiểu số (ví dụ bản ghi giấc ngủ).
   double? _latestNumeric(List<HealthDataPoint> points, HealthDataType type) {
     final filtered = points.where((p) => p.type == type).toList();
     if (filtered.isEmpty) return null;
@@ -386,6 +464,10 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     return null;
   }
 
+  /// Tổng số giờ ngủ, tính bằng độ dài các đoạn ngủ chứ không phải một giá trị đo.
+  ///
+  /// Cộng cả ASLEEP, DEEP và REM. Health Connect ghi các giai đoạn này thành những đoạn
+  /// riêng biệt, không chồng lấn, nên cộng thẳng là đúng.
   double _totalSleepHours(List<HealthDataPoint> points) {
     final sleepTypes = {
       HealthDataType.SLEEP_ASLEEP,
@@ -399,6 +481,11 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     return totalMinutes / 60;
   }
 
+  /// Công thức readiness dự phòng khi API không phản hồi.
+  ///
+  /// Thang 100 điểm chia theo trọng số: nhịp tim 40, giấc ngủ 30, số bước 20, SpO2 10.
+  /// Thiếu số bước hoặc SpO2 thì dùng giá trị trung tính (10 và 8) thay vì 0, để dữ
+  /// liệu khuyết không bị hiểu nhầm thành sức khoẻ kém.
   double _computeLocalScore({
     required double heartRate,
     required double sleepHours,
@@ -417,6 +504,8 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     return hrScore + sleepScore + stepsScore + spo2Score;
   }
 
+  /// Tổng năng lượng hoạt động đã đốt. Trả về null (chứ không phải 0) khi hoàn toàn
+  /// không có bản ghi nào, để phân biệt "chưa có dữ liệu" với "chưa vận động".
   double? _totalCalories(List<HealthDataPoint> points) {
     double total = 0;
     bool found = false;

@@ -1,17 +1,22 @@
+import 'package:fe/core/config/app_config.dart';
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/core/widgets/demo_mode_banner.dart';
+import 'package:fe/data/mock_data/mock_users.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:fe/presentation/auth/widgets/auth_logo_header.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'google_web_button_stub.dart'
-    if (dart.library.html) 'google_web_button_impl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/toast_utils.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../bloc/auth_form_bloc.dart';
-import '../widgets/auth_logo_header.dart';
+// Conditional import: bản `_impl` dùng dart:js_interop nên chỉ compile được
+// trên Web; mobile lấy bản `_stub` trả về widget rỗng.
+import 'package:fe/presentation/auth/view/google_web_button_stub.dart'
+    if (dart.library.html) 'package:fe/presentation/auth/view/google_web_button_impl.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -20,9 +25,18 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocProvider(
-        create: (context) => AuthFormBloc(
-          authRepository: RepositoryProvider.of<AuthRepository>(context),
-        ),
+        create: (context) {
+          final bloc = AuthFormBloc(
+            authRepository: RepositoryProvider.of<AuthRepository>(context),
+          );
+          // Chế độ DEMO: điền sẵn tài khoản mẫu để bấm "Đăng nhập" là vào luôn.
+          if (AppConfig.isDemoMode) {
+            bloc
+              ..add(EmailChanged(MockUsers.demoEmail))
+              ..add(PasswordChanged(MockUsers.demoPassword));
+          }
+          return bloc;
+        },
         child: const LoginView(),
       ),
     );
@@ -60,6 +74,8 @@ class LoginView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const AuthLogoHeader(),
+              // Chỉ hiện khi DEMO_MODE=true, ngoài ra là SizedBox.shrink().
+              const DemoModeBanner(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSize.p24,
@@ -139,10 +155,27 @@ class LoginForm extends StatelessWidget {
   }
 }
 
-class _EmailInput extends StatelessWidget {
+class _EmailInput extends StatefulWidget {
+  @override
+  State<_EmailInput> createState() => _EmailInputState();
+}
+
+class _EmailInputState extends State<_EmailInput> {
+  // Chế độ DEMO điền sẵn email mẫu (bloc đã được prefill tương ứng ở LoginPage).
+  late final TextEditingController _controller = TextEditingController(
+    text: AppConfig.isDemoMode ? MockUsers.demoEmail : '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: _controller,
       onChanged: (email) =>
           context.read<AuthFormBloc>().add(EmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
@@ -162,9 +195,21 @@ class _PasswordInput extends StatefulWidget {
 class _PasswordInputState extends State<_PasswordInput> {
   bool _isObscured = true;
 
+  // Chế độ DEMO điền sẵn mật khẩu mẫu (bloc đã được prefill ở LoginPage).
+  late final TextEditingController _controller = TextEditingController(
+    text: AppConfig.isDemoMode ? MockUsers.demoPassword : '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: _controller,
       onChanged: (password) =>
           context.read<AuthFormBloc>().add(PasswordChanged(password)),
       obscureText: _isObscured,

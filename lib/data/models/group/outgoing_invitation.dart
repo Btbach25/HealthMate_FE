@@ -6,9 +6,12 @@ import 'package:fe/data/enums/login_provider.dart';
 import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/enums/user_role.dart';
 import 'package:fe/data/enums/user_status.dart';
-import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/models/group/family_group.dart';
+import 'package:fe/data/models/user/user.dart';
 
+/// Lời mời do nhóm gửi đi và đang chờ phản hồi.
+/// Ánh xạ `GET /groups/:id/invitations` và `GET /groups/:id/pending-approvals`
+/// (owner mới gọi được).
 class OutgoingInvitation extends Equatable {
   final String id;
   final String groupId;

@@ -1,31 +1,42 @@
 import 'dart:convert';
+
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-/// Base API client for making HTTP requests
-/// This class provides a clean abstraction for API calls
-/// and can be easily extended or replaced with different implementations
+/// HTTP client dùng chung cho tầng data: ghép base URL, gắn header
+/// `Authorization`, đặt timeout 30s, và quy đổi lỗi HTTP/mạng thành
+/// [ApiException] có message tiếng Việt hiển thị được cho người dùng.
+///
+/// Lớp abstract: chỉ định nghĩa cách gọi, không biết token lấy từ đâu.
+/// Lớp con phải cài [baseUrl] và [getAuthToken] — xem `ApiClientImpl`.
+/// Implementation dùng thật được đăng ký ở
+/// `lib/core/di/app_dependencies.dart` (composition root).
 abstract class ApiClient {
-  /// Base URL for the API
+  /// Gốc URL của API (không có dấu `/` ở cuối).
   String get baseUrl;
 
-  /// Default headers for all requests
+  /// Header mặc định cho mọi request; lớp gọi có thể ghi đè qua
+  /// `additionalHeaders`.
   Map<String, String> get defaultHeaders => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
 
-  /// Get authentication token (to be implemented by subclasses)
+  /// Access token hiện tại, hoặc null nếu chưa đăng nhập. Lớp con tự quyết
+  /// định nguồn token (storage, memory...).
   Future<String?> getAuthToken();
 
-  /// Build full URL from endpoint
+  /// Ghép [endpoint] vào [baseUrl]. Nếu [endpoint] đã là URL tuyệt đối
+  /// (bắt đầu bằng `http`) thì dùng nguyên vẹn — cho phép gọi service ngoài.
   Uri buildUrl(String endpoint) {
     final url = endpoint.startsWith('http') ? endpoint : '$baseUrl$endpoint';
     return Uri.parse(url);
   }
 
-  /// Build headers with authentication
+  /// Dựng header cho một request. Chỉ gắn `Authorization` khi [includeAuth]
+  /// true VÀ [getAuthToken] trả về token — endpoint public (login, register)
+  /// phải truyền `includeAuth: false`.
   Future<Map<String, String>> buildHeaders({
     Map<String, String>? additionalHeaders,
     bool includeAuth = true,
@@ -46,7 +57,11 @@ abstract class ApiClient {
     return headers;
   }
 
-  /// Handle HTTP response and convert to appropriate exception
+  /// Parse response 2xx bằng [parser]; ngoài 2xx thì ném [ApiException]
+  /// tương ứng với status code.
+  ///
+  /// Body rỗng được truyền vào [parser] dưới dạng `null` (BE hay trả 204 /
+  /// body rỗng cho DELETE), nên [parser] phải chịu được `null`.
   T handleResponse<T>(http.Response response, T Function(dynamic) parser) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       try {
@@ -63,7 +78,8 @@ abstract class ApiClient {
     }
   }
 
-  /// Handle error response and throw appropriate exception
+  /// Quy đổi response ngoài 2xx thành [ApiException] cụ thể theo status
+  /// code, kèm message lấy từ body nếu BE có trả.
   ApiException _handleErrorResponse(http.Response response) {
     final statusCode = response.statusCode;
     dynamic errorData;
@@ -73,7 +89,8 @@ abstract class ApiClient {
         errorData = json.decode(response.body);
       }
     } catch (_) {
-      // Ignore JSON decode errors
+      // Body không phải JSON hợp lệ (BE có thể trả HTML lỗi từ gateway)
+      // -> bỏ qua, dùng message mặc định theo status code.
     }
 
     final preview = response.body.length > 300
@@ -121,12 +138,12 @@ abstract class ApiClient {
     }
   }
 
-  /// Extract error message from error response
+  /// Lấy message lỗi từ body JSON, hoặc null nếu không tìm thấy.
   String? _extractErrorMessage(dynamic errorData) {
     if (errorData == null) return null;
 
     if (errorData is Map<String, dynamic>) {
-      // Try common error message fields
+      // BE không thống nhất tên field chứa message lỗi -> thử lần lượt.
       return errorData['message'] as String? ??
           errorData['error'] as String? ??
           errorData['msg'] as String?;
@@ -135,7 +152,7 @@ abstract class ApiClient {
     return null;
   }
 
-  /// Extract validation errors from error response
+  /// Lấy map lỗi theo từng field cho response 422 (`errors`).
   Map<String, List<String>>? _extractValidationErrors(dynamic errorData) {
     if (errorData is Map<String, dynamic>) {
       final errors = errorData['errors'] as Map<String, dynamic>?;
@@ -151,7 +168,11 @@ abstract class ApiClient {
     return null;
   }
 
-  /// Handle network errors and convert to appropriate exception
+  /// Quy đổi lỗi tầng mạng thành [ApiException].
+  ///
+  /// Nhận diện bằng cách dò chuỗi trong thông báo lỗi vì `package:http`
+  /// ném kiểu khác nhau trên từng nền tảng (web vs mobile) — cách này thô
+  /// nhưng là cách duy nhất phân biệt được CORS/timeout/mất mạng.
   ApiException handleNetworkError(dynamic error) {
     if (error is ApiException) {
       return error;
@@ -188,7 +209,10 @@ abstract class ApiClient {
     );
   }
 
-  /// GET request
+  /// GET [endpoint], timeout 30s.
+  ///
+  /// Nếu [parser] null thì trả về thẳng `http.Response` (caller phải khai
+  /// báo `T` là `http.Response`, nếu không sẽ lỗi cast lúc chạy).
   Future<T> get<T>(
     String endpoint, {
     Map<String, String>? queryParameters,
@@ -228,7 +252,8 @@ abstract class ApiClient {
     }
   }
 
-  /// POST request
+  /// POST [endpoint] với [body] được encode JSON; timeout 30s.
+  /// Ràng buộc [parser] giống [get].
   Future<T> post<T>(
     String endpoint, {
     Map<String, dynamic>? body,
@@ -264,7 +289,8 @@ abstract class ApiClient {
     }
   }
 
-  /// PUT request
+  /// PUT [endpoint] với [body] được encode JSON; timeout 30s.
+  /// Ràng buộc [parser] giống [get].
   Future<T> put<T>(
     String endpoint, {
     Map<String, dynamic>? body,
@@ -300,7 +326,7 @@ abstract class ApiClient {
     }
   }
 
-  /// DELETE request
+  /// DELETE [endpoint], timeout 30s. Ràng buộc [parser] giống [get].
   Future<T> delete<T>(
     String endpoint, {
     Map<String, String>? headers,

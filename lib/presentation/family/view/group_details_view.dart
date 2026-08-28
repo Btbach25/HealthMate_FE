@@ -1,28 +1,38 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/utils/user_id_utils.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/utils/user_id_utils.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
-import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
+import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
-import 'package:fe/presentation/family/view/group_details_members.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
-import 'package:fe/presentation/family/widgets/family_app_bar.dart';
-import 'package:fe/presentation/family/widgets/family_member_card.dart';
+import 'package:fe/presentation/family/view/group_details_members.dart';
 import 'package:fe/presentation/family/widgets/add_member_modal.dart';
-import 'package:fe/presentation/family/widgets/family_member_metrics_dialog.dart';
 import 'package:fe/presentation/family/widgets/edit_member_permissions_dialog.dart';
 import 'package:fe/presentation/family/widgets/edit_my_sharing_dialog.dart';
+import 'package:fe/presentation/family/widgets/family_app_bar.dart';
+import 'package:fe/presentation/family/widgets/family_member_card.dart';
+import 'package:fe/presentation/family/widgets/family_member_metrics_dialog.dart';
 import 'package:fe/presentation/family/widgets/group_medication_share_dialog.dart';
 import 'package:fe/presentation/family/widgets/transfer_ownership_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+/// Màn chi tiết một nhóm — route `/family/group/:groupId`, mở khi bấm vào thẻ
+/// nhóm ở tab Gia đình.
+///
+/// Hiển thị danh sách thành viên, khu chia sẻ nhắc thuốc, và với chủ nhóm là cả
+/// khu "Yêu cầu chờ duyệt". Ai cũng sửa được chỉ số **mình** chia sẻ; chỉ chủ nhóm
+/// mới xoá được thành viên hoặc thu hẹp quyền của người khác.
+///
+/// Rời nhóm rẽ ba nhánh (xem `_showLeaveGroupDialog`): chủ nhóm còn thành viên
+/// khác phải chuyển quyền trước, chủ nhóm ở một mình thì rời = xoá nhóm, thành
+/// viên thường chỉ cần xác nhận.
 class GroupDetailsView extends StatefulWidget {
   final String groupId;
 
@@ -200,7 +210,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                       children: [
                         const FamilyAppBar(),
                         const SizedBox(height: AppSize.spacing24),
-                        // Navigation bar
+
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final compact = constraints.maxWidth < 360;
@@ -295,7 +305,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           },
                         ),
                         const SizedBox(height: AppSize.spacing24),
-                        // Title
+
                         const Text(
                           'Thành viên gia đình',
                           style: AppTextStyles.h2,
@@ -407,7 +417,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                             ],
                           ),
                         ),
-                        // Banner: current user has no sharing configured yet.
+                        // Nhắc người dùng chưa bật chia sẻ chỉ số nào với nhóm.
                         if (details.group.sharedMetrics.isEmpty) ...[
                           const SizedBox(height: AppSize.spacing16),
                           InkWell(
@@ -462,7 +472,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           ),
                         if (isCurrentUserOwner)
                           const SizedBox(height: AppSize.spacing20),
-                        // Add member button
+
                         SizedBox(
                           width: double.infinity,
                           child: Container(
@@ -561,6 +571,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
     );
   }
 
+  /// Mở [AddMemberModal] để mời thêm người bằng email.
   void _showAddMemberModal(BuildContext context, String groupId) {
     final bloc = context.read<FamilyBloc>();
     final allowedMetrics = bloc.state.groupDetails?.group.sharedMetrics ?? const [];
@@ -594,6 +605,10 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
     });
   }
 
+  /// Rẽ nhánh luồng rời nhóm theo vai trò và số thành viên còn lại:
+  /// chủ nhóm + còn người khác  → bắt chuyển quyền trước ([TransferOwnershipModal]);
+  /// chủ nhóm + ở một mình      → rời nhóm chính là xoá nhóm, cần xác nhận rõ;
+  /// thành viên thường          → chỉ hỏi xác nhận.
   void _showLeaveGroupDialog(BuildContext context, GroupDetails details) {
     final authUser = context.read<AuthBloc>().state.user;
     final isOwner =
@@ -606,7 +621,6 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
     final hasOtherMembers = otherMembers.isNotEmpty;
 
     if (isOwner && hasOtherMembers) {
-      // Show transfer ownership modal first
       showDialog(
         context: context,
         builder: (context) => TransferOwnershipModal(
@@ -634,7 +648,6 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
         },
       );
     } else {
-      // Show confirmation dialog for non-owners
       _showLeaveConfirmationDialog(context, details.group.id);
     }
   }
@@ -767,6 +780,8 @@ class _PendingApprovalsSectionState extends State<_PendingApprovalsSection> {
   }
 }
 
+/// Một dòng yêu cầu chờ duyệt kèm hai nút Duyệt / Từ chối (chỉ chủ nhóm thấy).
+/// `memberId` gửi lên là user id của người được mời (`invitation.invitee.id`).
 class _PendingApprovalTile extends StatelessWidget {
   final OutgoingInvitation invitation;
   final String groupId;

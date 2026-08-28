@@ -1,7 +1,33 @@
-/// Helper class for form validation
-/// Provides reusable validation logic
+/// Các validator dùng cho `TextFormField.validator` trong toàn app.
+///
+/// Mọi hàm ở đây theo đúng hợp đồng của Flutter Form: trả `null` khi hợp lệ,
+/// trả chuỗi lỗi **tiếng Việt** khi không hợp lệ — nối thẳng vào `validator:`
+/// được ngay.
+///
+/// Tham số `fieldName` đi vào giữa câu lỗi nên hãy truyền dạng thường,
+/// không viết hoa: `'họ tên'` → "Vui lòng nhập họ tên".
+///
+/// ```dart
+/// ProfileTextField(
+///   controller: _emailCtrl,
+///   label: 'Email',
+///   validator: FormValidationHelper.validateEmail,
+/// )
+/// ```
+///
+/// Cần ghép nhiều luật thì gọi lần lượt và trả lỗi đầu tiên:
+///
+/// ```dart
+/// validator: (v) =>
+///     FormValidationHelper.validateRequired(v, fieldName: 'tên nhóm') ??
+///     FormValidationHelper.validateMaxLength(v, 50, fieldName: 'Tên nhóm'),
+/// ```
 class FormValidationHelper {
-  /// Validates email format
+  /// Bắt buộc nhập + đúng dạng `a@b.c`.
+  ///
+  /// Cố ý chỉ kiểm tra thô (có `@`, có dấu chấm ở phần miền): email hợp lệ
+  /// thật hay không do backend xác nhận, regex chặt hơn chỉ làm người dùng
+  /// bị chặn oan với các miền lạ.
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng nhập email';
@@ -14,7 +40,7 @@ class FormValidationHelper {
     return null;
   }
 
-  /// Validates required field
+  /// Bắt buộc nhập. Chuỗi chỉ toàn khoảng trắng cũng bị coi là bỏ trống.
   static String? validateRequired(String? value, {String? fieldName}) {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng nhập ${fieldName ?? 'thông tin này'}';
@@ -22,8 +48,12 @@ class FormValidationHelper {
     return null;
   }
 
-  /// Validates minimum length
-  static String? validateMinLength(String? value, int minLength, {String? fieldName}) {
+  /// Bắt buộc nhập + tối thiểu [minLength] ký tự (đếm sau khi trim).
+  static String? validateMinLength(
+    String? value,
+    int minLength, {
+    String? fieldName,
+  }) {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng nhập ${fieldName ?? 'thông tin này'}';
     }
@@ -33,15 +63,25 @@ class FormValidationHelper {
     return null;
   }
 
-  /// Validates maximum length
-  static String? validateMaxLength(String? value, int maxLength, {String? fieldName}) {
+  /// Tối đa [maxLength] ký tự.
+  ///
+  /// KHÔNG bắt buộc nhập — bỏ trống vẫn hợp lệ. Ghép với [validateRequired]
+  /// nếu trường đó bắt buộc.
+  static String? validateMaxLength(
+    String? value,
+    int maxLength, {
+    String? fieldName,
+  }) {
     if (value != null && value.trim().length > maxLength) {
       return '${fieldName ?? 'Thông tin'} không được vượt quá $maxLength ký tự';
     }
     return null;
   }
 
-  /// Validates date is not in the future
+  /// Ngày không được ở tương lai — dùng cho ngày sinh, ngày đo chỉ số.
+  ///
+  /// Nhận `DateTime` (không phải `String`) nên gọi thủ công từ ngày đang giữ
+  /// trong state, chứ không gắn vào `validator:` của ô nhập được.
   static String? validateDateNotFuture(DateTime? date, {String? fieldName}) {
     if (date != null && date.isAfter(DateTime.now())) {
       return '${fieldName ?? 'Ngày'} không thể lớn hơn ngày hiện tại';
@@ -49,7 +89,10 @@ class FormValidationHelper {
     return null;
   }
 
-  /// Validates phone number (Vietnamese format)
+  /// Số điện thoại Việt Nam: bắt đầu bằng `0` hoặc `+84`, theo sau 9-10 chữ số.
+  ///
+  /// Khoảng trắng và gạch nối được bỏ trước khi khớp, nên người dùng gõ
+  /// "090 123 4567" vẫn qua.
   static String? validatePhoneNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Vui lòng nhập số điện thoại';
@@ -63,4 +106,3 @@ class FormValidationHelper {
     return null;
   }
 }
-

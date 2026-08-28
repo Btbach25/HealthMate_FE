@@ -3,8 +3,26 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable text field widget for profile settings
-/// Standardized styling and behavior
+/// Ô nhập văn bản chuẩn của app (nền xám nhạt, bo 12, viền primary khi focus).
+///
+/// Là `TextFormField` nên dùng được trực tiếp với [validator] bên trong `Form`.
+/// Hãy dùng widget này thay vì tự dựng `TextFormField` + `InputDecoration`,
+/// để mọi form trong app giữ chung một kiểu.
+///
+/// Phân biệt hai cờ:
+/// - [enabled] = false: ô bị vô hiệu hoá (chế độ xem hồ sơ), chữ đậm hơn và
+///   xám đi.
+/// - [readOnly] = true: ô vẫn "sáng" và nhận [onTap] nhưng không gõ được —
+///   dùng cho ô mở picker (chọn ngày, chọn giờ).
+///
+/// ```dart
+/// ProfileTextField(
+///   controller: _nameCtrl,
+///   label: 'Họ tên',
+///   icon: Icons.person_outline,
+///   validator: (v) => FormValidationHelper.validateRequired(v, fieldName: 'họ tên'),
+/// )
+/// ```
 class ProfileTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;

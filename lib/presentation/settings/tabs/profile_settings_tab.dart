@@ -14,10 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-/// Tab hồ sơ trong Settings (form dài: nhiều controller + dị ứng + ngày sinh).
-/// Khi sửa, tìm theo nhánh `_build…` / section trong [build].
+// Tab hồ sơ trong Settings — form dài nhất app: 7 controller + danh sách dị
+// ứng + ngày sinh tách 3 phần. Toàn bộ giao diện nằm trong một [build] duy
+// nhất, chia theo các comment section ("Profile Header Card", "Basic
+// Information Card", "Health Information Card", "Allergies Card", "Action
+// Buttons") — dùng chúng để định vị khi sửa.
 
-/// BE/DB: male | female | other
+/// Ánh xạ giới tính giữa nhãn hiển thị và giá trị API.
+/// Hợp đồng BE/DB: chỉ nhận `male` | `female` | `other`.
 const _genderUiToApi = {'Nam': 'male', 'Nữ': 'female', 'Khác': 'other'};
 const _genderApiToUi = {'male': 'Nam', 'female': 'Nữ', 'other': 'Khác'};
 
@@ -45,6 +49,20 @@ void _setControllerText(TextEditingController controller, String text) {
   );
 }
 
+/// Tab "Hồ sơ" trong [SettingsView]: xem và sửa thông tin cá nhân, chỉ số cơ
+/// thể và danh sách dị ứng.
+///
+/// Không nhận tham số, nhưng PHỤ THUỘC context: cần [AuthBloc] (đọc user hiện
+/// tại, bắn [AuthUserUpdated] sau khi lưu) và [UserService] ở phía trên trong
+/// cây widget. Chỉ dùng lại được ở nơi có đủ hai thứ đó.
+///
+/// Luồng dữ liệu: hiện tạm dữ liệu từ [AuthBloc] → gọi `getProfile()` lấy bản
+/// chính thức → sau khi lưu thì `getProfile()` lại và đẩy ngược vào [AuthBloc]
+/// để phần còn lại của app (avatar, tên trên AppBar…) cập nhật theo.
+///
+/// Danh sách dị ứng vừa lưu trên server vừa cache ở [LocalStorageService]:
+/// cache là nguồn cho tính năng cảnh báo dị ứng lúc quét đơn thuốc khi offline,
+/// và [_loadUserData] có một bước migrate đẩy cache cũ lên server đúng một lần.
 class ProfileSettingsTab extends StatefulWidget {
   const ProfileSettingsTab({super.key});
 
@@ -112,6 +130,14 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserData());
   }
 
+  /// Nạp hồ sơ: [AuthBloc] trước cho nhanh, rồi ghi đè bằng dữ liệu API.
+  ///
+  /// API lỗi thì im lặng giữ nguyên dữ liệu từ [AuthBloc] — màn hình vẫn dùng
+  /// được, người dùng chỉ không thấy các trường server-only.
+  ///
+  /// Bước cuối là migrate một lần: tài khoản cũ có dị ứng lưu ở máy nhưng
+  /// server trả rỗng thì đẩy bản local lên. Chỉ chạy khi server rỗng nên không
+  /// bao giờ ghi đè dữ liệu server đã có.
   Future<void> _loadUserData() async {
     final authUser = context.read<AuthBloc>().state.user;
     if (authUser.isNotEmpty) {
@@ -402,8 +428,11 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     }
   }
 
-  /// On Flutter web, clearing while IME composing can leave stale composing range.
-  /// Reset value explicitly to keep selection/composing in valid bounds.
+  /// Xoá ô nhập dị ứng.
+  ///
+  /// Trên Flutter web, gán `text = ''` trong lúc IME đang gõ dở để lại vùng
+  /// composing cũ không còn hợp lệ. Gán nguyên cả [TextEditingValue] để
+  /// selection/composing luôn nằm trong biên.
   void _resetCustomAllergyInput() {
     _customAllergyController.value = const TextEditingValue(
       text: '',

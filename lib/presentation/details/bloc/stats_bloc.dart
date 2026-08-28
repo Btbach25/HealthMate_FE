@@ -9,6 +9,19 @@ import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 part 'stats_event.dart';
 part 'stats_state.dart';
 
+/// Bloc của màn Chỉ số sức khỏe, được tạo trong `StatsPage`.
+///
+/// Chiến lược dữ liệu 2 tầng: ưu tiên số liệu từ BE; nếu BE lỗi HOẶC trả về
+/// rỗng thì suy ra số liệu từ cảm biến điện thoại qua [DeviceHealthCubit] +
+/// `DeviceStatsConverter` và bật cờ [StatsState.isFromDevice] để UI báo cho
+/// người dùng biết nguồn dữ liệu.
+///
+/// Vì vậy mọi lỗi mạng đều bị nuốt (`catch (_) {}`) và bloc gần như không bao
+/// giờ phát [StatsStatus.error] — trường hợp xấu nhất là `loaded` với
+/// `StatsPageData.empty()` để view hiện màn "Kéo xuống để tải lại".
+///
+/// [_deviceCubit] có thể null (ví dụ trong test hoặc khi chưa cấp quyền cảm
+/// biến), khi đó fallback đơn giản là không có dữ liệu.
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
   final StatsRepository _statsRepository;
   final DeviceHealthCubit? _deviceCubit;
@@ -29,6 +42,8 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     FetchStatsData event,
     Emitter<StatsState> emit,
   ) async {
+    // Đưa chartStatus về initial để tab Biểu đồ fetch lại khi được mở: dữ liệu
+    // biểu đồ cũ không còn khớp với lần tải mới.
     emit(
       state.copyWith(
         status: StatsStatus.loading,
@@ -52,27 +67,8 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
         return;
       }
     } catch (_) {}
-    // BE trả empty hoặc lỗi → thử device fallback
-    final fallback = _deviceFallback();
-    if (fallback != null) {
-      emit(
-        state.copyWith(
-          status: StatsStatus.loaded,
-          statsData: fallback,
-          isFromDevice: true,
-        ),
-      );
-    } else {
-      // Device data chưa sẵn sàng → emit empty để view hiện "Kéo xuống"
-      // TryDeviceFallback sẽ cập nhật khi DeviceHealthCubit hoàn thành
-      emit(
-        state.copyWith(
-          status: StatsStatus.loaded,
-          statsData: StatsPageData.empty(),
-          isFromDevice: false,
-        ),
-      );
-    }
+    // BE trả rỗng hoặc lỗi -> thử dữ liệu từ thiết bị.
+    _emitDeviceFallbackOrEmpty(emit);
   }
 
   Future<void> _onChangeRange(
@@ -103,6 +99,14 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
         return;
       }
     } catch (_) {}
+    _emitDeviceFallbackOrEmpty(emit);
+  }
+
+  /// Phần kết dùng chung của [_onFetchStatsData] và [_onChangeRange]: có dữ
+  /// liệu thiết bị thì dùng, không thì emit rỗng (KHÔNG emit lỗi) để view hiện
+  /// hướng dẫn "Kéo xuống để tải lại". [TryDeviceFallback] sẽ cập nhật sau nếu
+  /// [DeviceHealthCubit] thu được điểm đo muộn hơn.
+  void _emitDeviceFallbackOrEmpty(Emitter<StatsState> emit) {
     final fallback = _deviceFallback();
     if (fallback != null) {
       emit(
@@ -124,7 +128,8 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
   }
 
   void _onTryDeviceFallback(TryDeviceFallback event, Emitter<StatsState> emit) {
-    // Bỏ qua nếu đã có data thật từ server
+    // Không ghi đè dữ liệu thật từ server: event này được bắn lặp lại mỗi khi
+    // cảm biến có thêm điểm đo, kể cả khi màn hình đang hiển thị data của BE.
     final hasServerData =
         state.status == StatsStatus.loaded &&
         !state.isFromDevice &&
@@ -143,12 +148,14 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     }
   }
 
-  StatsPageData? _deviceFallback({String? range}) {
+  /// Trả về `null` khi thiết bị chưa có điểm đo nào hoặc converter không dựng
+  /// được chỉ số nào — người gọi phải coi `null` là "không có fallback".
+  StatsPageData? _deviceFallback() {
     final points = _deviceCubit?.lastPoints ?? [];
     if (points.isEmpty) return null;
     final data = DeviceStatsConverter.toStatsPageData(
       points,
-      range: range ?? state.selectedRange,
+      range: state.selectedRange,
     );
     return data.metrics.isEmpty ? null : data;
   }
@@ -157,6 +164,8 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
     FetchChartData event,
     Emitter<StatsState> emit,
   ) async {
+    // Chốt chặn cho lazy loader: nó gọi event ngay trong builder, nên nếu
+    // không chặn theo chartStatus thì mỗi lần rebuild sẽ fetch lại một lần.
     if (state.chartStatus != ChartStatus.initial) return;
 
     emit(state.copyWith(chartStatus: ChartStatus.loading));
@@ -172,7 +181,8 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
       }
     } catch (_) {}
 
-    // BE trả empty/lỗi → fallback device
+    // BE trả rỗng/lỗi -> dựng biểu đồ từ dữ liệu thiết bị. Vẫn emit `loaded`
+    // với danh sách rỗng để view hiện "Không có dữ liệu biểu đồ".
     final points = _deviceCubit?.lastPoints ?? [];
     final deviceCharts = points.isNotEmpty
         ? DeviceStatsConverter.toChartData(points, range: state.selectedRange)

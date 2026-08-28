@@ -1,15 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:fe/core/config/api_base_url.dart';
-import 'package:fe/data/services/local_storage_service.dart';
-import 'package:http/http.dart' as http;
-import 'package:google_sign_in/google_sign_in.dart';
 
-import '../models/user/auth_response.dart';
-import '../models/user/user.dart';
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/converter.dart';
+import 'package:fe/data/models/user/auth_response.dart';
+import 'package:fe/data/models/user/user.dart';
+import 'package:fe/data/services/local_storage_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
+/// Hợp đồng xác thực người dùng: đăng nhập (email/mật khẩu, Google), đăng ký,
+/// đăng xuất, làm mới access token và luồng quên mật khẩu (OTP).
+///
+/// Chỉ chịu trách nhiệm gọi API `/auth/...` và lưu token/user xuống
+/// [LocalStorageService]; không quản lý trạng thái đăng nhập của UI —
+/// việc đó thuộc `AuthRepository`.
+///
+/// Muốn đổi nguồn dữ liệu (mock / API khác), implement lại interface này rồi
+/// đăng ký implementation ở `lib/core/di/app_dependencies.dart` (composition root).
 abstract class AuthService {
   Future<User?> login({required String email, required String password});
   Future<User?> loginWithGoogle({String? idToken});
@@ -28,17 +37,23 @@ abstract class AuthService {
 
 class AuthApiService implements AuthService {
   final LocalStorageService _localStorage;
-  static const _googleClientId = '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
+
+  /// Web dùng `clientId`, Android/iOS dùng `serverClientId` — cả hai đều là
+  /// OAuth **Web client ID** để backend verify được `idToken` trả về.
   final _googleSignIn = GoogleSignIn(
-    // Web dùng clientId, Android/iOS dùng serverClientId để lấy idToken cho BE
     clientId: kIsWeb ? _googleClientId : null,
     serverClientId: kIsWeb ? null : _googleClientId,
   );
 
+  static String? get _googleClientId {
+    final id = AppConfig.googleClientId;
+    return id.isEmpty ? null : id;
+  }
+
   AuthApiService(this._localStorage);
 
   /// Phải trùng api-gateway (mặc định :8080, path `/auth/...`).
-  String get baseUrl => resolveApiBaseUrl();
+  String get baseUrl => AppConfig.apiBaseUrl;
 
   @override
   Future<User?> login({required String email, required String password}) async {

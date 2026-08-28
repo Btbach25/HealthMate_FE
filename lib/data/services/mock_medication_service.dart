@@ -1,124 +1,79 @@
+import 'package:fe/data/mock_data/mock_medications_data.dart';
 import 'package:fe/data/models/medication/medication.dart';
-import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
 import 'package:fe/data/models/medication/medication_share.dart';
 import 'package:fe/data/services/medication_service.dart';
+import 'package:flutter/foundation.dart';
 
+/// [MedicationService] giả lập cho chế độ DEMO — **có state trong bộ nhớ**.
+///
+/// Dữ liệu khởi tạo lấy từ `MockMedicationsData`; sau đó mọi thao tác (thêm,
+/// xoá, đánh dấu đã uống, chia sẻ/huỷ chia sẻ) đều thay đổi thật trên bản sao
+/// trong RAM nên demo có cảm giác như app thật. State mất khi tắt app.
 class MockMedicationService implements MedicationService {
   final List<Medication> _medications;
-  final Map<String, List<MedicationShare>> _sharesByMedicationId = {};
+  final Map<String, List<MedicationShare>> _sharesByMedicationId;
 
-  MockMedicationService() : _medications = _buildMockData();
+  MockMedicationService()
+      : _medications = List<Medication>.from(MockMedicationsData.medications),
+        _sharesByMedicationId = {
+          for (final entry in MockMedicationsData.sharesByMedicationId.entries)
+            entry.key: List<MedicationShare>.from(entry.value),
+        };
 
-  static List<Medication> _buildMockData() {
-    final now = DateTime.now();
-    final takenAt8 = DateTime(now.year, now.month, now.day, 8, 5);
+  int _shareCounter = 0;
 
-    return [
-      Medication(
-        id: 'med-001',
-        userId: 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d',
-        name: 'Lisinopril',
-        dosage: '10mg',
-        frequency: const MedicationFrequency(
-          type: MedicationFrequencyType.daily,
-          timesPerDay: 1,
-          specificTimes: ['08:00'],
-        ),
-        startDate: '2026-02-01',
-        instructions: 'Uống trước ăn',
-        prescribedBy: 'BS. Nguyễn Văn A',
-        reminders: [
-          MedicationReminder(
-            id: 'rem-001',
-            medicationId: 'med-001',
-            time: '08:00',
-            lastTaken: takenAt8,
-          ),
-        ],
-      ),
-      Medication(
-        id: 'med-002',
-        userId: 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d',
-        name: 'Omega-3',
-        dosage: '1000mg',
-        frequency: const MedicationFrequency(
-          type: MedicationFrequencyType.daily,
-          timesPerDay: 2,
-          specificTimes: ['08:00', '20:00'],
-        ),
-        startDate: '2026-02-01',
-        instructions: 'Uống sau ăn',
-        reminders: [
-          MedicationReminder(
-            id: 'rem-002',
-            medicationId: 'med-002',
-            time: '08:00',
-            lastTaken: takenAt8,
-          ),
-          const MedicationReminder(
-            id: 'rem-003',
-            medicationId: 'med-002',
-            time: '20:00',
-          ),
-        ],
-      ),
-      const Medication(
-        id: 'med-003',
-        userId: 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d',
-        name: 'Vitamin D3',
-        dosage: '1000 IU',
-        frequency: MedicationFrequency(
-          type: MedicationFrequencyType.daily,
-          timesPerDay: 1,
-          specificTimes: ['19:00'],
-        ),
-        startDate: '2026-02-01',
-        instructions: 'Uống sau ăn',
-        reminders: [
-          MedicationReminder(
-            id: 'rem-004',
-            medicationId: 'med-003',
-            time: '19:00',
-          ),
-        ],
-      ),
-    ];
-  }
+  Future<void> _delay([int milliseconds = 300]) =>
+      Future<void>.delayed(Duration(milliseconds: milliseconds));
 
   @override
   Future<List<Medication>> getMedications() async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    return List.from(_medications);
+    await _delay(450);
+    return List<Medication>.from(_medications);
   }
 
   @override
   Future<Medication> addMedication(Medication medication) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _medications.add(medication);
-    return medication;
-  }
+    await _delay();
 
-  @override
-  Future<void> deleteMedication(String medicationId) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    _medications.removeWhere((m) => m.id == medicationId);
+    // UI thường tạo sẵn reminders; nếu thiếu thì suy ra từ giờ uống đã chọn.
+    final withReminders = medication.reminders.isNotEmpty
+        ? medication
+        : medication.copyWith(
+            reminders: medication.frequency.specificTimes
+                .asMap()
+                .entries
+                .map(
+                  (e) => MedicationReminder(
+                    id: '${medication.id}-r${e.key + 1}',
+                    medicationId: medication.id,
+                    time: e.value,
+                  ),
+                )
+                .toList(),
+          );
+
+    _medications.add(withReminders);
+    debugPrint('[MockMedication] Đã thêm thuốc DEMO: ${withReminders.name}');
+    return withReminders;
   }
 
   @override
   Future<List<Medication>> takeMedication(
-      String medicationId, String reminderId) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    String medicationId,
+    String reminderId,
+  ) async {
+    await _delay(150);
 
     final medIndex = _medications.indexWhere((m) => m.id == medicationId);
-    if (medIndex < 0) return List.from(_medications);
+    if (medIndex < 0) return List<Medication>.from(_medications);
 
     final med = _medications[medIndex];
-    final reminderIndex =
-        med.reminders.indexWhere((r) => r.id == reminderId);
-    if (reminderIndex < 0) return List.from(_medications);
+    final reminderIndex = med.reminders.indexWhere((r) => r.id == reminderId);
+    if (reminderIndex < 0) return List<Medication>.from(_medications);
 
     final reminder = med.reminders[reminderIndex];
+    // Bấm lại lần nữa = bỏ đánh dấu (giống hành vi của service thật).
     final updated = reminder.isTakenToday
         ? reminder.copyWith(clearLastTaken: true)
         : reminder.copyWith(lastTaken: DateTime.now());
@@ -127,13 +82,22 @@ class MockMedicationService implements MedicationService {
     updatedReminders[reminderIndex] = updated;
     _medications[medIndex] = med.copyWith(reminders: updatedReminders);
 
-    return List.from(_medications);
+    return List<Medication>.from(_medications);
+  }
+
+  @override
+  Future<void> deleteMedication(String medicationId) async {
+    await _delay(250);
+    _medications.removeWhere((m) => m.id == medicationId);
+    _sharesByMedicationId.remove(medicationId);
   }
 
   @override
   Future<List<MedicationShare>> getMedicationShares(String medicationId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    return List<MedicationShare>.from(_sharesByMedicationId[medicationId] ?? []);
+    await _delay(200);
+    return List<MedicationShare>.from(
+      _sharesByMedicationId[medicationId] ?? const <MedicationShare>[],
+    );
   }
 
   @override
@@ -143,11 +107,13 @@ class MockMedicationService implements MedicationService {
     required String sharedWithUserId,
     int notifyOffsetMinutes = 0,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    final current = _sharesByMedicationId.putIfAbsent(medicationId, () => []);
-    current.add(
+    await _delay(250);
+    final shares =
+        _sharesByMedicationId.putIfAbsent(medicationId, () => <MedicationShare>[]);
+    _shareCounter++;
+    shares.add(
       MedicationShare(
-        id: 'share-${current.length + 1}',
+        id: 'demo-share-new-$_shareCounter',
         medicationId: medicationId,
         groupId: groupId,
         sharedWithUserId: sharedWithUserId,
@@ -161,10 +127,8 @@ class MockMedicationService implements MedicationService {
     required String medicationId,
     required String shareId,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    final current = _sharesByMedicationId[medicationId];
-    if (current == null) return;
-    current.removeWhere((s) => s.id == shareId);
+    await _delay(200);
+    _sharesByMedicationId[medicationId]?.removeWhere((s) => s.id == shareId);
   }
 
   @override
@@ -172,6 +136,7 @@ class MockMedicationService implements MedicationService {
     required String token,
     required String platform,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 120));
+    await _delay(120);
+    // No-op: demo không có backend để đăng ký token.
   }
 }

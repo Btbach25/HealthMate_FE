@@ -1,3 +1,8 @@
+/// Một bản ghi chia sẻ lịch uống thuốc cho thành viên khác trong nhóm.
+/// Ánh xạ `GET /medications/:id/shares` (JSON snake_case).
+///
+/// `notify_offset_minutes`: số phút trước giờ uống mà người được chia sẻ
+/// nhận thông báo.
 class MedicationShare {
   final String id;
   final String medicationId;

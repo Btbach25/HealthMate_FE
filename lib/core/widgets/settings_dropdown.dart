@@ -3,8 +3,23 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable dropdown widget for settings tabs
-/// Reduces code duplication across settings tabs
+/// Dropdown chọn một chuỗi, dùng chung kiểu viền/nền với `ProfileTextField`.
+///
+/// Dùng ở các tab Cài đặt cho lựa chọn hữu hạn (giới tính, đơn vị, múi giờ…).
+///
+/// Ràng buộc của `DropdownButtonFormField`: [value] phải là `null` hoặc là
+/// một phần tử CÓ trong [items], nếu không Flutter sẽ ném lỗi lúc dựng. Khi
+/// dữ liệu từ backend có thể lạ, hãy lọc trước:
+/// `items.contains(raw) ? raw : null`.
+///
+/// ```dart
+/// SettingsDropdown(
+///   label: 'Giới tính',
+///   value: _gender,
+///   items: const ['Nam', 'Nữ', 'Khác'],
+///   onChanged: (v) => setState(() => _gender = v),
+/// )
+/// ```
 class SettingsDropdown extends StatelessWidget {
   final String label;
   final String? value;

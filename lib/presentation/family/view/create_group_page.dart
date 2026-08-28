@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-/// Deep link `/family/create` opens the same 2-step dialog as the main family UI.
+/// Route `/family/create`: chỉ là lối vào sâu, mở đúng [CreateGroupDialog] 2 bước
+/// mà tab Gia đình vẫn dùng, rồi tự `pop` khi dialog đóng.
+/// Nhờ vậy chỉ có một nơi duy nhất chứa logic tạo nhóm.
 class CreateGroupPage extends StatefulWidget {
   const CreateGroupPage({super.key});
 

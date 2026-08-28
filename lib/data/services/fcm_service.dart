@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:fe/core/config/api_base_url.dart';
+
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/routing/app_router.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,7 +18,7 @@ class FcmService {
 
   FcmService(this._localStorage);
 
-  String get _baseUrl => resolveApiBaseUrl();
+  String get _baseUrl => AppConfig.apiBaseUrl;
 
   /// Khởi tạo FCM: xin permission, lấy token, setup các handler.
   Future<void> init() async {

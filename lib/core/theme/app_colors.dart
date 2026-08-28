@@ -1,5 +1,18 @@
 import 'package:flutter/material.dart';
 
+/// Bảng màu của app — nguồn duy nhất cho mọi màu trong giao diện.
+///
+/// Đừng viết `Color(0xFF...)` trong widget; thiếu màu thì thêm hằng vào đây.
+///
+/// Vài hằng là bí danh của hằng khác (`tagUrgentText = error`,
+/// `heartIconColor = tagUrgentText`). Cố ý như vậy để mô tả *vai trò* chứ
+/// không phải màu cụ thể — sửa `error` là mọi chỗ mang nghĩa "lỗi/khẩn" đổi
+/// theo. Vì thế hãy dùng hằng đúng vai trò, đừng chọn hằng chỉ vì nó ra đúng
+/// màu mình muốn.
+///
+/// Ba `cardShadowList` / `cardShadowHover` / `buttonShadow` là getter (không
+/// phải `const`) vì `BoxShadow` cần dựng ở runtime — nên chúng không dùng
+/// được trong ngữ cảnh `const`.
 class AppColors {
   // Primary Colors
   static const Color primary = Color(0xFF24A66D);
@@ -108,25 +121,30 @@ class AppColors {
     ),
   ];
 
+  /// Màu icon theo tên loại chỉ số; loại chưa khai báo trả về xám.
+  ///
+  /// Hiện chưa nơi nào gọi. Nhận `String` chứ không phải `MetricType` nên
+  /// gõ sai tên chỉ im lặng trả màu xám — cần màu theo chỉ số thì ưu tiên
+  /// `MetricHelper.getMetricOption` (dựa trên enum, sai là báo lỗi ngay).
   static Color getIconColorForType(String type) {
     switch (type) {
       case 'heartRate':
         return heartIconColor;
       case 'weight':
         return weightIconColor;
-      // Thêm các loại khác nếu cần
       default:
-        return Colors.grey; // Màu mặc định
+        return Colors.grey;
     }
   }
 
+  /// Màu nền icon theo tên loại chỉ số — cùng cảnh báo như
+  /// [getIconColorForType].
   static Color getIconBgColorForType(String type) {
     switch (type) {
       case 'heartRate':
         return heartIconBg;
       case 'weight':
         return weightIconBg;
-      // Thêm các loại khác nếu cần
       default:
         return Colors.grey[200]!;
     }

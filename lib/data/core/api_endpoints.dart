@@ -4,8 +4,12 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // ---------- Groups (cần Bearer) ----------
+
+  /// Lưu ý: PHẢI giữ dấu `/` ở cuối. BE trả 404 nếu bỏ dấu `/` cuối
+  /// (chưa rõ nguyên nhân — nghi do cấu hình redirect/route của gateway).
+  /// Đừng "dọn dẹp" dấu `/` này.
   static const String groups = '/groups/';
-  // Chỗ này không rõ tại sao máy t khi để / mới chạy bình thường
+
   static const String groupMetricTypes = '/groups/metric-types';
 
   /// Danh sách lời mời đang chờ (của tôi). API_DOC: GET /groups/invitations

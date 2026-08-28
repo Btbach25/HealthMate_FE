@@ -1,5 +1,7 @@
 import 'package:fe/data/enums/notification_type.dart';
 
+/// Một thông báo liên quan tới nhóm gia đình hiển thị ở trang chủ.
+/// JSON dùng snake_case (`time_ago`, `type`).
 class FamilyNotification {
   final String id;
   final String message;

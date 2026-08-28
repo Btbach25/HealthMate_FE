@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/user/user.dart';
+import 'package:fe/data/models/user/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
   static const String _userKey = 'current_user';

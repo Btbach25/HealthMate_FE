@@ -1,8 +1,8 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/utils/family_state_helper.dart';
 import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/widgets/confirmation_dialog.dart';
 import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
@@ -13,10 +13,10 @@ import 'package:fe/data/models/group/outgoing_invitation.dart';
 import 'package:fe/data/repositories/family_repository.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
-import 'package:fe/presentation/family/widgets/family_management_app_bar.dart';
-import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
 import 'package:fe/presentation/family/widgets/accept_invitation_dialog.dart';
+import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
 import 'package:fe/presentation/family/widgets/edit_group_permissions_dialog.dart';
+import 'package:fe/presentation/family/widgets/family_management_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,6 +26,8 @@ const _kRefreshTimeout = Duration(seconds: 5);
 const _kDialogBarrierAlpha = 0.5;
 const _kEmptyStateHeightFactor = 0.6;
 
+/// Bắn [event] rồi chờ bloc thoát khỏi `loading` để `RefreshIndicator` biết lúc
+/// nào thu vòng xoay. Quá hạn thì thôi — thà kết thúc animation còn hơn treo mãi.
 Future<void> _dispatchAndAwaitFamilyRefresh(
   BuildContext context,
   FamilyEvent event,
@@ -41,6 +43,14 @@ Future<void> _dispatchAndAwaitFamilyRefresh(
   }
 }
 
+/// Màn quản lý nhóm — route `/family/manage`, mở từ nút "Quản lý" ở tab Gia đình.
+///
+/// Ba tab: "Nhóm của tôi" (sửa quyền chung, chỉ chủ nhóm mới thấy nút sửa/sao chép
+/// link), "Lời mời tham gia" (lời mời gửi tới mình — chấp nhận sẽ chuyển sang chờ
+/// chủ nhóm duyệt) và "Lời mời đã gửi" (theo dõi trạng thái lời mời mình đã gửi).
+///
+/// Dữ liệu hai tab lời mời được nạp lười lúc người dùng mở tab, không preload cùng
+/// lúc với danh sách nhóm để tránh ba request song song làm chậm tab đầu.
 class FamilyGroupManagementView extends StatefulWidget {
   const FamilyGroupManagementView({super.key});
 
@@ -52,19 +62,17 @@ class FamilyGroupManagementView extends StatefulWidget {
 class _FamilyGroupManagementViewState
     extends State<FamilyGroupManagementView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final Set<int> _loadedTabs = {0}; // Track which tabs have been loaded
+  /// Các tab đã nạp dữ liệu ít nhất một lần; tab 0 nạp sẵn cùng màn hình.
+  final Set<int> _loadedTabs = {0};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    // Fetch invitations when tab changes
     _tabController.addListener(_onTabChanged);
-    // Fetch initial data for first tab
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final bloc = context.read<FamilyBloc>();
       final state = bloc.state;
-      // Only fetch if not already loaded
       if (state.status == FamilyStatus.initial ||
           state.summary.groups.isEmpty) {
         bloc.add(const FetchFamilyGroups());
@@ -73,15 +81,15 @@ class _FamilyGroupManagementViewState
     });
   }
 
+  /// Nạp lười dữ liệu cho tab vừa mở, mỗi tab đúng một lần, và chỉ khi đang rỗng —
+  /// nhờ vậy chuyển qua lại giữa các tab không nhấp nháy loading.
   void _onTabChanged() {
     if (_tabController.indexIsChanging || !mounted) return;
 
     final bloc = context.read<FamilyBloc>();
     final state = bloc.state;
     final tabIndex = _tabController.index;
-    
-    // Only fetch if tab hasn't been loaded yet or data is empty
-    // This ensures smooth tab switching without unnecessary loading
+
     switch (tabIndex) {
       case 1:
         if (!_loadedTabs.contains(1) && state.incomingInvitations.isEmpty) {
@@ -128,7 +136,7 @@ class _FamilyGroupManagementViewState
         },
         child: BlocBuilder<FamilyBloc, FamilyState>(
         builder: (context, state) {
-          // Only show loading on initial load, not when switching tabs
+          // Chỉ chặn màn hình lúc tải lần đầu; đổi tab thì giữ nguyên nội dung cũ.
           if (FamilyStateHelper.shouldShowLoading(state)) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -142,7 +150,7 @@ class _FamilyGroupManagementViewState
             );
           }
 
-          // Always show content if we have any data, even if loading in background
+          // Có dữ liệu là hiển thị, kể cả khi vẫn còn request chạy nền.
           if (FamilyStateHelper.shouldShowContent(state)) {
             return Center(
               child: ConstrainedBox(
@@ -183,7 +191,7 @@ class _FamilyGroupManagementViewState
                     Expanded(
                       child: TabBarView(
                         controller: _tabController,
-                        physics: const BouncingScrollPhysics(), // Smooth scrolling
+                        physics: const BouncingScrollPhysics(),
                         children: [
                           _MyGroupsTab(
                             groups: state.summary.groups,
@@ -225,6 +233,8 @@ class _FamilyGroupManagementViewState
     );
   }
 
+  /// Sao chép link mời vào clipboard. Lưu ý: domain đang hard-code, chưa gắn với
+  /// deep link thật của ứng dụng.
   void _copyGroupLink(BuildContext context, FamilyGroup group) {
     final link = 'https://healthapp.com/join/${group.id}';
     Clipboard.setData(ClipboardData(text: link));
@@ -235,6 +245,7 @@ class _FamilyGroupManagementViewState
     );
   }
 
+  /// Mở [EditGroupPermissionsDialog]. Nút gọi hàm này chỉ hiện với chủ nhóm.
   void _editGroupPermissions(BuildContext context, FamilyGroup group) {
     final bloc = context.read<FamilyBloc>();
     showDialog<void>(
@@ -249,6 +260,8 @@ class _FamilyGroupManagementViewState
   }
 }
 
+/// Tab "Nhóm của tôi": mọi nhóm người dùng đang tham gia.
+/// Nút sao chép link và sửa nhóm chỉ hiện khi người dùng là chủ nhóm.
 class _MyGroupsTab extends StatelessWidget {
   final List<FamilyGroup> groups;
   final Function(BuildContext, FamilyGroup) onCopyLink;
@@ -467,6 +480,8 @@ class _MyGroupsTab extends StatelessWidget {
   }
 }
 
+/// Tab "Lời mời tham gia": lời mời người khác gửi tới mình.
+/// Chấp nhận sẽ mở [AcceptInvitationDialog] — sau đó còn phải chờ chủ nhóm duyệt.
 class _IncomingInvitationsTab extends StatelessWidget {
   const _IncomingInvitationsTab();
 
@@ -674,6 +689,11 @@ class _IncomingInvitationsTab extends StatelessWidget {
 
 }
 
+/// Xem trước nhóm trước khi phản hồi lời mời — mở từ nút "Xem chi tiết nhóm".
+///
+/// Danh sách thành viên lấy qua `getGroupMembersForInvitee`; người chưa là thành
+/// viên chính thức thường bị BE từ chối, khi đó dialog hiện lời nhắc thay vì lỗi.
+/// Chỉ để xem, không trả về giá trị nào.
 class _InvitationGroupDetailsDialog extends StatefulWidget {
   final IncomingInvitation invitation;
 
@@ -1063,6 +1083,9 @@ class _InvitationGroupDetailsDialogState
   }
 }
 
+/// Tab "Lời mời đã gửi": theo dõi trạng thái từng lời mời mình gửi đi.
+/// `pendingOwnerApproval` nghĩa là người được mời đã đồng ý và đang chờ mình duyệt
+/// — thao tác duyệt nằm ở màn chi tiết nhóm, không phải ở đây.
 class _OutgoingInvitationsTab extends StatelessWidget {
   const _OutgoingInvitationsTab();
 
@@ -1077,7 +1100,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<FamilyBloc, FamilyState>(
       builder: (context, state) {
-        // Show empty state immediately if no data, don't wait for loading
+        // Hiện ngay trạng thái rỗng, không chờ loading — tránh nháy vòng xoay.
         if (state.outgoingInvitations.isEmpty && 
             state.status != FamilyStatus.loading) {
           return _RefreshableEmptyState(
@@ -1255,6 +1278,8 @@ class _OutgoingInvitationsTab extends StatelessWidget {
 
 }
 
+/// Trạng thái rỗng vẫn kéo-để-làm-mới được: bọc trong vùng cuộn cao cố định để
+/// `RefreshIndicator` có chỗ nhận cử chỉ vuốt dù không có nội dung nào.
 class _RefreshableEmptyState extends StatelessWidget {
   const _RefreshableEmptyState({
     required this.onRefresh,

@@ -1,6 +1,12 @@
-import 'package:fe/data/enums/metric_status.dart';
 import 'package:fe/core/utils/converter.dart';
+import 'package:fe/data/enums/metric_status.dart';
 
+/// Thẻ tóm tắt một loại chỉ số trên trang Thống kê: giá trị mới nhất, xu
+/// hướng và trạng thái đánh giá.
+///
+/// Được tổng hợp ở FE từ chuỗi điểm của `GET /metrics/charts` (xem
+/// `ApiStatsService`) hoặc từ dữ liệu đọc trực tiếp trên thiết bị
+/// (`DeviceStatsConverter`), nên không tương ứng 1-1 với một endpoint nào.
 class MetricSummary {
   final String id;
   final String title;

@@ -1,0 +1,73 @@
+# Kiểm tra tự động cho mọi PR — khớp với `make check` chạy ở máy local.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, master]
+  push:
+    branches: [dev, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Format · Analyze · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.32.0
+          cache: true
+
+      # `.env` được khai báo là asset trong pubspec.yaml nên phải tồn tại,
+      # nhưng file thật không được commit → dựng từ template.
+      - name: Tạo .env từ template
+        run: cp .env.example .env
+
+      - name: Cài dependencies
+        run: flutter pub get
+
+      - name: Kiểm tra format
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Phân tích tĩnh
+        run: flutter analyze
+
+      - name: Chạy test
+        run: flutter test
+
+  build-web:
+    name: Build web (demo)
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.32.0
+          cache: true
+
+      - name: Tạo .env từ template
+        run: cp .env.example .env
+
+      - run: flutter pub get
+
+      # Build bản demo (mock data) để chắc chắn app luôn chạy được mà không cần backend.
+      - name: Build web demo
+        run: flutter build web --release --dart-define=DEMO_MODE=true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: healthmate-web-demo
+          path: build/web
+          retention-days: 7

@@ -2,6 +2,15 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
+/// Phần đầu dùng chung cho các dialog trong tab Thuốc: icon, tiêu đề, mô tả
+/// phụ và nút đóng.
+///
+/// Bắt buộc [title] và [onClose]. Đặt `closeEnabled: false` khi đang chạy tác
+/// vụ không huỷ được (đang OCR, đang lưu) để chặn người dùng đóng giữa chừng.
+///
+/// Tái sử dụng được cho mọi dialog thuộc feature Thuốc; nếu cần header ở
+/// feature khác thì hãy nhân bản sang `core/widgets` thay vì import chéo
+/// feature.
 class MedicationDialogHeader extends StatelessWidget {
   const MedicationDialogHeader({
     super.key,
@@ -82,6 +91,11 @@ class MedicationDialogHeader extends StatelessWidget {
   }
 }
 
+/// Khối thẻ trắng bo góc dùng để nhóm các trường trong dialog Thuốc.
+///
+/// Bắt buộc [child]; [title] để trống thì thẻ không có tiêu đề. Chỉnh
+/// [margin]/[padding] khi thẻ nằm trong vùng đã có padding sẵn (dialog quét
+/// đơn dùng `margin: EdgeInsets.zero`).
 class MedicationSectionCard extends StatelessWidget {
   const MedicationSectionCard({
     super.key,

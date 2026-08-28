@@ -1,7 +1,10 @@
 part of 'home_bloc.dart';
 
+/// `initial` và `loading` được [HomeView] render giống nhau (cùng một spinner).
 enum HomeStatus { initial, loading, loaded, error }
 
+/// [homeData] không bao giờ null sau [HomeState.initial], nhưng vẫn khai báo nullable
+/// vì [copyWith] không phân biệt được "không truyền" với "đặt về null".
 class HomeState extends Equatable {
   const HomeState({
     this.status = HomeStatus.initial,
@@ -13,11 +16,14 @@ class HomeState extends Equatable {
   final HomeData? homeData;
   final String? errorMessage;
 
-  // Khởi tạo state ban đầu
+  /// State khởi tạo.
+  ///
+  /// `homeData` được điền sẵn bằng [HomeData.empty] thay vì để null, nhờ đó widget nào
+  /// đọc `state.homeData!` trước khi tải xong cũng không nổ null-check.
   factory HomeState.initial() {
     return HomeState(
       status: HomeStatus.initial,
-      homeData: HomeData.empty(), // Sử dụng factory empty()
+      homeData: HomeData.empty(),
     );
   }
 

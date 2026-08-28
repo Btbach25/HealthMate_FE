@@ -5,6 +5,14 @@ import 'package:fe/data/models/group/group_details.dart';
 import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
 
+/// Hợp đồng cho toàn bộ nghiệp vụ nhóm gia đình: tạo/sửa/xoá nhóm, mời và
+/// duyệt thành viên, chuyển quyền chủ nhóm, và cấu hình quyền chia sẻ chỉ số.
+///
+/// Ánh xạ 1-1 với nhóm endpoint `/groups/...` của backend (xem
+/// `ApiEndpoints` và `API_DOC.md`).
+///
+/// Muốn đổi nguồn dữ liệu (mock / API khác), implement lại interface này rồi
+/// đăng ký implementation ở `lib/core/di/app_dependencies.dart` (composition root).
 abstract class FamilyService {
   Future<FamilyGroupSummary> getFamilyGroups();
   Future<FamilyGroup> createGroup({

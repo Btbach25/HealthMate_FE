@@ -1,18 +1,22 @@
-// lib/presentation/auth/view/reset_password_page.dart
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:fe/presentation/auth/widgets/auth_form_layout.dart';
 import 'package:fe/presentation/auth/widgets/confirm_password_input.dart';
 import 'package:fe/presentation/auth/widgets/password_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/toast_utils.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../bloc/auth_form_bloc.dart';
-import '../widgets/auth_logo_header.dart';
-
+/// Màn đặt mật khẩu mới (route `/reset-password`) — bước cuối của luồng quên
+/// mật khẩu.
+///
+/// Điều kiện tiên quyết: người dùng vừa xác thực OTP thành công, vì
+/// `AuthRepository.resetPassword` dựa vào token tạm được lưu ở bước đó. Vào
+/// thẳng route này mà chưa qua OTP sẽ nhận lỗi từ BE.
 class ResetPasswordPage extends StatelessWidget {
   const ResetPasswordPage({super.key});
 
@@ -42,42 +46,12 @@ class ResetPasswordView extends StatelessWidget {
         }
         if (state.status == FormStatus.success) {
           ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
-          // Sau khi đổi mật khẩu thành công, quay về trang đăng nhập
+          // Dùng go() chứ không pop(): đổi mật khẩu xong phải đăng nhập lại,
+          // và stack phía sau (OTP, quên mật khẩu) không còn ý nghĩa.
           context.go('/login');
         }
       },
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            // horizontal: AppSize.p24, 
-            // vertical: AppSize.p32
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AuthLogoHeader(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.p24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppSize.r12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        spreadRadius: 5,
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: const ResetPasswordForm(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: const AuthFormLayout(child: ResetPasswordForm()),
     );
   }
 }
@@ -126,6 +100,8 @@ class _SubmitButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSize.r12),
             ),
           ),
+          // Không chặn theo validate client: AuthFormBloc tự kiểm tra khớp mật
+          // khẩu và độ dài rồi hiện toast lỗi, để người dùng biết vì sao sai.
           onPressed: state.status == FormStatus.inProgress
               ? null
               : () => context.read<AuthFormBloc>().add(ResetPasswordSubmitted()),
@@ -141,9 +117,3 @@ class _SubmitButton extends StatelessWidget {
     );
   }
 }
-
-// LƯU Ý: Để tái sử dụng _PasswordInput và _ConfirmPasswordInput,
-// bạn có thể cần tách chúng ra khỏi file signup_page.dart và đặt vào
-// một thư mục widgets chung trong presentation/auth/widgets/
-// Sau đó import chúng vào cả 2 file. Hiện tại, để đơn giản,
-// ta có thể import trực tiếp từ signup_page.

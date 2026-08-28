@@ -1,18 +1,31 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/widgets/loading_button.dart';
-import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/loading_button.dart';
+import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
-import 'package:fe/data/services/api_family_service.dart';
-import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:fe/data/models/group/family_member.dart';
+import 'package:fe/data/models/ui/metric_option.dart';
+import 'package:fe/data/services/api_family_service.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Dialog thu hẹp bộ chỉ số mà **người dùng hiện tại** chia sẻ riêng cho một
+/// thành viên cụ thể. Mở từ nút "Giới hạn" trên thẻ thành viên ở màn chi tiết
+/// nhóm; nút chỉ hiện với chủ nhóm và không bao giờ hiện trên thẻ của chính mình.
+///
+/// Chỉ chọn được trong phạm vi [globalMetrics] (chỉ số nhóm đang cho phép) — tầng
+/// riêng luôn hẹp hơn hoặc bằng tầng chung, không thể mở rộng thêm.
+///
+/// Giá trị ban đầu nạp qua `getMySpecificMetricsForMember`:
+/// danh sách rỗng nghĩa là chưa đặt riêng → tick sẵn toàn bộ (kế thừa tầng chung);
+/// nếu trả về đúng sentinel `ApiFamilyService.explicitNoMetricsForMember` thì
+/// người dùng đã chủ động không chia sẻ gì → để trống.
+///
+/// Bắn [UpdateMemberPermissions] với `memberId` là **userId**. Tự đóng khi thành công.
 class EditMemberPermissionsDialog extends StatefulWidget {
   final String groupId;
   final FamilyMember member;
@@ -54,6 +67,8 @@ class _EditMemberPermissionsDialogState
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPrefill());
   }
 
+  /// Nạp giá trị đã lưu cho cặp (tôi → thành viên này). Xem doc lớp về ba trường
+  /// hợp: rỗng = kế thừa tầng chung, sentinel = cố tình không chia sẻ, còn lại = bộ đã chọn.
   Future<void> _loadPrefill() async {
     final specifics = await context
         .read<FamilyBloc>()

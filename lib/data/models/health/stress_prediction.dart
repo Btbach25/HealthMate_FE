@@ -1,3 +1,7 @@
+/// Kết quả dự đoán mức căng thẳng từ ML service.
+/// Ánh xạ response của `POST /metrics/stress/predict` (`label`, `label_name`,
+/// `prob_stress`, `prob_baseline`, `calibrated`).
+/// Quy ước backend: `label == 2` nghĩa là đang stress (xem [isStress]).
 class StressPrediction {
   final int label;
   final String labelName;

@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Helper class to manage BLoC state refresh logic
-/// Reusable across different pages that need to refresh data based on state changes
+/// Gom quy tắc "trạng thái nào thì phải tải lại dữ liệu" của một bloc vào một
+/// chỗ, để `BlocListener` ở màn hình chỉ còn một dòng gọi.
+///
+/// Dùng cho màn hình cần refresh sau các thao tác ghi (tạo nhóm, mời thành
+/// viên, rời nhóm…): liệt kê các status "vừa xong việc" vào
+/// [refreshTriggerStates] rồi để helper quyết định.
+///
+/// Khai báo helper là `static final` của widget để giữ nguyên qua các lần
+/// rebuild:
+///
+/// ```dart
+/// static final _refreshHelper = BlocRefreshHelper<FamilyBloc, FamilyState>(
+///   initialState: FamilyStatus.initial,
+///   refreshTriggerStates: {FamilyStatus.groupCreated, FamilyStatus.groupLeft},
+///   onRefresh: (context, bloc) => bloc.add(const LoadFamilySummary()),
+/// );
+/// ```
+///
+/// Mặc định helper đọc `state.status` bằng dynamic (không có kiểu chung cho
+/// mọi state), nên state PHẢI có trường `status` — hoặc truyền
+/// [statusExtractor] để chỉ rõ cách lấy.
 class BlocRefreshHelper<B extends StateStreamable<S>, S> {
   final Set<dynamic> refreshTriggerStates;
   final void Function(BuildContext, B) onRefresh;
@@ -16,38 +35,38 @@ class BlocRefreshHelper<B extends StateStreamable<S>, S> {
     this.statusExtractor,
   });
 
-  /// Checks if the current state should trigger a refresh
+  /// `true` nếu status hiện tại nằm trong [refreshTriggerStates].
   bool shouldRefresh(S currentState) {
     final status = statusExtractor?.call(currentState) ?? 
                    (currentState as dynamic).status;
     return refreshTriggerStates.contains(status);
   }
 
-  /// Checks if the current state is the initial state
+  /// `true` nếu bloc còn ở [initialState] (chưa từng tải dữ liệu).
   bool isInitialState(S currentState) {
     final status = statusExtractor?.call(currentState) ?? 
                    (currentState as dynamic).status;
     return status == initialState;
   }
 
-  /// Handles state change and triggers refresh if needed
-  /// Returns true if refresh was triggered, false otherwise
-  /// Note: Refresh is triggered when state matches trigger states, regardless of hasInitialized
+  /// Gọi từ `BlocListener.listener`; trả `true` nếu đã bắn refresh.
+  ///
+  /// [hasInitialized] CỐ Ý không được xét ở đây: cờ đó chỉ để chặn gọi
+  /// [fetchInitialDataIfNeeded] nhiều lần, chứ không được phép chặn refresh
+  /// sau một thao tác ghi.
   bool handleStateChange(BuildContext context, S state, bool hasInitialized) {
-    // Only refresh if state matches trigger states
-    // hasInitialized is only used to prevent multiple initial fetches, not to block refresh on state changes
     if (!shouldRefresh(state)) return false;
-    
+
     final bloc = context.read<B>();
     onRefresh(context, bloc);
     return true;
   }
 
-  /// Fetches initial data if needed
-  /// Returns true if fetch was triggered, false otherwise
+  /// Tải dữ liệu lần đầu nếu bloc còn ở [initialState].
+  /// Trả `true` nếu đã bắn event tải.
   bool fetchInitialDataIfNeeded(BuildContext context, S currentState) {
     if (!isInitialState(currentState)) return false;
-    
+
     final bloc = context.read<B>();
     onRefresh(context, bloc);
     return true;

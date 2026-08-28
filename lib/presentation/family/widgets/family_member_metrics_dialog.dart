@@ -21,6 +21,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+/// Dialog xem chỉ số sức khoẻ một thành viên đã chia sẻ. Mở từ nút "Xem chỉ số"
+/// (hoặc "Theo dõi") trên thẻ thành viên ở màn chi tiết nhóm.
+///
+/// Chỉ hiển thị đúng những chỉ số trong `member.sharedMetrics` — màn gọi đã chặn
+/// từ trước nếu danh sách rỗng. Không sửa được gì, chỉ để xem.
+///
+/// Biểu đồ lấy theo yêu cầu qua `StatsRepository.getChartDataForMember`. Trên
+/// mobile còn cắm thêm luồng WebSocket để hiện số liệu mới nhất theo thời gian
+/// thực; trên web thì bỏ qua (`kIsWeb`) và luôn nhớ huỷ đăng ký trong `dispose`.
+///
+/// Dùng [FamilyMemberMetricsDialog.show] để mở — hàm này lấy sẵn `StatsRepository`
+/// từ context gọi, vì context bên trong dialog không nhìn thấy provider đó.
 class FamilyMemberMetricsDialog extends StatefulWidget {
   final FamilyMember member;
   final String groupId;

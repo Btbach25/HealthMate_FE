@@ -1,7 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-/// Model for privacy and security settings
-/// Contains all privacy and security-related preferences
+/// Tuỳ chọn quyền riêng tư & bảo mật (chia sẻ dữ liệu, sinh trắc học, tự
+/// động khoá).
+///
+/// Thuần local: chỉ lưu trong SharedPreferences qua `SettingsService`,
+/// không đồng bộ với backend. JSON dùng snake_case.
 class PrivacySecuritySettings extends Equatable {
   final bool dataSharing;
   final bool anonymousAnalytics;

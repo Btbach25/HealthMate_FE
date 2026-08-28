@@ -1,7 +1,7 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/mixins/inline_message_mixin.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/mixins/inline_message_mixin.dart';
 import 'package:fe/core/utils/family_bloc_listener_helper.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
@@ -14,6 +14,15 @@ import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Dialog người **được mời** dùng để gửi yêu cầu tham gia nhóm.
+/// Mở từ nút "Chấp nhận" ở tab "Lời mời tham gia" của màn quản lý nhóm.
+///
+/// Người dùng chọn bộ chỉ số muốn chia sẻ rồi bắn [AcceptInvitation]. Nút bị khoá
+/// cho tới khi bản xem trước nhóm tải xong ([FetchInvitationPreview]) để không ai
+/// đồng ý chia sẻ dữ liệu vào một nhóm mình chưa nhìn thấy.
+///
+/// Nhan đề cố tình là "Gửi yêu cầu tham gia": chấp nhận xong vẫn còn chờ chủ nhóm
+/// duyệt, chưa vào nhóm ngay. Dialog tự đóng khi thành công, không trả về giá trị.
 class AcceptInvitationDialog extends StatefulWidget {
   final IncomingInvitation invitation;
 
@@ -345,7 +354,7 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    // Fallback: use invitation.group if preview details not available
+    // Không tải được bản xem trước thì dùng tạm dữ liệu kèm trong lời mời.
     if (details == null && widget.invitation.group == null) {
       return Container(
         width: double.infinity,
