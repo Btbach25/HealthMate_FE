@@ -2,6 +2,8 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
+/// Thanh tiêu đề thương hiệu dùng ở màn chi tiết nhóm. Thuần trang trí,
+/// avatar chỉ là placeholder tĩnh chứ chưa gắn với người dùng đang đăng nhập.
 class FamilyAppBar extends StatelessWidget {
   const FamilyAppBar({super.key});
 

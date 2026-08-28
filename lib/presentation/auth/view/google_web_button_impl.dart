@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:ui_web' as ui_web;
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,8 +20,6 @@ external void _gisInitialize(JSObject config);
 @JS('google.accounts.id.renderButton')
 external void _gisRenderButton(web.Element element, JSObject config);
 
-const _googleClientId =
-    '819933666164-808gbgrfp1vjl16j3667afjkoiev5b0i.apps.googleusercontent.com';
 const _viewType = 'google-gsi-btn';
 bool _factoryRegistered = false;
 bool _gsiInitialized = false;
@@ -52,7 +51,7 @@ void _ensureGsiInitialized() {
     _currentGoogleCallback?.call(idToken);
   }).toJS;
   final initCfg = _newObject();
-  initCfg['client_id'] = _googleClientId.toJS;
+  initCfg['client_id'] = AppConfig.googleClientId.toJS;
   initCfg['callback'] = callback;
   _gisInitialize(initCfg);
   try {
@@ -83,6 +82,11 @@ class _GoogleWebButtonState extends State<GoogleWebButton> {
 
   void _trySetup() {
     if (!mounted || _viewId == null) return;
+    if (AppConfig.googleClientId.isEmpty) {
+      // Không retry: thiếu cấu hình thì có thử lại bao nhiêu lần cũng vô ích.
+      debugPrint('[GoogleSignIn] Thiếu GOOGLE_CLIENT_ID trong .env — bỏ qua nút Google.');
+      return;
+    }
     final el = web.document.getElementById('gsi-div-$_viewId');
     if (el == null) {
       Future.delayed(const Duration(milliseconds: 100), _trySetup);

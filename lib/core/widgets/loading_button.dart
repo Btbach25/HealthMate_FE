@@ -2,8 +2,24 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable button widget with loading state
-/// Reduces code duplication for buttons with loading indicators
+/// Nút hành động có sẵn trạng thái đang xử lý.
+///
+/// Dùng cho mọi nút gọi API (Lưu, Gửi lời mời, Đăng nhập…): khi [isLoading]
+/// bật, nút tự vô hiệu hoá và đổi nhãn thành vòng quay, nhờ vậy không cần
+/// tự chặn double-tap ở phía gọi.
+///
+/// Về bề rộng: mặc định nút giãn hết cha nếu cha có bề rộng xác định; trong
+/// cha bề rộng vô hạn (`Row`, `ListView` ngang) nút tự co theo nội dung.
+/// Chỉ truyền [width] khi cần ép một con số cụ thể.
+///
+/// ```dart
+/// LoadingButton(
+///   text: 'Lưu',
+///   icon: Icons.check,
+///   isLoading: state.isSubmitting,
+///   onPressed: _submit,
+/// )
+/// ```
 class LoadingButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;

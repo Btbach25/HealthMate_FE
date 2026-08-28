@@ -4,10 +4,10 @@ import 'package:fe/core/widgets/error_widget.dart';
 import 'package:fe/core/widgets/feature_highlight_card.dart';
 import 'package:fe/core/widgets/hero_action_banner.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
+import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:fe/presentation/medications/view/medication_day_schedule.dart';
 import 'package:fe/presentation/medications/view/medication_schedule_widgets.dart';
-import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/presentation/medications/widgets/add_medication_dialog.dart';
 import 'package:fe/presentation/medications/widgets/manage_medications_dialog.dart';
 import 'package:fe/presentation/medications/widgets/medication_share_dialog.dart';
@@ -15,6 +15,16 @@ import 'package:fe/presentation/medications/widgets/prescription_scan_dialog.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Màn hình chính của tab Thuốc: banner mục đích, 3 ô thống kê trong ngày,
+/// lối vào quét đơn và lịch uống hôm nay.
+///
+/// Được `app_router.dart` gắn thẳng vào route `/meds` (không có lớp Page bọc
+/// ngoài). PHỤ THUỘC: phải nằm dưới [MedicationBloc] do `ShellRoute` của nhánh
+/// Thuốc cung cấp — mọi dialog mở từ đây đều truyền lại đúng bloc đó bằng
+/// `BlocProvider.value`.
+///
+/// Ba con số thống kê được tính lại tại chỗ từ `state.medications` mỗi lần
+/// build, không lưu trong state, nên không bao giờ lệch với danh sách.
 class MedicationView extends StatelessWidget {
   const MedicationView({super.key});
 

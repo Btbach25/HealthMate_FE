@@ -1,12 +1,21 @@
-import 'package:fe/core/config/api_base_url.dart';
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/access_token_expiry.dart';
 import 'package:fe/data/core/api_client.dart';
 import 'package:fe/data/exceptions/api_exception.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 
-/// Implementation of ApiClient with token from LocalStorage and baseUrl from .env.
-/// Khi gặp 401, nếu [onRefreshToken] được cung cấp và request không phải /auth/refresh,
-/// gọi refresh để lấy access_token mới rồi retry 1 lần.
+/// [ApiClient] dùng thật trong app: lấy access token từ
+/// [LocalStorageService] và base URL từ [AppConfig] (đọc `.env`).
+///
+/// Bổ sung hai lớp xử lý token quanh mỗi request:
+/// - Chủ động: trước khi gửi, nếu token sắp hết hạn thì gọi [onRefreshToken]
+///   ngay (xem [buildHeaders]) để tránh chắc chắn ăn 401.
+/// - Bị động: nếu vẫn nhận 401 thì refresh rồi retry ĐÚNG MỘT LẦN.
+///
+/// Request tới `/auth/refresh` được loại trừ khỏi retry ([_shouldSkipRefresh])
+/// — refresh token hỏng mà vẫn retry sẽ thành vòng lặp vô hạn.
+///
+/// Được đăng ký ở `lib/core/di/app_dependencies.dart` (composition root).
 class ApiClientImpl extends ApiClient {
   final LocalStorageService _localStorageService;
   final String? _baseUrlOverride;
@@ -24,7 +33,7 @@ class ApiClientImpl extends ApiClient {
     if (_baseUrlOverride != null && _baseUrlOverride.isNotEmpty) {
       return _baseUrlOverride;
     }
-    return resolveApiBaseUrl();
+    return AppConfig.apiBaseUrl;
   }
 
   @override
@@ -49,6 +58,7 @@ class ApiClientImpl extends ApiClient {
     );
   }
 
+  /// Chặn refresh-rồi-retry cho chính endpoint refresh (tránh đệ quy vô hạn).
   bool _shouldSkipRefresh(String endpoint) =>
       endpoint.contains('auth/refresh') || endpoint.contains('/auth/refresh');
 

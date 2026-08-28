@@ -145,6 +145,8 @@ class MedicationScheduleCard extends StatelessWidget {
   }
 }
 
+/// Trạng thái rỗng của [MedicationScheduleCard]: hiện khi hôm nay không có lần
+/// uống nào. Bắt buộc [onAdd] vì cả khối là lời mời thêm thuốc.
 class MedicationScheduleEmpty extends StatelessWidget {
   final VoidCallback onAdd;
 
@@ -211,6 +213,11 @@ class MedicationScheduleEmpty extends StatelessWidget {
   }
 }
 
+/// Một khung giờ trong lịch hôm nay (Sáng / Trưa / Chiều / Tối): dải tiêu đề
+/// có màu riêng + danh sách [MedicationItemCard] bên dưới.
+///
+/// Chỉ dựng bởi [MedicationScheduleCard]; màu và nhãn lấy từ
+/// `medicationPeriodBandStyles`, không truyền tay.
 class MedicationPeriodSection extends StatelessWidget {
   final MedicationPeriodBandStyle config;
   final List<MedicationScheduleItem> items;

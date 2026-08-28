@@ -3,6 +3,9 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
+/// Hai thẻ số liệu ở đầu tab Gia đình: số nhóm đã tham gia và số lời mời đang chờ.
+/// [pendingInvitations] gộp cả lời mời đến lẫn lời mời đã gửi còn cần xử lý —
+/// xem `_totalPendingInvitations` trong `family_view.dart`.
 class FamilySummaryCards extends StatelessWidget {
   final int groupsJoined;
   final int pendingInvitations;

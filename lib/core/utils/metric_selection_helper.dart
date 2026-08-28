@@ -1,11 +1,33 @@
 import 'package:fe/data/enums/metric_type.dart';
-import 'package:fe/data/models/ui/metric_option.dart';
-import 'package:fe/core/utils/metric_helper.dart';
 
-/// Helper class for metric selection logic
-/// Reduces if-else complexity in metric selection dialogs
+/// Cầu nối giữa tên chỉ số phía FE và tên chỉ số phía backend.
+///
+/// Tồn tại vì hai bên KHÔNG khớp nhau hoàn toàn:
+/// 1. Khác chính tả — enum FE dùng `calories_burnt`, bảng `metric_types` của
+///    storage-service dùng `calories_burned`.
+/// 2. Khác phạm vi — FE vẽ được 8 chỉ số, backend mới nhận 5.
+///
+/// Gửi thẳng tên FE lên server sẽ bị từ chối với lỗi "invalid metric", nên
+/// mọi danh sách chỉ số đi ra API đều phải qua
+/// [filterMetricTypesForBackend] trước.
+///
+/// ```dart
+/// // Vẽ: chỉ bật những ô backend nhận được
+/// final options = MetricHelper.availableMetrics
+///     .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
+///     .toList();
+///
+/// // Gửi: đổi tên + lọc
+/// final payload = MetricSelectionHelper.filterMetricTypesForBackend(
+///   MetricSelectionHelper.toApiFormat(selected),
+/// );
+/// ```
 class MetricSelectionHelper {
-  /// Khớp `metric_types.name` trong storage-service (migration).
+  /// Khớp cột `metric_types.name` trong storage-service (theo migration).
+  ///
+  /// Đây là phỏng đoán phía FE, dùng khi chưa gọi được
+  /// `GET /groups/metric-types`. Backend bổ sung chỉ số mới thì phải cập nhật
+  /// tay danh sách này.
   static const Set<String> _backendSupportedMetricTypes = {
     'heart_rate',
     'steps_count',
@@ -14,23 +36,27 @@ class MetricSelectionHelper {
     'spo2',
   };
 
-  /// Chuẩn hóa tên gửi auth/storage (ví dụ enum FE dùng `calories_burnt`).
+  /// Đổi tên chỉ số FE sang tên backend (`calories_burnt` → `calories_burned`).
+  ///
+  /// Tên không nằm trong diện đổi thì trả nguyên vẹn.
   static String toBackendMetricName(String metricType) {
     if (metricType == 'calories_burnt') return 'calories_burned';
     return metricType;
   }
 
-  /// Validates that at least one metric is selected
+  /// Phải chọn ít nhất một chỉ số thì mới cho lưu.
   static bool validateSelection(Set<MetricType> selectedMetrics) {
     return selectedMetrics.isNotEmpty;
   }
 
-  /// Gets validation error message
+  /// Thông báo lỗi đi kèm [validateSelection].
   static String getValidationErrorMessage() {
     return 'Vui lòng chọn ít nhất một chỉ số để chia sẻ';
   }
 
-  /// Checks if metrics have changed
+  /// So sánh lựa chọn hiện tại với lựa chọn ban đầu, bỏ qua thứ tự.
+  ///
+  /// Dùng để bật/tắt nút Lưu hoặc hỏi xác nhận khi người dùng rời form.
   static bool hasMetricsChanged(
     Set<MetricType> selected,
     List<MetricType> original,
@@ -39,12 +65,17 @@ class MetricSelectionHelper {
     return !selected.every((type) => original.contains(type));
   }
 
-  /// Converts selected metrics to API format
+  /// Đổi tập enum đã chọn thành danh sách chuỗi thô của FE.
+  ///
+  /// Đây MỚI là dạng thô — vẫn còn tên FE. Phải cho qua
+  /// [filterMetricTypesForBackend] trước khi đưa vào body request.
   static List<String> toApiFormat(Set<MetricType> selectedMetrics) {
     return selectedMetrics.map((m) => m.value).toList();
   }
 
-  /// Lọc theo `metric_types` trên BE; chuẩn hóa `calories_burnt` -> `calories_burned`.
+  /// Chuẩn hoá tên rồi bỏ những chỉ số backend không nhận. Kết quả đã khử
+  /// trùng lặp — cần thiết vì hai tên FE khác nhau có thể quy về cùng một
+  /// tên backend.
   static List<String> filterMetricTypesForBackend(List<String> metricTypes) {
     return metricTypes
         .map(toBackendMetricName)
@@ -53,11 +84,16 @@ class MetricSelectionHelper {
         .toList();
   }
 
-  /// Tên chỉ số FE dự đoán BE có (khi chưa gọi được GET /groups/metric-types).
+  /// Bản chỉ-đọc của danh sách phỏng đoán, cho nơi cần dùng khi chưa gọi được
+  /// `GET /groups/metric-types`.
   static Set<String> get backendMetricNameSet =>
       Set.unmodifiable(_backendSupportedMetricTypes);
 
-  /// Chỉ giữ tên có trong bảng `metric_types` thật trên máy chủ (đã chuẩn hóa).
+  /// Giao danh sách đã lọc với danh sách `metric_types` THẬT lấy từ server.
+  ///
+  /// Dùng khi đã gọi được `GET /groups/metric-types`: chính xác hơn
+  /// [_backendSupportedMetricTypes] vốn chỉ là phỏng đoán cứng trong code.
+  /// Kết quả được sắp xếp để payload ổn định giữa các lần gọi.
   static List<String> intersectWithServerMetricNames(
     List<String> backendFilteredTypes,
     Set<String> serverMetricNames,
@@ -69,13 +105,9 @@ class MetricSelectionHelper {
       ..sort();
   }
 
+  /// Backend có nhận chỉ số này không — dùng để làm mờ ô chọn thay vì để
+  /// người dùng chọn rồi mới báo lỗi lúc lưu.
   static bool isMetricSupportedByBackend(MetricType metricType) {
     return filterMetricTypesForBackend([metricType.value]).isNotEmpty;
   }
-
-  /// Gets all available metrics
-  static List<MetricOption> getAvailableMetrics() {
-    return MetricHelper.availableMetrics;
-  }
 }
-

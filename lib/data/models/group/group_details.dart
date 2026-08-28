@@ -4,6 +4,8 @@ import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:fe/data/models/group/family_member.dart';
 
+/// Màn chi tiết nhóm = [FamilyGroup] + danh sách [FamilyMember].
+/// Ghép từ `GET /groups/:id` và `GET /groups/:id/members`.
 class GroupDetails extends Equatable {
   final FamilyGroup group;
   final List<FamilyMember> members;

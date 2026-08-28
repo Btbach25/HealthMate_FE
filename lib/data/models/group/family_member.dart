@@ -2,6 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/converter.dart';
 import 'package:fe/data/enums/metric_type.dart';
 
+/// Một thành viên trong nhóm — ánh xạ phần tử của `GET /groups/:id/members`
+/// (`user_id`, `role`, `status`, ...), bổ sung tên/email và chỉ số sức khoẻ
+/// mà FE lấy thêm để hiển thị.
 class FamilyMember extends Equatable {
   final String id;
   final String userId;

@@ -8,6 +8,28 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 part 'medication_event.dart';
 part 'medication_state.dart';
 
+/// Bloc quản lý toàn bộ danh sách thuốc và lịch uống của người dùng.
+///
+/// Vòng đời: được tạo trong `ShellRoute` của nhánh Thuốc ở `app_router.dart`
+/// và bắn ngay [FetchMedications], nên nó sống theo tab chứ không theo màn
+/// hình. Các dialog (thêm / quản lý / quét đơn) nhận lại đúng instance này qua
+/// `BlocProvider.value` — đừng tạo bloc mới trong dialog, mất đồng bộ danh sách.
+///
+/// Luồng chung:
+/// * [FetchMedications] → `loading` → `loaded` (hoặc `error`). Là nguồn sự
+///   thật duy nhất; sau mọi thao tác ghi, bloc tự gọi lại repository thay vì
+///   sửa danh sách tại chỗ.
+/// * [TakeMedication] → **cập nhật lạc quan**: đổi ngay trên UI để cái tick
+///   không bị trễ mạng, rồi thay bằng dữ liệu server; lỗi thì trả lại danh
+///   sách cũ và báo qua `feedbackMessage`.
+/// * [AddMedication] / [AddMedicationsBatch] / [DeleteMedication] → gọi API rồi
+///   nạp lại danh sách.
+/// * [ClearMedicationFeedback] → UI bắn về sau khi đã hiện snackbar.
+///
+/// Hai kênh báo lỗi tách biệt, đừng dùng lẫn:
+/// [MedicationState.errorMessage] là lỗi HỎNG CẢ TRANG (hiện màn hình lỗi +
+/// nút thử lại), còn [MedicationState.feedbackMessage] là thông báo thoáng qua
+/// dạng snackbar (kể cả lỗi nhẹ) trong khi danh sách vẫn dùng được.
 class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final MedicationRepository _repository;
 
@@ -48,6 +70,10 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     }
   }
 
+  /// Đánh dấu đã uống / bỏ đánh dấu, theo kiểu cập nhật lạc quan.
+  ///
+  /// Giữ lại `original` để hoàn tác nếu API lỗi. Server trả về danh sách đã
+  /// xác nhận nên kết quả cuối luôn theo server, không theo phép tính cục bộ.
   Future<void> _onTake(
     TakeMedication event,
     Emitter<MedicationState> emit,
@@ -92,6 +118,12 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     }
   }
 
+  /// Thêm nhiều thuốc cùng lúc (kết quả quét đơn đã được người dùng xác nhận).
+  ///
+  /// Backend chưa có endpoint thêm hàng loạt nên phải gọi tuần tự từng thuốc.
+  /// Hệ quả cần biết: KHÔNG có transaction — nếu thuốc thứ ba lỗi thì hai
+  /// thuốc đầu vẫn đã nằm trên server, state chỉ báo lỗi và không nạp lại danh
+  /// sách. Người dùng kéo để làm mới sẽ thấy phần đã lưu.
   Future<void> _onAddBatch(
     AddMedicationsBatch event,
     Emitter<MedicationState> emit,
@@ -162,6 +194,8 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     }
   }
 
+  /// Lật trạng thái "đã uống hôm nay" của một reminder ngay trên danh sách
+  /// trong bộ nhớ (chỉ phục vụ cập nhật lạc quan, không đụng tới server).
   List<Medication> _toggleLocally(
     List<Medication> meds,
     String medicationId,

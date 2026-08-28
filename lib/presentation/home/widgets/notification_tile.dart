@@ -4,6 +4,12 @@ import 'package:fe/data/enums/notification_type.dart';
 import 'package:fe/data/models/group/family_notification.dart';
 import 'package:flutter/material.dart';
 
+/// Một dòng thông báo gia đình: người gửi, thời điểm, nội dung và nhãn mức độ.
+///
+/// [notification] bắt buộc.
+///
+/// Hiện tại tên người gửi luôn hiển thị cứng là "Bạn" (xem ghi chú trong build),
+/// nên chỉ tái sử dụng được ở nơi mọi thông báo đều của chính người dùng.
 class NotificationTile extends StatelessWidget {
   final FamilyNotification notification;
   const NotificationTile({super.key, required this.notification});
@@ -18,6 +24,8 @@ class NotificationTile extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // TODO(backend): FamilyNotification chưa mang tên người gửi nên tạm
+              // hiển thị cứng "Bạn"; đổi khi API trả về trường đó.
               const Text(
                 'Bạn',
                 style: TextStyle(
@@ -50,6 +58,7 @@ class NotificationTile extends StatelessWidget {
   }
 }
 
+/// Nhãn màu theo [NotificationType] (thông tin / quan trọng / khẩn cấp).
 class _NotificationTag extends StatelessWidget {
   final NotificationType type;
   const _NotificationTag({required this.type});

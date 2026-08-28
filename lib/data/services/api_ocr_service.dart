@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:fe/core/config/api_base_url.dart';
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/prescription/prescription_plan_parser.dart';
 import 'package:fe/data/core/api_endpoints.dart';
 import 'package:fe/data/services/local_storage_service.dart';
@@ -42,7 +42,7 @@ class ApiOcrService {
   Future<OcrApiResult?> tryParsePrescription(XFile file) async {
     try {
       final uri =
-          Uri.parse('${resolveApiBaseUrl()}${ApiEndpoints.ocrPrescriptionParse}');
+          Uri.parse('${AppConfig.apiBaseUrl}${ApiEndpoints.ocrPrescriptionParse}');
       final req = http.MultipartRequest('POST', uri);
       final token = await _localStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {

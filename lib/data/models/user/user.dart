@@ -1,10 +1,16 @@
 import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/converter.dart';
 import 'package:fe/data/enums/login_provider.dart';
 import 'package:fe/data/enums/user_role.dart';
 import 'package:fe/data/enums/user_status.dart';
 
+/// Hồ sơ người dùng — ánh xạ `GET /users/profile` và khối `user` trong
+/// response đăng nhập.
+///
+/// Cũng là dạng được serialize để lưu phiên đăng nhập trong
+/// SharedPreferences (xem [toJsonString] và `LocalStorageService`).
 class User extends Equatable {
   final String id;
   final String email;

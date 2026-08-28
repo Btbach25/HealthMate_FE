@@ -1,3 +1,4 @@
+/// Tiến độ uống thuốc trong ngày (`completed`/`total`) hiển thị ở trang chủ.
 class MedicationProgress {
   final int completed;
   final int total;

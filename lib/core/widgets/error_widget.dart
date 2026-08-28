@@ -1,8 +1,25 @@
-import 'package:flutter/material.dart';
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/constants/app_size.dart';
+import 'package:flutter/material.dart';
 
+/// Màn hình báo lỗi dùng chung: icon tròn + thông điệp + nút "Thử lại".
+///
+/// Dùng cho lỗi chiếm cả vùng nội dung (tải danh sách thất bại). Với lỗi nhỏ
+/// trong dialog/form hãy dùng `InlineMessageMixin`, với lỗi thoáng qua dùng
+/// `ToastUtils`.
+///
+/// Chuỗi [message] nên lấy từ `UserFacingError.message(error)` để không lộ
+/// thuật ngữ kỹ thuật cho người dùng.
+///
+/// ```dart
+/// ErrorDisplayWidget(
+///   title: 'Không tải được danh sách',
+///   message: UserFacingError.message(state.error),
+///   onRetry: () => bloc.add(const FetchMedications()),
+///   wrapInCard: true,
+/// )
+/// ```
 class ErrorDisplayWidget extends StatelessWidget {
   /// Khi có [title]: hiển thị tiêu đề + [message] làm mô tả chi tiết.
   final String? title;

@@ -1,8 +1,14 @@
 part of 'auth_form_bloc.dart';
 
+/// Vòng đời một lần submit form: `initial` → `inProgress` → `success` hoặc
+/// `failure`. `success` và `failure` là hai trạng thái terminal mà
+/// `BlocListener` ở các màn auth lắng nghe để hiện toast / điều hướng.
 enum FormStatus { initial, inProgress, success, failure }
 
-class AuthFormState extends Equatable{
+/// State dùng chung cho TẤT CẢ form auth (login, đăng ký, quên mật khẩu, OTP,
+/// đặt lại mật khẩu) — mỗi màn tạo một [AuthFormBloc] riêng nên chỉ vài field
+/// trong đây được dùng ở mỗi màn, phần còn lại giữ giá trị mặc định.
+class AuthFormState extends Equatable {
   final FormStatus status;
   final String name;
   final String email;
@@ -11,7 +17,13 @@ class AuthFormState extends Equatable{
   final String otp;
   final String successMessage;
   final String errorMessage;
+
+  /// Bật khi BE báo tài khoản chưa xác thực (login) hoặc vừa đăng ký xong.
+  /// Màn login/đăng ký dựa vào cờ này để đẩy sang `/otp` thay vì vào home.
   final bool needsVerification;
+
+  /// Email mà BE thực sự gửi OTP tới. Có thể khác [email] người dùng gõ (BE
+  /// chuẩn hoá chữ hoa/thường), nên luôn ưu tiên field này khi điều hướng.
   final String verificationEmail;
 
   const AuthFormState({
@@ -27,16 +39,11 @@ class AuthFormState extends Equatable{
     this.verificationEmail = '',
   });
 
+  /// Validate phía client chỉ để bật/tắt nút submit; BE vẫn validate lại.
   bool get isValidLogin => email.contains('@') && password.length >= 6;
 
   bool get isValidSignUp =>
-      isValidLogin &&
-      name.isNotEmpty &&
-      password == confirmPassword;
-
-  bool get isValidResetPassword => password.length >= 6 && password == confirmPassword;
-
-  bool get isValidOtp => otp.length == 6;
+      isValidLogin && name.isNotEmpty && password == confirmPassword;
 
   AuthFormState copyWith({
     FormStatus? status,
@@ -73,8 +80,8 @@ class AuthFormState extends Equatable{
         confirmPassword,
         otp,
         successMessage,
-      errorMessage,
-      needsVerification,
-      verificationEmail,
+        errorMessage,
+        needsVerification,
+        verificationEmail,
       ];
 }

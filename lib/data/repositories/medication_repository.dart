@@ -3,6 +3,13 @@ import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_share.dart';
 import 'package:fe/data/services/medication_service.dart';
 
+/// Cổng vào của tính năng quản lý thuốc; uỷ quyền cho [MedicationService].
+///
+/// Mỗi method bọc lỗi ngoài [ApiException] thành [UnknownException] với
+/// message tiếng Việt riêng cho từng thao tác, để UI hiển thị đúng ngữ cảnh.
+///
+/// Đổi nguồn dữ liệu bằng cách đăng ký một [MedicationService] khác ở
+/// `lib/core/di/app_dependencies.dart` (composition root).
 class MedicationRepository {
   final MedicationService _service;
 

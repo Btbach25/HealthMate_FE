@@ -1,22 +1,31 @@
 import 'dart:async';
+
+import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/data/models/health/stress_prediction.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
+import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
+import 'package:fe/presentation/home/bloc/home_bloc.dart';
+import 'package:fe/presentation/home/widgets/health_overview_section.dart';
+import 'package:fe/presentation/home/widgets/medication_card.dart';
+import 'package:fe/presentation/home/widgets/metric_carousel.dart';
+import 'package:fe/presentation/home/widgets/notification_list.dart';
+import 'package:fe/presentation/home/widgets/welcome_message.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_icons.dart';
-import '../../auth/bloc/auth_bloc.dart';
-import '../bloc/home_bloc.dart';
-import '../widgets/medication_card.dart';
-import '../widgets/notification_list.dart';
-import '../bloc/health_overview_bloc.dart';
-import '../widgets/health_overview_section.dart';
-import '../widgets/welcome_message.dart';
-import '../widgets/metric_carousel.dart';
-import '../bloc/device_health_cubit.dart';
-import '../../../data/models/health/stress_prediction.dart';
-
+/// Nội dung của tab "Tổng quan".
+///
+/// Render theo [HomeState] của [HomeBloc]: initial/loading -> spinner,
+/// error -> card "Thử lại", loaded -> nội dung đầy đủ.
+///
+/// Widget này đồng thời sở hữu vòng đời việc đọc dữ liệu thiết bị:
+/// nó gọi [DeviceHealthCubit.poll] định kỳ và [DeviceHealthCubit.stopPeriodicSync]
+/// khi bị dispose. Trên web (`kIsWeb`) toàn bộ phần này bị bỏ qua vì
+/// HealthKit/Health Connect không tồn tại.
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -32,6 +41,8 @@ class _HomeViewState extends State<HomeView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Giữ lại tham chiếu cubit ngay từ đây vì trong dispose() không được phép
+    // đụng vào context nữa, mà dispose() lại cần gọi stopPeriodicSync().
     _deviceHealthCubit ??= context.read<DeviceHealthCubit>();
   }
 
@@ -41,7 +52,10 @@ class _HomeViewState extends State<HomeView> {
     if (cubit == null) return;
     cubit.poll().then((_) => cubit.startPeriodicSync());
     _pollTimer?.cancel();
-    // Re-fetch device data mỗi 5 phút (dữ liệu HealthKit/Health Connect không đổi liên tục)
+    // 5 phút, không ngắn hơn: startPeriodicSync() đã lo phần đọc lại Health Connect
+    // và đẩy WebSocket ở tần suất giây. Timer này tồn tại để chạy lại poll(), tức là
+    // gọi lại API readiness + stress — hai API tốn kém và có kết quả gần như không đổi
+    // trong vài phút, nên gọi dày hơn chỉ đốt pin và quota.
     _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       cubit.poll();
     });
@@ -56,14 +70,6 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Lấy User từ AuthBloc (Luôn đúng với phiên đăng nhập)
-    // Giả sử AuthBloc đã emit AuthState.authenticated chứa user
-    // final user = context.select((AuthBloc bloc) => bloc.state.user); 
-    
-    // Nếu bạn chưa muốn sửa AuthBloc, giữ nguyên logic cũ của bạn cũng được.
-    // Dưới đây mình viết theo logic hiện tại của bạn (lấy user từ HomeData) 
-    // nhưng thêm RefreshIndicator.
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: BlocBuilder<HomeBloc, HomeState>(
@@ -131,7 +137,9 @@ class _HomeViewState extends State<HomeView> {
 
           if (state.status == HomeStatus.loaded && state.homeData != null) {
             final homeData = state.homeData!;
-            // Dùng user từ AuthBloc (đúng với tài khoản đăng nhập) cho lời chào và app bar
+            // Ưu tiên user từ AuthBloc: HomeData hiện do MockHomeService sinh ra nên
+            // user trong đó không phải tài khoản đang đăng nhập. Chỉ fallback về
+            // homeData.user khi AuthBloc chưa có user (ví dụ vừa khôi phục phiên).
             final authUser = context.read<AuthBloc>().state.user;
             final displayUser = authUser.isNotEmpty ? authUser : homeData.user;
             return RefreshIndicator(
@@ -157,7 +165,9 @@ class _HomeViewState extends State<HomeView> {
                         WelcomeMessage(name: displayUser.name),
                         const SizedBox(height: 24),
 
-                        // Provide HealthOverviewBloc — tự subscribe DeviceHealthCubit bên trong
+                        // HealthOverviewBloc phải nằm ở đây (không phải app-level) vì nó
+                        // subscribe stream của DeviceHealthCubit trong constructor và huỷ
+                        // subscription trong close() — scope theo màn hình để tránh rò rỉ.
                         BlocProvider<HealthOverviewBloc>(
                           create: (context) => HealthOverviewBloc(
                             repository: RepositoryProvider.of(context),
@@ -165,6 +175,10 @@ class _HomeViewState extends State<HomeView> {
                           ),
                           child: Builder(
                             builder: (innerContext) {
+                              // Chỉ khởi động polling đúng một lần cho cả vòng đời
+                              // widget: builder này chạy lại mỗi lần rebuild, và phải
+                              // hoãn sang post-frame vì không được start side-effect
+                              // ngay trong build().
                               if (!_syncStarted) {
                                 _syncStarted = true;
                                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -230,6 +244,7 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
+/// Placeholder trong lúc chờ điểm sẵn sàng (readiness) từ BE hoặc từ công thức cục bộ.
 class _ReadinessLoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -248,6 +263,10 @@ class _ReadinessLoadingCard extends StatelessWidget {
   }
 }
 
+/// Thẻ hiển thị điểm sẵn sàng thể chất (thang 0-100).
+///
+/// [score] null nghĩa là chưa đủ số liệu đầu vào (thiếu nhịp tim), không phải lỗi —
+/// nên card vẫn hiển thị chứ không biến mất.
 class _ReadinessScoreCard extends StatelessWidget {
   final double? score;
   const _ReadinessScoreCard({required this.score});
@@ -321,6 +340,7 @@ class _ReadinessScoreCard extends StatelessWidget {
   }
 }
 
+/// Placeholder trong lúc gọi API dự đoán mức độ căng thẳng.
 class _StressLoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -339,6 +359,13 @@ class _StressLoadingCard extends StatelessWidget {
   }
 }
 
+/// Thẻ hiển thị mức độ căng thẳng kèm cảnh báo về chất lượng dữ liệu đầu vào.
+///
+/// Ba trạng thái "không có kết quả" khác nhau, đừng gộp lại:
+/// - [apiUnavailable] true : gọi API dự đoán thất bại.
+/// - [prediction] null     : thiếu dữ liệu nhịp tim nên không gọi API.
+/// - [dataEstimated] true  : có kết quả, nhưng RMSSD được ước tính từ độ lệch
+///   chuẩn của nhịp tim (thiết bị không cung cấp HRV) nên độ tin cậy thấp hơn.
 class _StressCard extends StatelessWidget {
   final StressPrediction? prediction;
   final bool dataEstimated;

@@ -1,12 +1,20 @@
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/data/models/health/health_overview.dart';
+import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
+import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
+import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
-import 'package:fe/presentation/home/bloc/health_overview_bloc.dart';
-import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
-import 'package:fe/data/models/health/health_overview.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_icons.dart';
 
+/// Khối "Tình trạng sức khoẻ": lưới 2x2 gồm nhịp tim, cân nặng, huyết áp và SpO2.
+///
+/// Không nhận tham số — widget tự đọc [HealthOverviewBloc], [AuthBloc] và
+/// [DeviceHealthCubit] từ context, đồng thời tự bắn [HealthOverviewRequested] để nạp
+/// dữ liệu lần đầu.
+///
+/// Vì vậy chỉ tái sử dụng được bên dưới một [BlocProvider] cấp cả ba thứ đó; đặt sai
+/// chỗ sẽ ném ProviderNotFoundException ngay lần build đầu tiên.
 class HealthOverviewSection extends StatefulWidget {
   const HealthOverviewSection({super.key});
 
@@ -18,7 +26,8 @@ class _HealthOverviewSectionState extends State<HealthOverviewSection> {
   @override
   void initState() {
     super.initState();
-    // Delay to ensure bloc is available in widget tree
+    // Hoãn sang sau frame đầu: initState chạy trước khi widget được gắn hoàn toàn,
+    // và bắn event ngay tại đây sẽ emit state mới ngay giữa lúc đang build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HealthOverviewBloc>().add(const HealthOverviewRequested());
     });
@@ -45,6 +54,7 @@ class _HealthOverviewSectionState extends State<HealthOverviewSection> {
   }
 }
 
+/// Placeholder trong lúc nạp chỉ số từ backend.
 class _LoadingCard extends StatelessWidget {
   const _LoadingCard();
   @override
@@ -65,6 +75,8 @@ class _LoadingCard extends StatelessWidget {
   }
 }
 
+/// Banner lỗi có nút "Thử lại"; chỉ hiện khi không có sẵn bất kỳ số liệu nào,
+/// vì [HealthOverviewBloc] giữ nguyên trạng thái success nếu đã có dữ liệu thiết bị.
 class _ErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -113,6 +125,11 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
+/// Lưới 2x2 hiển thị bốn chỉ số.
+///
+/// Mỗi chỉ số có quy tắc dự phòng riêng khi backend thiếu dữ liệu: cân nặng lấy từ hồ
+/// sơ trong [AuthBloc], SpO2 lấy từ [DeviceHealthCubit]. Nhịp tim và huyết áp không có
+/// nguồn dự phòng nên hiển thị dấu gạch ngang.
 class _DataCard extends StatelessWidget {
   final HealthOverview overview;
   const _DataCard({required this.overview});
@@ -223,6 +240,8 @@ class _DataCard extends StatelessWidget {
   }
 }
 
+/// Dữ liệu đã định dạng sẵn cho một ô chỉ số. [value] luôn là chuỗi hiển thị được;
+/// dùng "—" để biểu thị "không có dữ liệu".
 class _MetricItem {
   final IconData icon;
   final Color iconColor;
@@ -240,6 +259,7 @@ class _MetricItem {
   });
 }
 
+/// Ô hiển thị một [_MetricItem]; tự làm nhạt màu và ẩn đơn vị khi giá trị là "—".
 class _MetricTile extends StatelessWidget {
   final _MetricItem item;
   const _MetricTile({required this.item});

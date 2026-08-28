@@ -12,6 +12,57 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 part 'family_event.dart';
 part 'family_state.dart';
 
+/// Bloc quản lý toàn bộ miền "nhóm gia đình": danh sách nhóm, chi tiết nhóm,
+/// lời mời (đi/đến), hàng chờ duyệt và các quyền chia sẻ chỉ số.
+///
+/// ## Mô hình nghiệp vụ
+/// - Mỗi nhóm có đúng một **owner** (`group.ownerId`); còn lại là **member**.
+/// - Luồng tham gia gồm 2 chặng:
+///   `owner mời (pending)` → `invitee chấp nhận (pendingOwnerApproval)` →
+///   `owner duyệt (accepted)`. Chỉ sau chặng cuối invitee mới thực sự là thành viên.
+/// - Quyền chia sẻ có 2 tầng: quyền chung của nhóm (`group.sharedMetrics`,
+///   `medicationSharingAllowed`) và quyền riêng từng cặp người dùng
+///   (`UpdateMemberPermissions`) — tầng riêng chỉ được **thu hẹp** trong phạm vi tầng chung.
+///
+/// ## Máy trạng thái (event → status, kèm event tự phát sinh)
+/// | Event | Status phát ra | Reload kèm theo |
+/// |---|---|---|
+/// | `FetchFamilyGroups` | `loading` → `loaded` \| `error` | tự bắn `FetchOutgoingInvitations` + `FetchIncomingInvitations` |
+/// | `CreateGroupName` (bước 1) | `creatingGroup` → `groupNameCreated` \| `error` | — (UI chuyển sang bước 2 nhờ `createdGroupId`) |
+/// | `CreateGroup` (tạo 1 lần) | `creatingGroup` → `groupCreated` \| `error` | — |
+/// | `UpdateGroup` (bước 2 / sửa nhóm) | `groupUpdated` \| `error` | `FetchFamilyGroups`, thêm `FetchGroupDetails` nếu đang mở đúng nhóm đó |
+/// | `DeleteGroup` | `groupLeft` \| `error` | `FetchOutgoingInvitations` |
+/// | `LeaveGroup` | `groupLeft` \| `error` | — |
+/// | `FetchGroupDetails` | `loading` → `groupDetailsLoaded` \| `error` | — |
+/// | `InviteMember` | `memberInvited` \| `error` | `FetchGroupDetails` + `FetchOutgoingInvitations` |
+/// | `TransferOwnership` | `ownershipTransferred` \| `error` | `FetchGroupDetails` nếu đang mở chi tiết nhóm |
+/// | `FetchIncomingInvitations` / `FetchOutgoingInvitations` | `invitationsLoaded` | — |
+/// | `FetchInvitationPreview` | `invitationPreviewLoading` → `invitationPreviewLoaded` \| `error` | — |
+/// | `AcceptInvitation` | `invitationAccepted` \| `error` | `FetchIncomingInvitations` |
+/// | `DeclineInvitation` | `invitationDeclined` \| `error` | `FetchIncomingInvitations` |
+/// | `RemoveMember` | `memberRemoved` \| `error` | `FetchGroupDetails` + `FetchFamilyGroups` |
+/// | `FetchPendingApprovals` | *(không đổi status)* | — |
+/// | `ApproveJoinRequest` | `joinRequestApproved` \| `error` | `FetchPendingApprovals` + `FetchGroupDetails` |
+/// | `RejectJoinRequest` | `joinRequestRejected` \| `error` | `FetchPendingApprovals` |
+/// | `UpdateMySharing` | `mySharingUpdated` \| `error` | `FetchGroupDetails` |
+/// | `UpdateMemberPermissions` | `memberPermissionsUpdated` \| `error` | `FetchGroupDetails` |
+/// | `ResetFamily` | về `FamilyState.initial()` | — |
+///
+/// ## Cạm bẫy cần nhớ
+/// - `status` là **một biến dùng chung cho cả màn hình**. Listener của một nhóm
+///   cụ thể phải tự đối chiếu `state.currentGroupId` (hoặc `invitationPreviewGroupId`)
+///   trước khi phản ứng, nếu không sẽ ăn nhầm sự kiện của nhóm khác.
+/// - `FetchFamilyGroups` **xoá** `currentGroupId` và `groupDetails`. Không bao giờ
+///   bắn nó ngay sau một thao tác trong màn chi tiết nhóm — `GroupDetailsView` sẽ
+///   thấy `currentGroupId == null`, tự fetch lại và rơi vào vòng lặp loading
+///   (đây là lý do `_onInviteMember` cố tình không gọi nó).
+/// - `AcceptInvitation` **không** cập nhật lạc quan `summary`/`memberCount`: người
+///   dùng lúc đó mới ở trạng thái chờ owner duyệt, chưa phải thành viên nhóm.
+/// - `hiddenGroupIds` là bộ lọc chỉ tồn tại phía FE, dùng để ẩn nhóm vừa rời/xoá
+///   khỏi kết quả của những request đang bay dở và trả về dữ liệu cũ.
+/// - Lỗi 401 ở `FetchFamilyGroups`, `FetchGroupDetails`, `FetchInvitationPreview`
+///   được thử lại **đúng một lần** (cờ `isRetryAfter401`) để chờ interceptor làm
+///   mới token; lần hai mới bật `isSessionExpired` cho UI mời đăng nhập lại.
 class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   final FamilyRepository _familyRepository;
 
@@ -41,7 +92,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     on<ResetFamily>(_onResetFamily);
   }
 
-  /// Exposes repository for dialogs that need direct async calls (e.g. getMySpecificMetricsForMember).
+  /// Cho phép dialog gọi thẳng repository với những truy vấn một lần, không đáng
+  /// thêm event/state riêng (ví dụ `getMySpecificMetricsForMember` để prefill form).
   FamilyRepository get repository => _familyRepository;
 
   void _onResetFamily(ResetFamily event, Emitter<FamilyState> emit) {
@@ -52,6 +104,9 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  /// Lọc bỏ những nhóm người dùng vừa rời/xoá khỏi summary vừa nhận từ server.
+  /// BE có thể còn trả về chúng trong vài giây (cache/replica trễ), nếu không lọc
+  /// thì nhóm đã rời sẽ "hiện lại" ngay sau khi biến mất.
   FamilyGroupSummary _applyHiddenGroups(FamilyGroupSummary summary) {
     if (state.hiddenGroupIds.isEmpty) return summary;
     final filtered = summary.groups
@@ -71,6 +126,7 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     );
   }
 
+  /// Thêm [groupId] vào danh sách ẩn cục bộ (xem [_applyHiddenGroups]).
   Set<String> _hideGroupId(String groupId) {
     final next = <String>{...state.hiddenGroupIds};
     next.add(groupId);
@@ -133,7 +189,8 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
   ) async {
     emit(state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null));
     try {
-      // POST /groups with name only; service skips PUT when sharedMetrics is empty.
+      // Chỉ POST /groups với tên. Truyền sharedMetrics rỗng để service bỏ qua
+      // bước PUT permissions — bước 2 của luồng tạo nhóm sẽ gửi qua UpdateGroup.
       final newGroup = await _familyRepository.createGroup(
         name: event.name,
         sharedMetrics: const [],

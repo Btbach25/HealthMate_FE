@@ -1,10 +1,26 @@
 import 'package:fe/core/theme/app_colors.dart';
-import 'package:fe/data/models/details/chart_data_point.dart';
 import 'package:fe/data/models/details/metric_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Một điểm đã chuẩn hoá để vẽ cột: dùng chung cho cả dữ liệu thô (24h) lẫn
+/// dữ liệu đã gộp theo ngày, nhờ vậy chỉ cần một hàm dựng biểu đồ.
+typedef _ChartPoint = ({DateTime time, double value});
+
+/// Thẻ biểu đồ cột cho MỘT loại chỉ số: tiêu đề, số điểm dữ liệu, ba số tóm
+/// tắt (thấp nhất / mới nhất / cao nhất) và biểu đồ.
+///
+/// Tham số bắt buộc:
+/// - [chart]: dữ liệu biểu đồ của một chỉ số (điểm đo, đơn vị, màu đường).
+/// - [selectedRange]: '24h' | '7d' | '30d'. Quyết định cách gom dữ liệu:
+///   '24h' vẽ từng lần đo theo giờ, các range dài hơn gộp trung bình theo ngày
+///   để 30 ngày không biến thành hàng trăm cột dính nhau.
+///
+/// Khi nào nên tái sử dụng: bất cứ đâu cần hiển thị lịch sử một chỉ số dạng
+/// cột — màn Chỉ số và dialog chi tiết thành viên gia đình đang dùng chung
+/// widget này. Thẻ tự lo mọi việc gom nhóm/định dạng nhãn, nơi gọi chỉ cần
+/// truyền dữ liệu thô.
 class StatsChartCard extends StatelessWidget {
   final MetricChart chart;
   final String selectedRange;
@@ -15,12 +31,17 @@ class StatsChartCard extends StatelessWidget {
     required this.selectedRange,
   });
 
-  List<ChartDataPoint> _sortedPoints() {
-    return (List<ChartDataPoint>.from(chart.points)
+  /// Dữ liệu thô đã sắp theo thời gian — BE không đảm bảo thứ tự.
+  List<_ChartPoint> _sortedPoints() {
+    return (chart.points.map((p) => (time: p.time, value: p.value)).toList()
       ..sort((a, b) => a.time.compareTo(b.time)));
   }
 
-  List<({DateTime date, double value})> _aggregateByDay() {
+  /// Gộp trung bình các lần đo trong cùng một ngày.
+  ///
+  /// Gom theo chuỗi 'yyyy-MM-dd' (không phải theo đối tượng DateTime) để hai
+  /// lần đo cùng ngày khác giờ vẫn rơi vào một nhóm.
+  List<_ChartPoint> _aggregateByDay() {
     final Map<String, List<double>> grouped = {};
     final dateKey = DateFormat('yyyy-MM-dd');
     for (final point in chart.points) {
@@ -28,9 +49,9 @@ class StatsChartCard extends StatelessWidget {
     }
     return (grouped.entries.map((e) {
       final avg = e.value.reduce((a, b) => a + b) / e.value.length;
-      return (date: DateTime.parse(e.key), value: avg);
+      return (time: DateTime.parse(e.key), value: avg);
     }).toList()
-      ..sort((a, b) => a.date.compareTo(b.date)));
+      ..sort((a, b) => a.time.compareTo(b.time)));
   }
 
   @override
@@ -41,8 +62,7 @@ class StatsChartCard extends StatelessWidget {
     final latestVal = chart.points.isEmpty ? 0.0 : chart.points.last.value;
 
     final is24h = selectedRange == '24h';
-    final pts = is24h ? _sortedPoints() : <ChartDataPoint>[];
-    final daily = is24h ? <({DateTime date, double value})>[] : _aggregateByDay();
+    final points = is24h ? _sortedPoints() : _aggregateByDay();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -99,15 +119,17 @@ class StatsChartCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          if (is24h && pts.isNotEmpty)
+          if (points.isNotEmpty)
             AspectRatio(
               aspectRatio: 1.7,
-              child: BarChart(_buildRawBarData(pts, maxVal)),
-            )
-          else if (!is24h && daily.isNotEmpty)
-            AspectRatio(
-              aspectRatio: 1.7,
-              child: BarChart(_buildBarData(daily, maxVal)),
+              child: BarChart(
+                _buildBarData(
+                  points,
+                  maxVal,
+                  axisFormat: DateFormat(is24h ? 'HH:mm' : 'd/M'),
+                  tooltipFormat: DateFormat(is24h ? 'HH:mm' : 'dd/MM/yyyy'),
+                ),
+              ),
             ),
         ],
       ),
@@ -139,107 +161,31 @@ class StatsChartCard extends StatelessWidget {
     );
   }
 
-  // 24h: mỗi cột = một điểm đo, trục x là HH:mm
-  BarChartData _buildRawBarData(List<ChartDataPoint> pts, double maxVal) {
-    final barGroups = pts.asMap().entries.map((e) {
-      return BarChartGroupData(
-        x: e.key,
-        barRods: [
-          BarChartRodData(
-            toY: e.value.value,
-            color: chart.lineColor,
-            width: _barWidth(pts.length),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-            backDrawRodData: BackgroundBarChartRodData(
-              show: true,
-              toY: maxVal * 1.15,
-              color: chart.lineColor.withValues(alpha: 0.07),
-            ),
-          ),
-        ],
-      );
-    }).toList();
-
-    final labelStep = (pts.length / 6).ceil().clamp(1, pts.length);
-
-    return BarChartData(
-      maxY: maxVal * 1.15,
-      barGroups: barGroups,
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: false,
-        horizontalInterval: maxVal * 0.5,
-        getDrawingHorizontalLine: (_) => FlLine(
-          color: AppColors.cardBorder,
-          strokeWidth: 1,
-          dashArray: [4, 6],
-        ),
-      ),
-      borderData: FlBorderData(show: false),
-      titlesData: FlTitlesData(
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 28,
-            getTitlesWidget: (value, meta) {
-              final idx = value.toInt();
-              if (idx % labelStep != 0) return const SizedBox.shrink();
-              if (idx >= pts.length) return const SizedBox.shrink();
-              return SideTitleWidget(
-                meta: meta,
-                space: 4,
-                child: Text(
-                  DateFormat('HH:mm').format(pts[idx].time),
-                  style: const TextStyle(color: AppColors.textGrey, fontSize: 10),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-      barTouchData: BarTouchData(
-        touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (_) => Colors.white.withValues(alpha: 0.95),
-          tooltipBorder: BorderSide(color: chart.lineColor, width: 1.5),
-          tooltipBorderRadius: BorderRadius.circular(8),
-          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            final pt = pts[group.x];
-            return BarTooltipItem(
-              '${DateFormat('HH:mm').format(pt.time)}\n',
-              const TextStyle(color: AppColors.textBlack, fontSize: 11),
-              children: [
-                TextSpan(
-                  text: '${rod.toY.toStringAsFixed(0)} ${chart.unit}',
-                  style: TextStyle(
-                    color: chart.lineColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
+  /// Dựng cấu hình biểu đồ cột dùng chung cho cả hai chế độ.
+  ///
+  /// Trước đây có hai hàm gần như giống hệt (một cho 24h, một cho theo ngày);
+  /// chúng chỉ khác nguồn dữ liệu và định dạng nhãn nên được gộp lại, với
+  /// [axisFormat] cho nhãn trục X và [tooltipFormat] cho tiêu đề tooltip.
+  ///
+  /// [maxVal] là giá trị lớn nhất của dữ liệu THÔ (không phải của [data]) — cố
+  /// ý như vậy để trần biểu đồ ở chế độ gộp theo ngày vẫn phản ánh đỉnh thật.
   BarChartData _buildBarData(
-    List<({DateTime date, double value})> dailyData,
-    double maxVal,
-  ) {
-    final barGroups = dailyData.asMap().entries.map((entry) {
+    List<_ChartPoint> data,
+    double maxVal, {
+    required DateFormat axisFormat,
+    required DateFormat tooltipFormat,
+  }) {
+    final barGroups = data.asMap().entries.map((entry) {
       return BarChartGroupData(
         x: entry.key,
         barRods: [
           BarChartRodData(
             toY: entry.value.value,
             color: chart.lineColor,
-            width: _barWidth(dailyData.length),
+            width: _barWidth(data.length),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            // Cột nền mờ cao bằng trần biểu đồ, tạo cảm giác "máng chứa" để
+            // mắt so sánh được các cột thấp.
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
               toY: maxVal * 1.15,
@@ -250,9 +196,11 @@ class StatsChartCard extends StatelessWidget {
       );
     }).toList();
 
-    final labelStep = (dailyData.length / 6).ceil().clamp(1, dailyData.length);
+    // Chỉ vẽ tối đa ~6 nhãn trục X để chúng không đè lên nhau.
+    final labelStep = (data.length / 6).ceil().clamp(1, data.length);
 
     return BarChartData(
+      // Trần cao hơn giá trị lớn nhất 15% để cột cao nhất không chạm mép trên.
       maxY: maxVal * 1.15,
       barGroups: barGroups,
       gridData: FlGridData(
@@ -277,12 +225,13 @@ class StatsChartCard extends StatelessWidget {
             getTitlesWidget: (value, meta) {
               final index = value.toInt();
               if (index % labelStep != 0) return const SizedBox.shrink();
-              if (index >= dailyData.length) return const SizedBox.shrink();
+              // fl_chart có thể hỏi nhãn cho vị trí ngoài dải dữ liệu.
+              if (index >= data.length) return const SizedBox.shrink();
               return SideTitleWidget(
                 meta: meta,
                 space: 4,
                 child: Text(
-                  DateFormat('d/M').format(dailyData[index].date),
+                  axisFormat.format(data[index].time),
                   style: const TextStyle(color: AppColors.textGrey, fontSize: 10),
                 ),
               );
@@ -296,9 +245,9 @@ class StatsChartCard extends StatelessWidget {
           tooltipBorder: BorderSide(color: chart.lineColor, width: 1.5),
           tooltipBorderRadius: BorderRadius.circular(8),
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            final day = dailyData[group.x];
+            final point = data[group.x];
             return BarTooltipItem(
-              '${DateFormat('dd/MM/yyyy').format(day.date)}\n',
+              '${tooltipFormat.format(point.time)}\n',
               const TextStyle(color: AppColors.textBlack, fontSize: 11),
               children: [
                 TextSpan(
@@ -317,6 +266,7 @@ class StatsChartCard extends StatelessWidget {
     );
   }
 
+  /// Cột càng nhiều càng mảnh để không tràn khỏi bề ngang thẻ.
   double _barWidth(int count) {
     if (count <= 7) return 18;
     if (count <= 14) return 12;

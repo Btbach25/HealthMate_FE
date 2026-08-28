@@ -1,13 +1,15 @@
 part of 'auth_bloc.dart';
 
-abstract class AuthEvent extends Equatable{
+/// Base class cho mọi event của [AuthBloc].
+abstract class AuthEvent extends Equatable {
   const AuthEvent();
 
   @override
   List<Object> get props => [];
 }
 
-// Event được gửi khi trạng thái đăng nhập từ repository thay đổi
+/// Do chính [AuthBloc] tự bắn khi stream `AuthRepository.status` phát giá trị
+/// mới (login/logout/refresh token hết hạn). UI không bao giờ add event này.
 class AuthStatusChanged extends AuthEvent {
   final AuthStatus status;
 
@@ -17,10 +19,13 @@ class AuthStatusChanged extends AuthEvent {
   List<Object> get props => [status];
 }
 
-// Event được gửi khi người dùng yêu cầu đăng xuất
+/// UI (màn Cài đặt) bắn khi người dùng bấm đăng xuất. Bloc không emit state
+/// trực tiếp: nó gọi repository, repository đẩy `AuthStatus.unauthenticated`
+/// xuống stream và vòng lặp quay lại [AuthStatusChanged].
 class AuthLogoutRequested extends AuthEvent {}
 
-/// Cập nhật user trong state (sau khi sửa hồ sơ từ màn Cài đặt)
+/// UI bắn sau khi sửa hồ sơ thành công để đồng bộ [User] trong state mà không
+/// cần gọi lại API `getCurrentUser`.
 class AuthUserUpdated extends AuthEvent {
   final User user;
 

@@ -2,9 +2,27 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable switch row widget for settings.
-/// Icon renders with a soft background container (consistent with SettingsCard).
-/// The full row is wrapped in Semantics for screen reader support.
+/// Hàng bật/tắt trong Cài đặt: icon + tiêu đề + mô tả + `Switch`.
+///
+/// Thiết kế để đặt trong `children` của `SettingsCard` (icon dùng cùng kiểu
+/// nền bo góc nên hai widget khớp nhau về thị giác).
+///
+/// Cả hàng được bọc `Semantics` với `excludeSemantics: true`: trình đọc màn
+/// hình đọc "tiêu đề. mô tả" một lần cùng trạng thái bật/tắt, thay vì đọc rời
+/// từng `Text`. Vì vậy đừng thêm `Semantics` bọc ngoài nữa.
+///
+/// Chỉ bấm được đúng vào `Switch` — nếu cần bấm cả hàng thì bọc thêm
+/// `InkWell` ở phía gọi.
+///
+/// ```dart
+/// SettingsSwitchRow(
+///   icon: Icons.notifications_active_outlined,
+///   title: 'Nhắc uống thuốc',
+///   description: 'Gửi thông báo theo lịch đã đặt.',
+///   value: settings.reminderEnabled,
+///   onChanged: _toggleReminder,
+/// )
+/// ```
 class SettingsSwitchRow extends StatelessWidget {
   final String title;
   final String description;

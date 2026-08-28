@@ -7,11 +7,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+/// Khung (shell) bottom-navigation bao toàn bộ phần đã đăng nhập của app.
+///
+/// Được `StatefulShellRoute.indexedStack` trong `lib/core/routing/app_router.dart`
+/// dựng lên một lần và sống suốt phiên: AppBar chung ở trên, thanh nav tuỳ biến
+/// nổi ở dưới, ở giữa là [navigationShell] — chính là IndexedStack giữ state
+/// riêng cho từng tab (cuộn tới đâu, form đang gõ dở… đều được giữ khi đổi tab).
+///
+/// ## Thêm một tab mới
+///
+/// Thứ tự tab được quy định ở HAI nơi và **phải khớp nhau tuyệt đối**; không có
+/// gì kiểm tra hộ, lệch một chỉ số là bấm tab này ra màn hình khác:
+///
+/// 1. `app_router.dart` → thêm một [StatefulShellBranch] vào danh sách
+///    `branches` của `StatefulShellRoute.indexedStack`, đúng vị trí mong muốn.
+///    Mỗi branch có `GoRoute` với path riêng (`/stats`, `/meds`…). Branch đầu
+///    tiên phải giữ path `/` vì đó là route mặc định sau khi đăng nhập.
+///    Nếu tab cần một Bloc sống theo tab, bọc `ShellRoute` + `BlocProvider`
+///    bên trong branch — xem nhánh Thuốc làm mẫu.
+/// 2. File này → thêm một `Expanded(child: _NavItem(...))` vào
+///    [_CustomBottomNavBar] **cùng vị trí đó**, với `isSelected:
+///    currentIndex == <chỉ số mới>`, `onTap: () => onTap(<chỉ số mới>)`, và
+///    cập nhật lại chỉ số của mọi tab nằm sau nó.
+///
+/// Lưu ý khi thêm:
+/// * Icon lấy từ `AppIcons` (`lib/core/theme/app_icons.dart`), không hardcode.
+/// * Nhãn tab ngắn — `_NavItem` giới hạn 1 dòng và cắt bằng dấu "…", 5 tab đã
+///   gần chật trên máy hẹp; thêm tab thứ 6 nên cân nhắc lại layout.
+/// * Không cần đụng tới `navBarHeight` trừ khi đổi kích thước icon/chữ.
+/// * Điều hướng giữa các tab luôn qua [_onTap] / `navigationShell.goBranch`,
+///   đừng `context.go()` sang path của tab khác — làm vậy sẽ mất state tab.
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   const AppShell({super.key, required this.navigationShell});
 
+  /// Đổi tab. `initialLocation: true` khi bấm lại chính tab đang mở nghĩa là
+  /// "về màn hình gốc của tab" — ví dụ đang ở `/family/group/123` mà bấm lại
+  /// tab Gia đình thì quay về `/family`.
   void _onTap(int index) {
     navigationShell.goBranch(
       index,
@@ -21,7 +54,14 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Nav bar height: icon(28) + text(14) + spacing(2) + item padding(12) + outer padding(16) ≈ 72px
+    // Chiều cao thanh nav: icon(28) + chữ(14) + khoảng cách(2) + padding item(12)
+    // + padding ngoài(16) ≈ 72px.
+    //
+    // Thanh nav nằm trong Stack (nền mờ, trôi trên nội dung) chứ không phải
+    // `bottomNavigationBar` của Scaffold, nên Flutter không tự chừa chỗ cho nó.
+    // Vì vậy phải tự cộng con số này vào `MediaQuery.padding.bottom` của phần
+    // thân — thiếu bước đó là đáy mọi trang bị thanh nav che. Đổi layout của
+    // [_NavItem] thì phải chỉnh lại con số này.
     const double navBarHeight = 72;
     final mq = MediaQuery.of(context);
     return Scaffold(
@@ -54,6 +94,9 @@ class AppShell extends StatelessWidget {
 }
 
 /// Thanh trên cố định — dùng chung cho mọi tab trong shell.
+///
+/// Vì nằm ngoài [AppShell.navigationShell], nó KHÔNG đổi theo tab: đừng nhét
+/// action riêng của một tab vào đây, hãy để tab đó tự dựng AppBar của mình.
 class _ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ShellAppBar();
 
@@ -134,7 +177,11 @@ class _ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Widget thanh điều hướng tùy chỉnh
+/// Thanh điều hướng dưới cùng, tự dựng thay vì dùng `NavigationBar` của
+/// Material để có nền mờ (BackdropFilter) và "bong bóng" chọn bo tròn.
+///
+/// **Thứ tự các [_NavItem] dưới đây phải khớp thứ tự `branches` trong
+/// `app_router.dart`** — xem hướng dẫn thêm tab ở doc của [AppShell].
 class _CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -154,12 +201,11 @@ class _CustomBottomNavBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: Padding(
-              // Thêm padding ngang để các item không bị sát viền
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
               child: Row(
-                // Bỏ spaceAround, dùng Expanded để chia đều
+                // Expanded cho từng tab để chia đều bề rộng: vùng chạm phủ kín ô
+                // của tab, không co giãn theo độ dài nhãn.
                 children: [
-                  // --- THAY ĐỔI: BỌC TỪNG ITEM BẰNG EXPANDED ---
                   Expanded(
                     child: _NavItem(
                       icon: AppIcons.home,
@@ -210,7 +256,11 @@ class _CustomBottomNavBar extends StatelessWidget {
   }
 }
 
-/// Widget cho từng item trong thanh điều hướng
+/// Một tab trong [_CustomBottomNavBar]: icon + nhãn, có "bong bóng" nền khi
+/// đang được chọn.
+///
+/// Không tự biết mình là tab thứ mấy — [_CustomBottomNavBar] truyền sẵn
+/// `isSelected` và `onTap`.
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -228,27 +278,27 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color color = isSelected ? AppColors.primary : AppColors.textGrey;
 
-    // --- THAY ĐỔI: GESTUREDETECTOR LÀ GỐC ---
-    // Nó sẽ chiếm toàn bộ không gian của Expanded
+    // GestureDetector ngoài cùng + HitTestBehavior.opaque + Container trong
+    // suốt: để CẢ ô Expanded bắt được tap, kể cả khoảng trống quanh "bong bóng"
+    // — chứ không chỉ đúng vùng icon/chữ.
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      // Container trong suốt để bắt tap
       child: Container(
         color: Colors.transparent, 
-        // Đặt padding dọc ở đây để căn giữa toàn bộ item
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Center(
-          // Bọc "bong bóng" trong Center để nó nằm giữa
+          // "Bong bóng" chỉ ôm sát icon + nhãn, hẹp hơn vùng chạm ở trên.
           child: Container(
-            // Đây là "bong bóng" có nền màu
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.tagImportantBg : Colors.transparent,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Cực kỳ quan trọng
+              // BẮT BUỘC min: Column này nằm trong thanh nav cao cố định
+              // (navBarHeight), để max là tràn layout.
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(icon, color: color, size: 28),
@@ -274,8 +324,24 @@ class _NavItem extends StatelessWidget {
 
 // ── Health Connect badge ──────────────────────────────────────────────────────
 
+/// Trạng thái hiển thị của [_HCConnectionBadge].
+///
+/// [hidden] là trạng thái khởi đầu và cũng là trạng thái kết thúc sau khi báo
+/// kết nối thành công — badge chỉ xuất hiện khi có chuyện cần nói.
 enum _BadgeMode { hidden, error, success }
 
+/// Huy hiệu nhỏ trên AppBar báo tình trạng kết nối Health Connect.
+///
+/// Nghe [DeviceHealthCubit]:
+/// * `isHealthConnectConnected == false` → hiện chấm đỏ nhấp nháy, tự bung nhãn
+///   "Chưa kết nối HC" khoảng 3,5 giây rồi thu lại; bấm vào mở
+///   [_HealthConnectDialog].
+/// * chuyển sang `true` → đổi sang màu xanh "Đã kết nối HC" một lúc rồi tự ẩn
+///   hẳn, không bấm được nữa.
+/// * `null` (chưa biết) → không hiện gì, tránh doạ người dùng lúc app mới mở.
+///
+/// Cờ `_busy` chặn chuỗi animation thành công bị kích hoạt chồng nhau khi
+/// cubit phát trạng thái liên tiếp.
 class _HCConnectionBadge extends StatefulWidget {
   const _HCConnectionBadge();
 
@@ -434,6 +500,11 @@ class _HCConnectionBadgeState extends State<_HCConnectionBadge>
 
 // ── Health Connect dialog ─────────────────────────────────────────────────────
 
+/// Hộp thoại giải thích vì sao cần Health Connect, mở từ [_HCConnectionBadge].
+///
+/// CHƯA HOÀN THIỆN: nút "Xem hướng dẫn kết nối" hiện chỉ đóng hộp thoại — chưa
+/// có màn hình hướng dẫn để điều hướng tới. Khi làm tiếp, thay `Navigator.pop`
+/// bằng lệnh mở màn hình đó (và đóng hộp thoại sau).
 class _HealthConnectDialog extends StatelessWidget {
   const _HealthConnectDialog();
 

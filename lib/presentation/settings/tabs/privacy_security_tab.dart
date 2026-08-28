@@ -8,6 +8,11 @@ import 'package:fe/data/models/settings/privacy_security_settings.dart';
 import 'package:fe/data/services/settings_service.dart';
 import 'package:flutter/material.dart';
 
+/// Tab "Bảo mật" trong [SettingsView]: quyền riêng tư hồ sơ, chia sẻ dữ liệu,
+/// tuỳ chọn đăng nhập.
+///
+/// Không nhận tham số; tự nạp [PrivacySecuritySettings] qua [SettingsService]
+/// ở [State.initState], lưu ngay khi đổi (cập nhật lạc quan + hoàn tác khi lỗi).
 class PrivacySecurityTab extends StatefulWidget {
   const PrivacySecurityTab({super.key});
 

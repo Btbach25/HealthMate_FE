@@ -4,6 +4,8 @@ import 'package:fe/data/models/health/heart_rate.dart';
 import 'package:fe/data/models/health/temperature.dart';
 import 'package:fe/data/models/health/weight.dart';
 
+/// Ảnh chụp nhanh các chỉ số sức khoẻ mới nhất hiển thị ở trang chủ.
+/// Nguồn: `HealthService` (API) hoặc dữ liệu đọc từ thiết bị.
 class HealthOverview extends Equatable {
   final HeartRate? heartRate;
   final Weight? weight;

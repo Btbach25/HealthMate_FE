@@ -1,17 +1,21 @@
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:fe/presentation/auth/widgets/auth_form_layout.dart';
 import 'package:fe/presentation/auth/widgets/confirm_password_input.dart';
 import 'package:fe/presentation/auth/widgets/password_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/toast_utils.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../bloc/auth_form_bloc.dart';
-import '../widgets/auth_logo_header.dart';
-
+/// Màn đăng ký (route `/signup`).
+///
+/// Sau khi đăng ký thành công, đích đến phụ thuộc cờ
+/// [AuthFormState.needsVerification] do BE quyết định: có thì sang `/otp`,
+/// không thì về `/login`.
 class SignUpPage extends StatelessWidget {
   const SignUpPage({super.key});
 
@@ -42,6 +46,8 @@ class SignUpView extends StatelessWidget {
         if (state.status == FormStatus.success) {
           ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
           if (state.needsVerification) {
+            // Ưu tiên verificationEmail (email BE thực sự gửi OTP tới, có thể
+            // đã được chuẩn hoá), chỉ fallback về email người dùng gõ.
             final emailToVerify = state.verificationEmail.isNotEmpty ? state.verificationEmail : state.email;
             context.go('/otp', extra: {'email': emailToVerify, 'flow': 'signup'});
           } else {
@@ -49,34 +55,7 @@ class SignUpView extends StatelessWidget {
           }
         }
       },
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AuthLogoHeader(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.p24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppSize.r12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        spreadRadius: 5,
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: const SignUpForm(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: const AuthFormLayout(child: SignUpForm()),
     );
   }
 }
@@ -206,30 +185,6 @@ class _LoginPrompt extends StatelessWidget {
           child: const Text('Đăng nhập ngay', style: AppStyles.link),
         ),
       ],
-    );
-  }
-}
-
-class AppHeader extends StatelessWidget {
-  const AppHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppSize.p32),
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(AppSize.r12 * 2)),
-      ),
-      child: Column(
-        children: [
-          Image.asset('assets/icons/app_logo.png', height: 60),
-          const SizedBox(height: AppSize.p16),
-          const Text('HealthMate', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: AppSize.p8),
-          const Text('Ứng dụng chăm sóc sức khỏe cho cả gia đình', style: TextStyle(fontSize: 14, color: Colors.white70)),
-        ],
-      ),
     );
   }
 }

@@ -9,6 +9,19 @@ import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Chia sẻ lịch nhắc thuốc cho thành viên trong nhóm gia đình.
+///
+/// Hai bước trong cùng một dialog: chọn nhóm → chọn thành viên → xác nhận.
+///
+/// Bắt buộc [medications] (chia sẻ CẢ danh sách, không chọn lẻ từng thuốc) và
+/// phải khác rỗng — phía gọi đã chặn sẵn khi chưa có thuốc nào.
+/// PHỤ THUỘC context: [FamilyRepository], [MedicationRepository] và [AuthBloc].
+/// Khác các dialog cùng thư mục, nó KHÔNG cần [MedicationBloc] vì gọi thẳng
+/// repository và không đổi lịch của chính người dùng.
+///
+/// Chỉ liệt kê thành viên khác mình và có bật chia sẻ chỉ số. Việc gửi là
+/// vòng lặp `số thuốc × số người` gọi API lần lượt: không có transaction, lỗi
+/// giữa chừng thì phần trước đó đã chia sẻ xong.
 class MedicationShareDialog extends StatefulWidget {
   final List<Medication> medications;
 
@@ -22,18 +35,18 @@ class MedicationShareDialog extends StatefulWidget {
 }
 
 class _MedicationShareDialogState extends State<MedicationShareDialog> {
-  // Groups screen
+  // --- Bước 1: chọn nhóm ---
   bool _loadingGroups = true;
   List<FamilyGroup> _groups = [];
   String? _loadError;
 
-  // Members screen
+  // --- Bước 2: chọn thành viên (null = đang ở bước 1) ---
   FamilyGroup? _selectedGroup;
   List<FamilyMember> _groupMembers = [];
   bool _loadingMembers = false;
   final Set<String> _selectedUserIds = {};
 
-  // Sharing
+  // --- Đang gửi: khoá mọi nút, kể cả nút đóng ---
   bool _sharing = false;
 
   @override
@@ -66,6 +79,10 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
     }
   }
 
+  /// Sang bước 2 và nạp thành viên của nhóm.
+  ///
+  /// Chỉ giữ người khác mình VÀ đã bật chia sẻ chỉ số — người chưa bật thì gửi
+  /// nhắc thuốc sang cũng không hiển thị được.
   Future<void> _selectGroup(FamilyGroup group) async {
     setState(() {
       _selectedGroup = group;
@@ -106,6 +123,10 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
     });
   }
 
+  /// Hỏi xác nhận rồi gửi lần lượt `số thuốc × số người` lời mời chia sẻ.
+  ///
+  /// Không có transaction: lỗi giữa chừng thì phần đã gửi vẫn có hiệu lực,
+  /// người dùng chỉ thấy một thông báo lỗi chung.
   Future<void> _onConfirm() async {
     if (_selectedUserIds.isEmpty || _sharing) return;
     final group = _selectedGroup!;

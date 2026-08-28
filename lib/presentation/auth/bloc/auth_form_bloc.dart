@@ -1,13 +1,24 @@
 import 'package:equatable/equatable.dart';
 import 'package:fe/core/utils/user_facing_error.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../../data/repositories/auth_repository.dart';
 import 'package:fe/data/enums/user_status.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'auth_form_event.dart';
 part 'auth_form_state.dart';
 
+/// Bloc điều khiển các form xác thực (login, đăng ký, quên mật khẩu, OTP,
+/// đặt lại mật khẩu).
+///
+/// Mỗi màn auth tạo một instance riêng (xem BlocProvider trong từng
+/// `*_page.dart`), nên state KHÔNG chia sẻ giữa các màn: email cần mang sang
+/// màn OTP phải truyền qua `GoRouter.extra` rồi nạp lại bằng
+/// [AuthFormInitialized].
+///
+/// Quy ước: mọi event "đổi input" đều reset [FormStatus] về `initial` để
+/// `BlocListener` không bắn lại toast lỗi cũ ngay khi người dùng bắt đầu sửa.
+/// Lỗi từ repository luôn đi qua [UserFacingError.message] trước khi vào
+/// [AuthFormState.errorMessage] — không hiển thị raw exception cho người dùng.
 class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
   final AuthRepository _authRepository;
 
@@ -101,11 +112,16 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       await _authRepository.login(email: state.email, password: state.password);
       emit(state.copyWith(status: FormStatus.success));
     } catch (e) {
+      // Hợp đồng với BE: tài khoản chưa xác thực trả về message chứa
+      // "account not verified". BE chưa có error code riêng nên buộc phải khớp
+      // chuỗi — nếu BE đổi wording, phải cập nhật danh sách dưới đây.
       final msg = e.toString().toLowerCase();
       if (msg.contains('account not verified') ||
           msg.contains('not verified') ||
           msg.contains('chưa xác thực')) {
-        // Auto resend OTP then guide user to verification
+        // Gửi lại OTP giúp người dùng luôn. Nuốt lỗi ở đây là cố ý: kể cả khi
+        // resend fail (rate limit), vẫn nên đưa họ sang màn OTP để tự bấm
+        // "Gửi lại" thay vì kẹt ở màn login.
         try {
           await _authRepository.resendOtp(email: state.email);
         } catch (_) {}
@@ -146,6 +162,8 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
         password: state.password,
       );
 
+      // BE có thể bật/tắt bước xác thực email: nếu user trả về ở trạng thái
+      // unverified thì phải qua màn OTP, ngược lại đăng ký xong là dùng được.
       if (user != null && user.status == UserStatus.unverified) {
         emit(
           state.copyWith(
@@ -196,7 +214,12 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     }
   }
 
-  Future<void> _onOtpSubmitted(OtpSubmitted event, Emitter<AuthFormState> emit) async {
+  Future<void> _onOtpSubmitted(
+    OtpSubmitted event,
+    Emitter<AuthFormState> emit,
+  ) async {
+    // Người dùng thường copy mã từ email kèm khoảng trắng → chuẩn hoá trước
+    // khi đếm độ dài, nếu không mã 6 số dán vào sẽ bị coi là sai định dạng.
     final otp = state.otp.trim().replaceAll(RegExp(r'\s+'), '');
     if (otp.length != 6) {
       emit(state.copyWith(
@@ -205,6 +228,7 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       ));
       return;
     }
+    // Email rỗng nghĩa là màn OTP được mở mà thiếu AuthFormInitialized.
     if (state.email.trim().isEmpty) {
       emit(state.copyWith(
         status: FormStatus.failure,
@@ -222,7 +246,13 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     }
   }
 
-  Future<void> _onOtpResendRequested(OtpResendRequested event, Emitter<AuthFormState> emit) async {
+  /// Cố ý KHÔNG emit `FormStatus.success` khi gửi lại OTP thành công: màn OTP
+  /// điều hướng ngay khi thấy `success`, emit ở đây sẽ đá người dùng ra khỏi
+  /// màn hình trước khi họ kịp nhập mã. Chỉ lỗi mới được emit.
+  Future<void> _onOtpResendRequested(
+    OtpResendRequested event,
+    Emitter<AuthFormState> emit,
+  ) async {
     try {
       await _authRepository.resendOtp(email: state.email);
     } catch (e) {
@@ -255,6 +285,8 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
 
     emit(state.copyWith(status: FormStatus.inProgress));
     try {
+      // Không truyền OTP/token ở đây: repository dùng token tạm đã lưu khi
+      // verifyOtp thành công ở bước trước của luồng quên mật khẩu.
       await _authRepository.resetPassword(newPassword: state.password);
       emit(
         state.copyWith(

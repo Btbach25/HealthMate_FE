@@ -1,13 +1,19 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/utils/settings_management_helper.dart';
 import 'package:fe/core/widgets/settings_card.dart';
 import 'package:fe/core/widgets/settings_switch_row.dart';
 import 'package:fe/data/models/settings/notification_settings.dart';
 import 'package:fe/data/services/settings_service.dart';
 import 'package:flutter/material.dart';
 
+/// Tab "Thông báo" trong [SettingsView]: bật/tắt từng loại nhắc (thuốc, chỉ
+/// số, nhóm gia đình…).
+///
+/// Không nhận tham số; tự nạp [NotificationSettings] qua [SettingsService] ở
+/// [State.initState] và tự lưu mỗi khi người dùng gạt công tắc (cập nhật lạc
+/// quan, hoàn tác nếu API lỗi).
 class NotificationsSettingsTab extends StatefulWidget {
   const NotificationsSettingsTab({super.key});
 
@@ -45,6 +51,12 @@ class _NotificationsSettingsTabState extends State<NotificationsSettingsTab> {
     );
   }
 
+  /// Lưu một thay đổi cài đặt.
+  ///
+  /// Cạm bẫy: tham số kiểu `T Function(...)` rồi ép kiểu ngay bên dưới, nên
+  /// hàm `update` truyền vào BẮT BUỘC phải trả về [NotificationSettings] —
+  /// trả kiểu khác sẽ không lỗi biên dịch mà nổ lúc chạy. Thấy `<T>` ở đây thì
+  /// đừng tưởng nó nhận được kiểu khác.
   Future<void> _updateSetting<T>(T Function(NotificationSettings) update) async {
     await SettingsManagementHelper.updateSettingWithErrorHandling<NotificationSettings>(
       context: context,

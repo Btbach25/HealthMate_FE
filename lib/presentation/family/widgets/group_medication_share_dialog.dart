@@ -8,6 +8,16 @@ import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Dialog cấu hình chia sẻ nhắc uống thuốc theo **từng loại thuốc × từng thành viên**.
+/// Mở từ nút "Quản lý tại đây" ở màn chi tiết nhóm, và nút đó chỉ bật khi nhóm đã
+/// cho phép chia sẻ nhắc thuốc (`group.medicationSharingAllowed`).
+///
+/// Chỉ liệt kê thành viên vừa khác chính mình vừa có `medicationReminderShareAllowed`
+/// — tức đã qua cả hai tầng quyền (cài đặt nhóm và quyền riêng từng người).
+///
+/// Không đi qua [FamilyBloc]: gọi thẳng `MedicationRepository`, so sánh trạng thái
+/// đã chọn với các bản ghi chia sẻ hiện có rồi thêm/xoá phần chênh lệch.
+/// Trả về `true` qua `Navigator.pop` khi lưu thành công.
 class GroupMedicationShareDialog extends StatefulWidget {
   final String groupId;
   final List<FamilyMember> members;
@@ -79,6 +89,8 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
 
   String _shareKey(String medicationId, String userId) => '$medicationId|$userId';
 
+  /// Lưu theo kiểu so sánh chênh lệch: với mỗi thuốc, thêm những người mới tick và
+  /// xoá bản ghi của những người vừa bỏ tick. Không có API ghi đè hàng loạt.
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);

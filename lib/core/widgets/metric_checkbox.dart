@@ -3,8 +3,26 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable checkbox widget for metric selection
-/// Used in dialogs and forms for selecting health metrics
+/// Ô chọn một chỉ số sức khoẻ (icon + tên + trạng thái chọn).
+///
+/// Dùng trong dialog/form chọn chỉ số chia sẻ với nhóm. Cả ô đều bấm được,
+/// không riêng ô vuông checkbox.
+///
+/// Hai kiểu hiển thị trạng thái chọn — chọn MỘT cho nhất quán trong cùng danh
+/// sách: [showCheckbox] (ô vuông bên trái, hợp danh sách dọc) hoặc
+/// [showCheckIcon] (dấu tick bên phải, hợp lưới/chip).
+///
+/// Đặt [enabled] = false cho chỉ số backend chưa hỗ trợ — kiểm tra bằng
+/// `MetricSelectionHelper.isMetricSupportedByBackend`.
+///
+/// ```dart
+/// MetricCheckbox(
+///   metric: option,
+///   isSelected: selected.contains(option.type),
+///   enabled: MetricSelectionHelper.isMetricSupportedByBackend(option.type),
+///   onChanged: (v) => _toggle(option.type, v),
+/// )
+/// ```
 class MetricCheckbox extends StatelessWidget {
   final MetricOption metric;
   final bool isSelected;

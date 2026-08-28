@@ -1,8 +1,30 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-/// Mixin to provide inline message functionality
-/// Reduces code duplication across dialogs and forms
+/// Thông báo dạng dải chữ hiển thị NGAY TRONG dialog/form.
+///
+/// Dùng khi `SnackBar` không hợp: nó nổi ở đáy `Scaffold` nên bị dialog che
+/// và biến mất cùng lúc dialog đóng. Mixin này giữ thông báo trong chính
+/// khung nội dung, tự ẩn sau [showInlineMessage] duration (mặc định 5 giây)
+/// và tự huỷ `Timer` trong `dispose`.
+///
+/// Cách dùng: `with InlineMessageMixin` trên `State`, gọi
+/// [showInlineMessage] khi có lỗi, và chèn [buildInlineMessage] vào cây
+/// widget (nó trả `null` khi không có thông báo):
+///
+/// ```dart
+/// class _MyDialogState extends State<MyDialog>
+///     with InlineMessageMixin<MyDialog> {
+///   @override
+///   Widget build(BuildContext context) {
+///     final banner = buildInlineMessage();
+///     return Column(children: [
+///       if (banner != null) ...[banner, const SizedBox(height: 12)],
+///       // …
+///     ]);
+///   }
+/// }
+/// ```
 mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
   String? _inlineMessage;
   Color? _inlineMessageColor;
@@ -11,7 +33,10 @@ mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
   String? get inlineMessage => _inlineMessage;
   Color? get inlineMessageColor => _inlineMessageColor;
 
-  /// Shows an inline message with optional background color and duration
+  /// Hiện [message], thay thế thông báo đang có (timer cũ bị huỷ).
+  ///
+  /// [backgroundColor] nên là `AppColors.error` cho lỗi, `AppColors.primary`
+  /// cho thành công; bỏ trống thì dùng nền đen mờ trung tính.
   void showInlineMessage(
     String message, {
     Color? backgroundColor,
@@ -32,7 +57,9 @@ mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
     });
   }
 
-  /// Clears the current inline message
+  /// Ẩn thông báo ngay, không đợi hết thời gian tự ẩn.
+  ///
+  /// Hữu ích khi người dùng bắt đầu sửa lại form sau một lỗi.
   void clearInlineMessage() {
     _messageTimer?.cancel();
     if (mounted) {
@@ -42,7 +69,10 @@ mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  /// Builds the inline message widget if message exists
+  /// Dựng dải thông báo, hoặc `null` nếu hiện không có thông báo nào.
+  ///
+  /// Trả `null` (chứ không phải `SizedBox.shrink()`) để phía gọi tự quyết
+  /// khoảng cách bao quanh khi thông báo xuất hiện.
   Widget? buildInlineMessage() {
     if (_inlineMessage == null) return null;
 

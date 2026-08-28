@@ -3,6 +3,14 @@ import 'package:fe/data/models/group/family_notification.dart';
 import 'package:fe/presentation/home/widgets/notification_tile.dart';
 import 'package:flutter/material.dart';
 
+/// Danh sách thông báo từ nhóm gia đình, kèm trạng thái rỗng riêng.
+///
+/// [notifications] bắt buộc, truyền danh sách rỗng là hợp lệ và sẽ hiện phần
+/// "Không có thông báo mới".
+///
+/// Widget tự dựng ListView với `shrinkWrap` và cuộn bị tắt, nên phải đặt bên trong
+/// một vùng cuộn khác — không dùng trực tiếp làm body của một trang dài, vì danh sách
+/// nhiều phần tử sẽ dựng hết một lượt.
 class NotificationList extends StatelessWidget {
   final List<FamilyNotification> notifications;
   const NotificationList({super.key, required this.notifications});

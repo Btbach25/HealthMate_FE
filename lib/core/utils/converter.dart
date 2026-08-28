@@ -1,3 +1,25 @@
+/// Bộ ép kiểu "không bao giờ ném lỗi" cho dữ liệu JSON từ backend.
+///
+/// Dùng trong `fromJson` của các model thay vì cast thẳng (`json['x'] as int`):
+/// backend Go có thể trả số dưới dạng chuỗi, trả `null` cho trường mới thêm,
+/// hoặc đổi kiểu giữa các phiên bản API — cast thẳng sẽ làm vỡ cả màn hình,
+/// còn các hàm ở đây rơi về giá trị mặc định.
+///
+/// Quy ước tên:
+/// * `cvToX(...)`        → luôn trả giá trị, dùng `defaultValue` khi hỏng.
+/// * `cvToXOrNull(...)`  → trả `null` khi thiếu/hỏng (cho trường nullable).
+/// * `cvToXRequired(...)`→ NÉM lỗi khi thiếu/hỏng (cho trường bắt buộc mà
+///   thiếu nó thì bản ghi vô nghĩa, ví dụ mốc thời gian đo).
+///
+/// ```dart
+/// Medication.fromJson(Map<String, dynamic> json) => Medication(
+///       id: cvToString(json['id']),
+///       dosage: cvToDoubleOrNull(json['dosage']),
+///       createdAt: cvToDateRequired(json['created_at']),
+///     );
+/// ```
+library;
+
 import 'dart:convert';
 
 String cvToString(dynamic value, {String defaultValue = ''}) {
@@ -151,20 +173,20 @@ String? cvJsonToStringOrNull(Map<String, dynamic>? json) {
   }
 }
 
-/// Safely parses nested object from JSON, with fallback to flat structure
-/// Returns null if neither nested nor flat data is available
+/// Đọc một object con nằm dưới [nestedKey], tự lùi về đọc phẳng nếu không có.
+///
+/// Có để đỡ hai dạng response cùng tồn tại của backend: bản mới lồng object
+/// (`{"user": {...}}`), bản cũ trải phẳng các trường ra ngoài. Trả `null` khi
+/// cả hai cách đều không ra dữ liệu.
 T? cvToNestedObject<T>(
   Map<String, dynamic> json,
   String nestedKey,
   T Function(Map<String, dynamic>) nestedParser,
   T? Function(Map<String, dynamic>) flatParser,
 ) {
-  // Try nested structure first
   final nested = json[nestedKey];
   if (nested is Map<String, dynamic>) {
     return nestedParser(nested);
   }
-
-  // Fallback to flat structure
   return flatParser(json);
 }

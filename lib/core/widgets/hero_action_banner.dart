@@ -2,7 +2,20 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Banner gradient + tiêu đề + mô tả + [action] (vd. nút Thêm).
+/// Banner nền gradient đặt ở đầu trang: tiêu đề + mô tả + một [action].
+///
+/// Dùng làm khối "hero" mở đầu một tab (Gia đình, Thuốc…) khi cần kèm một
+/// hành động chính. Banner tự đổi bố cục theo bề rộng khả dụng: dưới 520px
+/// thì [action] xuống dòng, rộng hơn thì nằm cùng hàng bên phải — nên đặt nó
+/// trong vùng có bề rộng xác định, đừng nhét vào `Row` không giới hạn.
+///
+/// ```dart
+/// HeroActionBanner(
+///   title: 'Nhóm gia đình',
+///   subtitle: 'Theo dõi sức khoẻ người thân ở một nơi.',
+///   action: LoadingButton(text: 'Tạo nhóm', onPressed: _create),
+/// )
+/// ```
 class HeroActionBanner extends StatelessWidget {
   final String title;
   final String subtitle;

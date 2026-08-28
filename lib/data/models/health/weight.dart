@@ -1,5 +1,6 @@
 import 'package:fe/core/utils/converter.dart';
 
+/// Chỉ số cân nặng — một mục trong [HealthOverview].
 class Weight {
   final DateTime time;
   final String userId;

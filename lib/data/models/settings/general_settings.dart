@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-/// Model for general app settings
+/// Cài đặt chung của app (giao diện tối, ngôn ngữ, định dạng ngày/giờ).
+///
+/// Thuần local: chỉ lưu trong SharedPreferences qua `SettingsService`,
+/// không đồng bộ với backend. JSON dùng snake_case.
 class GeneralSettings extends Equatable {
   final bool darkMode;
   final String language;

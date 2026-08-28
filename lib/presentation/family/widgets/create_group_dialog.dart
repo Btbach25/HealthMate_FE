@@ -13,9 +13,21 @@ import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Hai bước của luồng tạo nhóm: đặt tên rồi mới chọn quyền chia sẻ.
 enum _Step { name, metrics }
 
+/// Dialog tạo nhóm 2 bước. Ai cũng mở được (người tạo trở thành chủ nhóm).
+/// Mở từ tab Gia đình, màn quản lý nhóm, hoặc deep link `/family/create`.
+///
+/// Bước 1 bắn [CreateGroupName] → `groupNameCreated`: nhóm đã tồn tại trên server
+/// với `createdGroupId`. Bước 2 bắn [UpdateGroup] → `groupUpdated` rồi đóng dialog.
+/// Vì bước 1 đã tạo nhóm thật, thoát giữa chừng ở bước 2 sẽ hỏi xác nhận và để lại
+/// một nhóm chưa cấu hình chia sẻ — người dùng chỉnh sau ở màn chi tiết nhóm.
+///
+/// Không trả về giá trị; kết quả thành công báo bằng snackbar trên [rootContext]
+/// (context của dialog đã bị huỷ khi snackbar hiện).
 class CreateGroupDialog extends StatefulWidget {
+  /// Context còn sống sau khi dialog đóng, dùng để hiện snackbar thành công.
   final BuildContext rootContext;
 
   const CreateGroupDialog({
@@ -30,12 +42,10 @@ class CreateGroupDialog extends StatefulWidget {
 class _CreateGroupDialogState extends State<CreateGroupDialog> {
   _Step _step = _Step.name;
 
-  // Step 1 state
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   bool _isSubmittingName = false;
 
-  // Step 2 state
   final Set<MetricType> _selectedMetrics = {};
   bool _allowMedication = false;
   bool _isSubmittingMetrics = false;
@@ -59,6 +69,7 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
     super.dispose();
   }
 
+  /// Bước 1: tạo nhóm với tên. Kết quả về qua status `groupNameCreated`.
   void _submitName() {
     if (_isSubmittingName) return;
     if (!_formKey.currentState!.validate()) return;
@@ -68,6 +79,7 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
     context.read<FamilyBloc>().add(CreateGroupName(name: _groupName));
   }
 
+  /// Bước 2: lưu quyền chia sẻ cho nhóm vừa tạo. Về qua status `groupUpdated`.
   void _submitMetrics() {
     if (_isSubmittingMetrics) return;
     if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
@@ -87,6 +99,8 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
         );
   }
 
+  /// Xác nhận trước khi bỏ dở bước 2 — nhóm đã được tạo ở bước 1 nên đóng dialog
+  /// không hề huỷ nhóm, người dùng cần biết điều đó.
   Future<void> _tryCloseStep2() async {
     if (_isSubmittingMetrics) return;
     final confirmed = await showDialog<bool>(

@@ -1,9 +1,9 @@
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/core/widgets/error_widget.dart';
+import 'package:fe/core/widgets/loading_widget.dart';
+import 'package:fe/data/enums/group_member_status.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:fe/presentation/family/widgets/create_group_dialog.dart';
@@ -13,6 +13,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+/// Giao diện tab Gia đình (route `/family`): thẻ tổng hợp, danh sách nhóm đã
+/// tham gia và lối tạo nhóm mới.
+///
+/// Bấm vào một nhóm sẽ mở `/family/group/:groupId`; nút "Quản lý" mở `/family/manage`.
 class FamilyView extends StatelessWidget {
   const FamilyView({super.key});
 
@@ -78,7 +82,7 @@ class FamilyView extends StatelessWidget {
                         style: TextStyle(color: AppColors.textGrey),
                       ),
                       const SizedBox(height: AppSize.spacing24),
-                      // Header section
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +138,7 @@ class FamilyView extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSize.spacing32),
 
-                      // Summary cards
+
                       FamilySummaryCards(
                         groupsJoined: state.summary.groupsJoined,
                         pendingInvitations: _totalPendingInvitations(state),
@@ -143,7 +147,7 @@ class FamilyView extends StatelessWidget {
                       const _FamilyPurposeBanner(),
                       const SizedBox(height: 28),
 
-                      // Family groups list
+
                       if (state.summary.groups.isNotEmpty) ...[
                         Text(
                           'Nhóm của bạn',
@@ -170,7 +174,7 @@ class FamilyView extends StatelessWidget {
                         const SizedBox(height: AppSize.spacing24),
                       ],
 
-                      // Create new group card
+
                       const _CreateGroupCard(),
                       SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
                     ],
@@ -234,6 +238,7 @@ class _FamilyPurposeBanner extends StatelessWidget {
   }
 }
 
+/// Gợi ý hiển thị thay cho danh sách khi người dùng chưa tham gia nhóm nào.
 class _FamilyEmptyGroupsHint extends StatelessWidget {
   const _FamilyEmptyGroupsHint();
 
@@ -285,6 +290,9 @@ class _FamilyEmptyGroupsHint extends StatelessWidget {
   }
 }
 
+/// Thẻ "Tạo nhóm mới" ở cuối tab Gia đình; mở [CreateGroupDialog] 2 bước.
+/// Truyền context của tab làm `rootContext` để snackbar thành công còn chỗ hiện
+/// sau khi dialog đã đóng.
 class _CreateGroupCard extends StatelessWidget {
   const _CreateGroupCard();
 

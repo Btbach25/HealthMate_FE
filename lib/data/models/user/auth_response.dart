@@ -1,7 +1,10 @@
 import 'package:fe/core/utils/converter.dart';
+import 'package:fe/data/models/user/user.dart';
 
-import 'user.dart';
-
+/// Kết quả trả về của các endpoint đăng nhập/đăng ký (`POST /auth/app`,
+/// `POST /auth/google`, `POST /auth/register`): cặp token và thông tin user.
+///
+/// [User.empty] được dùng khi backend không kèm khối `user` trong response.
 class AuthResponse {
   final String accessToken;
   final String refreshToken;

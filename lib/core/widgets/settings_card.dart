@@ -2,9 +2,25 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable card widget for settings tabs.
-/// Icon gets a soft primary-container background; a Divider separates the
-/// header row from children for visual clarity.
+/// Card gom một nhóm mục cài đặt: hàng tiêu đề (icon + [title] + [trailing])
+/// và danh sách [children] bên dưới.
+///
+/// Là khối dựng cơ bản của các tab Cài đặt — mỗi nhóm chức năng một card.
+/// Card tự chừa `margin` dưới 16px nên xếp liên tiếp trong `Column` /
+/// `ListView` là đủ, không cần thêm `SizedBox` ngăn cách.
+///
+/// Đường kẻ ngăn tiêu đề với nội dung chỉ xuất hiện khi [children] không rỗng,
+/// nên card chỉ-có-tiêu-đề (kèm [trailing] là một `Switch`) vẫn gọn.
+///
+/// ```dart
+/// SettingsCard(
+///   icon: Icons.notifications_outlined,
+///   title: 'Thông báo',
+///   children: [
+///     SettingsSwitchRow(...),
+///   ],
+/// )
+/// ```
 class SettingsCard extends StatelessWidget {
   final IconData? icon;
   final String title;

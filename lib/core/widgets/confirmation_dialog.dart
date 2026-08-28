@@ -2,8 +2,21 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Reusable confirmation dialog widget
-/// Used across family and settings features
+/// Hộp thoại xác nhận dùng chung (đang dùng ở Gia đình và Cài đặt).
+///
+/// Thường không dựng trực tiếp mà gọi qua hai hàm tĩnh:
+/// - [ConfirmationDialog.showConfirmation] — hành động thường.
+/// - [ConfirmationDialog.showErrorConfirmation] — hành động phá huỷ
+///   (xoá nhóm, rời nhóm…), nút xác nhận tô màu đỏ.
+///
+/// ```dart
+/// ConfirmationDialog.showErrorConfirmation(
+///   context: context,
+///   title: 'Xoá nhóm?',
+///   message: 'Thao tác này không thể hoàn tác.',
+///   onConfirm: () => bloc.add(DeleteGroup(id)),
+/// );
+/// ```
 class ConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;
@@ -24,6 +37,11 @@ class ConfirmationDialog extends StatelessWidget {
     this.onCancel,
   });
 
+  /// Luôn đóng dialog TRƯỚC rồi mới chạy callback trong
+  /// `addPostFrameCallback`: callback thường điều hướng hoặc bắn event bloc,
+  /// nếu chạy khi dialog còn trên stack thì `context` bị huỷ giữa chừng.
+  /// `rootNavigator: true` để pop đúng dialog chứ không pop route bên trong
+  /// shell (bottom nav).
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -66,7 +84,10 @@ class ConfirmationDialog extends StatelessWidget {
     );
   }
 
-  /// Shows a confirmation dialog with error styling
+  /// Mở hộp thoại xác nhận cho hành động phá huỷ (nút xác nhận màu lỗi).
+  ///
+  /// [onConfirm] chạy SAU khi dialog đã đóng (xem ghi chú ở [build]), nên
+  /// đừng dùng lại `context` của dialog bên trong callback.
   static Future<void> showErrorConfirmation({
     required BuildContext context,
     required String title,
@@ -88,7 +109,10 @@ class ConfirmationDialog extends StatelessWidget {
     );
   }
 
-  /// Shows a confirmation dialog with primary styling
+  /// Mở hộp thoại xác nhận thường (nút xác nhận màu primary).
+  ///
+  /// [onCancel] chỉ chạy khi người dùng bấm nút Huỷ — bấm ra ngoài hoặc nút
+  /// back của hệ thống sẽ đóng dialog mà KHÔNG gọi callback nào.
   static Future<void> showConfirmation({
     required BuildContext context,
     required String title,

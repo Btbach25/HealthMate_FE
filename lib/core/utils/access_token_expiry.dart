@@ -1,8 +1,21 @@
 import 'dart:convert';
 
-/// Trả về true nếu nên gọi refresh trước khi gọi API: không có token,
-/// hoặc JWT có claim `exp` đã qua (kèm [clockSkew]).
-/// Token không phải JWT 3 phần → false (để API + retry 401 xử lý).
+/// `true` nếu nên gọi refresh token TRƯỚC khi gọi API.
+///
+/// Dùng để tránh cú 401 đầu tiên rồi mới thử lại (`AuthHttpHelper` vẫn giữ
+/// đường lùi đó): đoán trước token sắp hết hạn thì đổi token luôn, người dùng
+/// không phải chờ hai vòng mạng.
+///
+/// Trả `true` khi: không có token, hoặc claim `exp` trong JWT đã qua — tính
+/// sớm hơn [clockSkew] để trừ hao lệch đồng hồ giữa máy và server.
+///
+/// Cố ý trả `false` (tức "cứ gọi API đi") cho MỌI trường hợp không đọc được:
+/// token không phải JWT ba phần, payload hỏng, thiếu `exp`. Hàm này chỉ tối
+/// ưu tốc độ, không phải cổng kiểm tra bảo mật — quyền quyết định token hợp lệ
+/// hay không thuộc về server, nên khi nghi ngờ thì để API trả 401 và đi theo
+/// luồng retry sẵn có.
+///
+/// Hàm KHÔNG xác thực chữ ký JWT, chỉ đọc phần payload.
 bool shouldProactivelyRefreshAccessToken(
   String? accessToken, {
   Duration clockSkew = const Duration(seconds: 45),
@@ -12,8 +25,11 @@ bool shouldProactivelyRefreshAccessToken(
   if (parts.length != 3) return false;
   try {
     final payload = parts[1];
+    // JWT dùng base64url KHÔNG có dấu '=' đệm, nhưng base64Url.decode của Dart
+    // đòi độ dài chia hết cho 4 — phải tự đệm lại.
     var padded = payload;
     switch (payload.length % 4) {
+      // Dư 1 ký tự là chuỗi base64 không hợp lệ (không đệm được), bỏ qua.
       case 1:
         return false;
       case 2:

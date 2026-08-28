@@ -1,7 +1,22 @@
-import 'package:flutter/material.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:flutter/material.dart';
 
+/// Chỉ báo đang tải, căn giữa, kèm thông điệp tuỳ chọn.
+///
+/// Dùng cho trạng thái chờ chiếm cả vùng nội dung. Bật [isFullScreen] khi
+/// widget đứng một mình thay cho cả trang (nó tự dựng `Scaffold`) — đừng bật
+/// khi đã nằm trong `Scaffold` của màn hình, sẽ lồng hai `Scaffold`.
+///
+/// Nút bấm đang chờ thì dùng `LoadingButton` thay vì widget này.
+///
+/// ```dart
+/// LoadingWidget(
+///   message: 'Đang tải danh sách thuốc',
+///   subtitle: 'Vui lòng đợi…',
+///   progressInElevatedCircle: true,
+/// )
+/// ```
 class LoadingWidget extends StatelessWidget {
   final String? message;
   /// Dòng phụ dưới [message] (vd. "Vui lòng đợi…").

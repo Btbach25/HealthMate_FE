@@ -1,10 +1,12 @@
+import 'package:fe/data/services/health_data_fetcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'health_data_fetcher.dart';
-
-export 'health_data_fetcher.dart' show HealthFetchResult, HealthDataFetcher;
+// Re-export để nơi gọi chỉ cần import file này là dùng được cả kết quả fetch,
+// không phải import thêm health_data_fetcher.dart.
+export 'package:fe/data/services/health_data_fetcher.dart'
+    show HealthDataFetcher, HealthFetchResult;
 
 class DeviceHealthResult {
   final List<HealthDataPoint> dataPoints;

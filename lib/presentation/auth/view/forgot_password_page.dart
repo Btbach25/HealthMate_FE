@@ -1,15 +1,18 @@
+import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/constants/app_styles.dart';
+import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/utils/toast_utils.dart';
+import 'package:fe/data/repositories/auth_repository.dart';
+import 'package:fe/presentation/auth/bloc/auth_form_bloc.dart';
+import 'package:fe/presentation/auth/widgets/auth_form_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_size.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/toast_utils.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../bloc/auth_form_bloc.dart';
-import '../widgets/auth_logo_header.dart';
-
+/// Màn "Quên mật khẩu" (route `/forgot-password`): nhập email để nhận mã OTP.
+///
+/// Bước 1 của luồng khôi phục mật khẩu: /forgot-password -> /otp ->
+/// /reset-password.
 class ForgotPasswordPage extends StatelessWidget {
   const ForgotPasswordPage({super.key});
 
@@ -38,43 +41,14 @@ class ForgotPasswordView extends StatelessWidget {
           ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
         }
         if (state.status == FormStatus.success) {
-          // Hiển thị toast thành công và điều hướng đến trang OTP
           ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
-          context.go('/otp', extra: state.email);
+          // Route /otp đọc `extra` dạng Map { email, flow }. Bắt buộc truyền
+          // flow 'forgot', nếu không router mặc định về OtpFlow.login và người
+          // dùng bị đưa về trang chủ thay vì /reset-password sau khi xác thực.
+          context.go('/otp', extra: {'email': state.email, 'flow': 'forgot'});
         }
       },
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            // horizontal: AppSize.p24, 
-            // vertical: AppSize.p32
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AuthLogoHeader(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(AppSize.p24, 0, AppSize.p24, AppSize.p32),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSize.p24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppSize.r12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha:0.1),
-                        spreadRadius: 5,
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: const ForgotPasswordForm(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: const AuthFormLayout(child: ForgotPasswordForm()),
     );
   }
 }

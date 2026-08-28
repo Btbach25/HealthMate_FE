@@ -2,6 +2,7 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// Thanh tiêu đề của màn quản lý nhóm: nút quay lại, tiêu đề và nút "Tạo nhóm".
 class FamilyManagementAppBar extends StatelessWidget {
   final VoidCallback onCreateGroup;
 

@@ -7,9 +7,15 @@ import 'package:fe/data/models/group/incoming_invitation.dart';
 import 'package:fe/data/models/group/outgoing_invitation.dart';
 import 'package:fe/data/services/family_service.dart';
 
-/// Repository layer that abstracts data sources.
-/// Wraps unexpected errors into [UnknownException] for getFamilyGroups;
-/// all other methods simply rethrow.
+/// Cổng vào duy nhất của tầng UI cho nghiệp vụ nhóm gia đình; uỷ quyền toàn
+/// bộ cho [FamilyService].
+///
+/// Quy ước lỗi: [getFamilyGroups] bọc lỗi lạ thành [UnknownException] để UI
+/// luôn có message tiếng Việt hiển thị được; các method còn lại `rethrow`
+/// nguyên trạng vì caller đã tự xử lý.
+///
+/// Đổi nguồn dữ liệu bằng cách đăng ký một [FamilyService] khác ở
+/// `lib/core/di/app_dependencies.dart` (composition root).
 class FamilyRepository {
   final FamilyService _familyService;
 

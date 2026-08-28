@@ -1,6 +1,10 @@
 import 'package:fe/data/models/user/user.dart';
 
-/// Service goi API Users (profile, list).
+/// Hợp đồng đọc/ghi hồ sơ người dùng và tìm kiếm user (nhóm endpoint
+/// `/users/...`).
+///
+/// Muốn đổi nguồn dữ liệu (mock / API khác), implement lại interface này rồi
+/// đăng ký implementation ở `lib/core/di/app_dependencies.dart` (composition root).
 abstract class UserService {
   /// Lay profile user hien tai. GET /users/profile
   Future<User> getProfile();

@@ -3,6 +3,10 @@ import 'package:fe/data/models/group/family_notification.dart';
 import 'package:fe/data/models/health/medication_progress.dart';
 import 'package:fe/data/models/user/user.dart';
 
+/// Dữ liệu tổng hợp cho trang chủ.
+///
+/// Không phải response của một endpoint duy nhất: `HomeService` ghép từ
+/// profile user, tiến độ uống thuốc và thông báo nhóm.
 class HomeData extends Equatable {
   final User user; 
   final MedicationProgress? medicationProgress;

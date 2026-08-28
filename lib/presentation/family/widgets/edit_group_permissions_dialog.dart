@@ -1,19 +1,28 @@
 import 'package:fe/core/constants/app_size.dart';
+import 'package:fe/core/mixins/inline_message_mixin.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
-import 'package:fe/core/mixins/inline_message_mixin.dart';
 import 'package:fe/core/utils/family_bloc_listener_helper.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
 import 'package:fe/core/widgets/loading_button.dart';
 import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
-import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:fe/data/models/group/family_group.dart';
+import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Dialog sửa cài đặt chung của nhóm: tên, bộ chỉ số nhóm cho phép chia sẻ và
+/// công tắc nhắc uống thuốc. **Chỉ chủ nhóm** — nút mở nằm ở tab "Nhóm của tôi"
+/// và chỉ hiện khi `group.ownerId` trùng người dùng hiện tại.
+///
+/// Bắn [UpdateGroup] và chỉ gửi những field thực sự đổi (field không đổi để `null`
+/// nên server giữ nguyên). Không đổi gì thì đóng luôn, không gọi API.
+///
+/// Đây là **trần** của mọi quyền chia sẻ trong nhóm: tắt một chỉ số ở đây thì
+/// không thành viên nào bật lại được cho riêng mình. Tự đóng khi thành công.
 class EditGroupPermissionsDialog extends StatefulWidget {
   final FamilyGroup group;
 
@@ -42,9 +51,7 @@ class _EditGroupPermissionsDialogState
   @override
   void initState() {
     super.initState();
-    // Set current group name
     _nameController.text = widget.group.name;
-    // Pre-select current group metrics
     _selectedMetrics.addAll(widget.group.sharedMetrics);
     _allowMedicationReminderShare = widget.group.medicationSharingAllowed;
     _supportedMetrics = MetricHelper.availableMetrics
@@ -58,6 +65,7 @@ class _EditGroupPermissionsDialogState
     super.dispose();
   }
 
+  /// Gộp khoảng trắng thừa để so sánh tên cũ/mới không báo "đã đổi" oan.
   String _normalizeName(String input) {
     return input.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
@@ -65,7 +73,6 @@ class _EditGroupPermissionsDialogState
   void _handleSave() {
     if (_isLoading) return;
 
-    // Validate form
     if (!_formKey.currentState!.validate()) {
       showInlineMessage(
         'Vui lòng kiểm tra lại thông tin',
@@ -90,7 +97,7 @@ class _EditGroupPermissionsDialogState
     final medicationChanged =
         _allowMedicationReminderShare != widget.group.medicationSharingAllowed;
 
-    // Only update if something changed
+    // Không có gì đổi thì đóng luôn, khỏi gọi API vô ích.
     if (nameChanged || metricsChanged || medicationChanged) {
       showDialog<void>(
         context: context,
@@ -133,7 +140,6 @@ class _EditGroupPermissionsDialogState
         },
       );
     } else {
-      // Nothing changed, just close dialog
       setState(() {
         _isLoading = false;
       });
@@ -304,6 +310,9 @@ class _EditGroupPermissionsDialogState
   }
 }
 
+/// Ô bật/tắt quyền chia sẻ nhắc uống thuốc, được chèn vào cuối lưới chọn chỉ số.
+/// Tách riêng vì nhắc thuốc không phải một `MetricType` nên không dùng được
+/// `MetricCheckbox` như các chỉ số khác.
 class _MedicationPermissionTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;

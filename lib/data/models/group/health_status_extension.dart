@@ -2,9 +2,10 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:flutter/material.dart';
 
-/// Extension for HealthStatus to provide display labels, colors, and background colors
+/// Ánh xạ [HealthStatus] sang nhãn tiếng Việt, màu chữ và màu nền để hiển thị
+/// trạng thái sức khoẻ của thành viên trong nhóm.
 extension HealthStatusExtension on HealthStatus {
-  /// Returns the Vietnamese display label for the health status
+  /// Nhãn hiển thị cho người dùng.
   String get displayLabel {
     switch (this) {
       case HealthStatus.good:

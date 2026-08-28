@@ -1,59 +1,71 @@
-import 'package:fe/data/enums/login_provider.dart';
-import 'package:fe/data/enums/notification_type.dart';
-import 'package:fe/data/enums/user_role.dart';
-import 'package:fe/data/enums/user_status.dart';
-import 'package:fe/data/models/group/family_notification.dart';
-import 'package:fe/data/models/home_data.dart';
+import 'package:fe/data/mock_data/mock_family_data.dart';
+import 'package:fe/data/mock_data/mock_medications_data.dart';
+import 'package:fe/data/mock_data/mock_users.dart';
 import 'package:fe/data/models/health/medication_progress.dart';
+import 'package:fe/data/models/home_data.dart';
+import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/user/user.dart';
 import 'package:fe/data/services/home_service.dart';
+import 'package:fe/data/services/local_storage_service.dart';
+import 'package:fe/data/services/medication_service.dart';
 
+/// [HomeService] giả lập cho chế độ DEMO.
+///
+/// Dữ liệu lấy từ `lib/data/mock_data/`:
+/// - Người dùng: ưu tiên user đang đăng nhập trong [LocalStorageService],
+///   fallback về `MockUsers.demoUser`.
+/// - Tiến độ uống thuốc: tính **trực tiếp** từ [MedicationService] đang dùng
+///   nên đánh dấu "đã uống" ở màn hình Thuốc là trang chủ đổi theo ngay.
+/// - Thông báo: `MockFamilyData.notifications`.
+///
+/// Cả hai tham số đều tuỳ chọn để `MockHomeService()` vẫn dùng được ở nhánh
+/// live (`AppDependencies._live`) như trước đây.
 class MockHomeService implements HomeService {
+  final LocalStorageService? _localStorage;
+  final MedicationService? _medicationService;
+
+  MockHomeService({
+    LocalStorageService? localStorage,
+    MedicationService? medicationService,
+  })  : _localStorage = localStorage,
+        _medicationService = medicationService;
+
   @override
   Future<HomeData> getHomeData() async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    final now = DateTime.now();
-    const mockUserId = 'c7b5a32a-1b4e-4b8d-9c3a-3f3a2b1b9c0d'; 
-
-    final mockUser = User(
-      id: mockUserId,
-      name: 'Nguyễn Văn Minh',
-      email: 'admin@gmail.com',
-      role: UserRole.admin,
-      status: UserStatus.verified,
-      provider: LoginProvider.email,
-      createdAt: DateTime(2023, 10, 1),
-      updatedAt: now,
-    );
-
-    final medicationProgress = MedicationProgress(completed: 2, total: 4);
-
-    final notifications = [
-      FamilyNotification(
-        id: '1',
-        message: 'Bạn chưa uống Vitamin D3 lúc 19:00',
-        timeAgo: '19:00',
-        type: NotificationType.important,
-      ),
-      FamilyNotification(
-        id: '2',
-        message: 'Huyết áp 145/95 mmHg cao hơn bình thường',
-        timeAgo: 'Sáng nay',
-        type: NotificationType.urgent,
-      ),
-      FamilyNotification(
-        id: '3',
-        message: 'Đã đến giờ đo huyết áp buổi sáng',
-        timeAgo: '7:00',
-        type: NotificationType.info,
-      ),
-    ];
+    await Future<void>.delayed(const Duration(milliseconds: 500));
 
     return HomeData(
-      user: mockUser,
-      medicationProgress: medicationProgress,
-      notifications: notifications,
+      user: await _resolveUser(),
+      medicationProgress: await _resolveProgress(),
+      notifications: MockFamilyData.notifications,
     );
+  }
+
+  Future<User> _resolveUser() async {
+    final storage = _localStorage;
+    if (storage != null) {
+      final stored = await storage.getUser();
+      if (stored != null && stored.isNotEmpty) return stored;
+    }
+    return MockUsers.demoUser;
+  }
+
+  Future<MedicationProgress> _resolveProgress() async {
+    final service = _medicationService;
+    final meds = service != null
+        ? await service.getMedications()
+        : MockMedicationsData.medications;
+
+    var total = 0;
+    var completed = 0;
+    for (final Medication med in meds) {
+      if (!med.isActive) continue;
+      for (final reminder in med.reminders) {
+        if (!reminder.isEnabled) continue;
+        total++;
+        if (reminder.isTakenToday) completed++;
+      }
+    }
+    return MedicationProgress(completed: completed, total: total);
   }
 }

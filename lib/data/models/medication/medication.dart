@@ -1,6 +1,8 @@
-import 'medication_frequency.dart';
-import 'medication_reminder.dart';
+import 'package:fe/data/models/medication/medication_frequency.dart';
+import 'package:fe/data/models/medication/medication_reminder.dart';
 
+/// Một loại thuốc kèm tần suất và danh sách nhắc trong ngày.
+/// Ánh xạ phần tử của `GET /medications` (JSON snake_case).
 class Medication {
   final String id;
   final String userId;

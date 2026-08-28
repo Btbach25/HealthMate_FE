@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:fe/core/config/api_base_url.dart';
+
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
-import 'package:flutter/foundation.dart';
 import 'package:fe/data/services/local_storage_service.dart';
+import 'package:flutter/foundation.dart';
 
 class ReadinessService {
   final AuthHttpHelper _http;
@@ -10,7 +11,7 @@ class ReadinessService {
   ReadinessService(LocalStorageService localStorage, {Future<String?> Function()? onRefresh})
       : _http = AuthHttpHelper(localStorage, onRefresh);
 
-  String get _baseUrl => resolveApiBaseUrl();
+  String get _baseUrl => AppConfig.apiBaseUrl;
 
   /// Gọi POST /metrics/readiness, trả về readiness_score [0-100] hoặc null nếu lỗi.
   Future<double?> getScore({

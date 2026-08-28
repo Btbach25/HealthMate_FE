@@ -40,7 +40,8 @@ List<FamilyMember> buildEffectiveMembersForGroupDetails({
           name: authUser.name.isNotEmpty ? authUser.name : 'Bạn',
           email: authUser.email,
           avatar: authUser.picture,
-          // visible-metrics excludes self; use own global metrics from group.sharedMetrics.
+          // API visible-metrics không trả chỉ số của chính mình, nên lấy từ
+          // group.sharedMetrics — đó chính là bộ chỉ số mình chia sẻ với nhóm.
           sharedMetrics: groupMetricsPlaceholder,
         ),
       );

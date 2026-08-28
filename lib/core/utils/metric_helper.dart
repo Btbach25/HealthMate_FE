@@ -3,10 +3,27 @@ import 'package:fe/data/enums/metric_type.dart';
 import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:flutter/material.dart';
 
-/// Helper class to generate available metric options for UI
+/// Danh mục chỉ số sức khoẻ hiển thị được, kèm nhãn tiếng Việt và icon.
+///
+/// Đây là NGUỒN SỰ THẬT DUY NHẤT cho phần hiển thị chỉ số. Cần dựng danh sách
+/// chọn chỉ số ở bất kỳ đâu (dialog chia sẻ, form quyền nhóm) thì đọc
+/// [availableMetrics] chứ đừng khai báo lại nhãn/icon tại chỗ.
+///
+/// ```dart
+/// _selectableMetrics = MetricHelper.availableMetrics
+///     .where((m) => MetricSelectionHelper.isMetricSupportedByBackend(m.type))
+///     .toList();
+/// ```
+///
+/// Lưu ý: danh sách này là những gì FE **vẽ được**, không phải những gì
+/// backend **nhận được** — hai tập đó khác nhau. Trước khi gửi lên server
+/// phải lọc qua `MetricSelectionHelper.filterMetricTypesForBackend`.
 class MetricHelper {
-  /// All available metric options with labels and icons
-  /// Reusable constant to avoid defining in multiple places
+  /// Toàn bộ chỉ số FE hiển thị được, theo thứ tự dùng để vẽ danh sách.
+  ///
+  /// Thêm chỉ số mới thì phải sửa cả ba nơi: `MetricType`, danh sách này, và
+  /// `MetricSelectionHelper._backendSupportedMetricTypes` (nếu backend đã hỗ
+  /// trợ). Thiếu bước cuối, chỉ số hiện lên nhưng lưu sẽ thất bại.
   static const List<MetricOption> availableMetrics = [
     MetricOption(
       type: MetricType.heartRate,
@@ -50,13 +67,11 @@ class MetricHelper {
     ),
   ];
 
-  /// Returns all available metric options with labels and icons
-  /// @deprecated Use [availableMetrics] constant instead
-  static List<MetricOption> getAvailableMetrics() {
-    return availableMetrics;
-  }
-
-  /// Returns metric option for a specific metric type
+  /// Tra cứu nhãn + icon của một [MetricType].
+  ///
+  /// NÉM `ArgumentError` nếu [type] chưa có trong [availableMetrics] — cố ý
+  /// để lỗi lộ ra ngay khi thêm enum mới mà quên khai báo, thay vì âm thầm
+  /// vẽ ra ô trống.
   static MetricOption getMetricOption(MetricType type) {
     return availableMetrics.firstWhere(
       (m) => m.type == type,
@@ -64,7 +79,3 @@ class MetricHelper {
     );
   }
 }
-
-
-
-

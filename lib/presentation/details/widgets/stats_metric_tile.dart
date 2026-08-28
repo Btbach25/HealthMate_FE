@@ -6,6 +6,17 @@ import 'package:fe/presentation/details/widgets/stats_metric_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Một dòng chỉ số sức khỏe: icon theo loại, tên, dòng phụ, và giá trị mới
+/// nhất kèm đơn vị.
+///
+/// Tham số bắt buộc:
+/// - [metric]: dữ liệu tóm tắt của một loại chỉ số.
+/// - [mode]: quyết định dòng phụ hiển thị xu hướng hay tình trạng —
+///   xem [MetricDisplayMode].
+///
+/// Khi nào nên tái sử dụng: mọi nơi cần liệt kê chỉ số sức khỏe theo dòng
+/// (màn Chỉ số, dialog xem chi tiết thành viên gia đình). Widget tự chọn icon
+/// và màu theo loại chỉ số nên nơi gọi không cần truyền gì thêm.
 class StatsMetricTile extends StatelessWidget {
   final MetricSummary metric;
   final MetricDisplayMode mode;
@@ -16,7 +27,12 @@ class StatsMetricTile extends StatelessWidget {
     required this.mode,
   });
 
-  // Backend may send 'heart' for multiple metric types, so resolve by title+unit.
+  /// Suy ra loại chỉ số để chọn icon/màu.
+  ///
+  /// Hợp đồng với BE: trường phân loại không đáng tin — BE trả 'heart' cho
+  /// nhiều loại khác nhau — nên phải đoán lại từ tiêu đề và đơn vị. Vì tiêu đề
+  /// có thể là tiếng Việt hoặc tiếng Anh tuỳ endpoint, mỗi nhánh kiểm tra cả
+  /// hai. Không khớp gì thì mặc định là nhịp tim.
   String _metricKey() {
     final t = metric.title.toLowerCase();
     final u = metric.unit.toLowerCase();
@@ -28,7 +44,6 @@ class StatsMetricTile extends StatelessWidget {
     if (t.contains('ngủ') || t.contains('sleep') || u == 'giờ') return 'sleep';
     return 'heart';
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +113,11 @@ class StatsMetricTile extends StatelessWidget {
     );
   }
 
+  /// Dòng phụ chế độ "xu hướng": số lần đo, ngày cập nhật và % thay đổi.
+  ///
+  /// Màu của % không theo dấu tăng/giảm mà theo [MetricSummary.isIncreaseGood]:
+  /// cân nặng tăng là xấu (đỏ) trong khi số bước tăng là tốt (xanh). Mũi tên
+  /// thì vẫn theo dấu thật của [MetricSummary.trendPercentage].
   Widget _buildTrendInfo(String lastUpdateFormatted) {
     final trend = metric.trendPercentage;
     if (trend == null || trend == 0) {
@@ -111,7 +131,7 @@ class StatsMetricTile extends StatelessWidget {
 
     bool isGoodTrend = (metric.isIncreaseGood && trend > 0) ||
                        (!metric.isIncreaseGood && trend < 0);
-    
+
     final Color trendColor = isGoodTrend ? AppColors.primary : AppColors.error;
     final IconData trendIcon = trend > 0 ? AppIcons.trendUp : AppIcons.trendDown;
 
@@ -135,6 +155,9 @@ class StatsMetricTile extends StatelessWidget {
     );
   }
 
+  /// Dòng phụ chế độ "tình trạng": ngày cập nhật + nhãn màu theo
+  /// [MetricSummary.status]. Mặc định coi là bình thường khi BE không phân
+  /// loại được.
   Widget _buildStatusInfo(String lastUpdateFormatted) {
     Color tagBgColor = AppColors.tagNormalBg;
     Color tagTextColor = AppColors.tagNormalText;
@@ -175,7 +198,8 @@ class StatsMetricTile extends StatelessWidget {
       ],
     );
   }
-  
+
+  /// Icon + màu nền theo key trả về từ [_metricKey].
   Widget _buildIcon(String key) {
     final IconData icon;
     final Color color;

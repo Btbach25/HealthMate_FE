@@ -2,7 +2,24 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Ô thống kê (icon + số + nhãn) — dùng tab Thuốc và có thể tái dùng dashboard.
+/// Ô thống kê dạng thẻ: icon có nền màu + con số + nhãn.
+///
+/// Dùng cho hàng KPI ở đầu màn hình (hiện dùng ở tab Thuốc, tái dùng được cho
+/// dashboard). Widget tự co theo cha nên hãy đặt trong `Expanded` / `Row`
+/// hoặc `GridView` để chia đều chiều ngang.
+///
+/// ```dart
+/// Expanded(
+///   child: AppStatTile(
+///     icon: Icons.medication_outlined,
+///     iconBg: AppColors.primaryContainer,
+///     iconColor: AppColors.primary,
+///     value: 12,
+///     label: 'Đang dùng',
+///     valueColor: AppColors.primary,
+///   ),
+/// )
+/// ```
 class AppStatTile extends StatelessWidget {
   final IconData icon;
   final Color iconBg;

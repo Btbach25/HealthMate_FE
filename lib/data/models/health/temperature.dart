@@ -1,5 +1,6 @@
 import 'package:fe/core/utils/converter.dart';
 
+/// Chỉ số thân nhiệt — một mục trong [HealthOverview].
 class Temperature {
   final DateTime time;
   final String userId;

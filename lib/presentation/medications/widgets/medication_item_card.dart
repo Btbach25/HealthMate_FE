@@ -2,7 +2,13 @@ import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Thẻ một lần uống trong lịch — tap cả thẻ để đánh dấu đã uống.
+/// Thẻ một lần uống trong lịch hôm nay: giờ, tên thuốc, liều và trạng thái.
+///
+/// Chạm vào BẤT KỲ đâu trên thẻ là đánh dấu đã uống (chạm lần nữa để bỏ) —
+/// không có nút riêng, vì thao tác này người dùng làm nhiều lần mỗi ngày.
+///
+/// Thuần hiển thị: không tự gọi bloc, mọi thay đổi đi qua callback do
+/// [MedicationPeriodSection] truyền xuống.
 class MedicationItemCard extends StatelessWidget {
   final String name;
   final String dosage;

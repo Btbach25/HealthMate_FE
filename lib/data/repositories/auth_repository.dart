@@ -1,11 +1,21 @@
 import 'dart:async';
+
 import 'package:fe/data/models/user/user.dart';
+import 'package:fe/data/services/auth_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
 
-import '../services/auth_service.dart';
-
+/// Trạng thái đăng nhập mà UI lắng nghe.
+/// [unknown] là giá trị khởi tạo trước khi đọc xong storage.
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
+/// Nguồn sự thật duy nhất về trạng thái đăng nhập của app.
+///
+/// Ghép [AuthService] (gọi API) với [LocalStorageService] (token/user lưu
+/// máy) và phát [AuthStatus] qua stream [status] để `AuthBloc` / router lắng
+/// nghe. Mọi thay đổi phiên đăng nhập phải đi qua đây để stream không lệch
+/// với storage.
+///
+/// Được khởi tạo và cung cấp ở `lib/core/di/app_dependencies.dart`.
 class AuthRepository {
   final AuthService _authService;
   final LocalStorageService _localStorageService;

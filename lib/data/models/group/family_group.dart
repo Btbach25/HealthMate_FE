@@ -3,6 +3,9 @@ import 'package:fe/core/utils/converter.dart';
 import 'package:fe/data/enums/group_member_role.dart';
 import 'package:fe/data/enums/metric_type.dart';
 
+/// Một nhóm gia đình như FE hiển thị.
+/// Ánh xạ phần tử của `GET /groups/` và response `POST /groups/`,
+/// kèm các trường suy ra ở FE (vai trò của tôi, danh sách metric đang chia sẻ).
 class FamilyGroup extends Equatable {
   final String id;
   final String name;

@@ -1,5 +1,6 @@
 import 'package:fe/core/utils/converter.dart';
 
+/// Chỉ số huyết áp (tâm thu/tâm trương) — `metric_type = blood_pressure`.
 class BloodPressure {
   final DateTime time;
   final String userId;

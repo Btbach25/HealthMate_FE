@@ -1,14 +1,15 @@
-/// Helper class for string manipulation utilities
-/// Reusable across the application
+/// Các hàm xử lý chuỗi dùng chung cho phần hiển thị.
 class StringHelper {
-  /// Gets initials from a name (first letter of first word and last word)
-  /// Returns uppercase initials, or 'U' if name is empty
-  /// 
-  /// Examples:
-  /// - "Nguyễn Văn A" -> "NA"
-  /// - "Trần Thị B" -> "TB"
-  /// - "John" -> "JO"
-  /// - "" -> "U"
+  /// Viết tắt tên để làm avatar chữ khi người dùng chưa có ảnh.
+  ///
+  /// Lấy chữ cái đầu của từ đầu và từ cuối; tên một từ thì lấy 2 ký tự đầu.
+  /// Không bao giờ trả chuỗi rỗng — tên trống trả `'U'` (User) để avatar
+  /// không bị hụt chữ.
+  ///
+  /// - `"Nguyễn Văn A"` → `"NA"`
+  /// - `"Trần Thị B"` → `"TB"`
+  /// - `"John"` → `"JO"`
+  /// - `""` → `"U"`
   static String getInitials(String name) {
     if (name.isEmpty || name.trim().isEmpty) return 'U';
     final trimmedName = name.trim();
@@ -21,11 +22,15 @@ class StringHelper {
     return trimmedName.substring(0, trimmedName.length > 2 ? 2 : trimmedName.length).toUpperCase();
   }
 
-  /// Formats a DateTime to a relative time string (e.g., "2 giờ trước", "3 ngày trước")
-  /// Returns "Chưa có hoạt động" if dateTime is null
+  /// Mốc thời gian tương đối bằng tiếng Việt: "3 ngày trước", "2 giờ trước",
+  /// "Vừa xong"; `null` → "Chưa có hoạt động".
+  ///
+  /// So sánh với giờ máy hiện tại, nên [dateTime] phải đã đổi về giờ địa
+  /// phương — mốc UTC thô từ backend sẽ lệch đúng bằng offset múi giờ.
+  /// Với thời điểm ở tương lai, hàm trả "Vừa xong".
   static String formatTimeAgo(DateTime? dateTime) {
     if (dateTime == null) return 'Chưa có hoạt động';
-    
+
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 

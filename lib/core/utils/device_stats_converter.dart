@@ -6,7 +6,31 @@ import 'package:fe/data/models/details/stats_page_data.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 
+/// Đổi dữ liệu thô từ Health Connect / Apple Health (`HealthDataPoint`) thành
+/// model hiển thị của màn Chỉ số.
+///
+/// Đứng giữa package `health` và tầng UI, để widget không phải biết gì về
+/// `HealthDataType`. Hai lối ra:
+/// * [toStatsPageData] — thẻ tóm tắt (giá trị, xu hướng, trạng thái).
+/// * [toChartData] — chuỗi điểm để vẽ biểu đồ đường.
+///
+/// Cả hai nhận cùng một danh sách điểm và cùng tham số `range`, nên gọi kèm
+/// nhau với cùng giá trị `range` để số liệu và biểu đồ không lệch nhau.
+///
+/// ```dart
+/// final points = await health.getHealthDataFromTypes(...);
+/// final summary = DeviceStatsConverter.toStatsPageData(points, range: '7d');
+/// final charts = DeviceStatsConverter.toChartData(points, range: '7d');
+/// ```
+///
+/// Chỉ số nào không có dữ liệu trong khoảng thời gian sẽ bị BỎ HẲN khỏi kết
+/// quả, chứ không trả về giá trị 0 — màn hình vì thế cần chịu được danh sách
+/// rỗng hoặc thiếu chỉ số.
 class DeviceStatsConverter {
+  /// Mốc thời gian bắt đầu tính, theo `range`.
+  ///
+  /// Nhận `'24h'`, `'30d'`, còn lại đều rơi về 7 ngày — chuỗi sai chính tả sẽ
+  /// âm thầm cho ra dữ liệu 7 ngày chứ không báo lỗi.
   static DateTime _cutoff(String range) {
     final now = DateTime.now();
     switch (range) {
@@ -19,6 +43,10 @@ class DeviceStatsConverter {
     }
   }
 
+  /// Gộp các điểm đo thành thẻ tóm tắt cho màn Chỉ số.
+  ///
+  /// Thứ tự chỉ số trong kết quả là thứ tự cố định ở dưới (nhịp tim → bước
+  /// chân → SpO2 → huyết áp → calo), chính là thứ tự hiển thị trên màn hình.
   static StatsPageData toStatsPageData(
     List<HealthDataPoint> points, {
     String range = '7d',
@@ -89,7 +117,12 @@ class DeviceStatsConverter {
     );
   }
 
-  /// Dùng giá trị mới nhất (heart_rate, spo2, blood_pressure).
+  /// Chỉ số kiểu "đo tại thời điểm": lấy giá trị MỚI NHẤT làm số hiển thị
+  /// (nhịp tim, SpO2, huyết áp) — cộng dồn các giá trị này là vô nghĩa.
+  ///
+  /// `trendPercentage` so điểm mới nhất với điểm đầu khoảng, chỉ tính khi có
+  /// từ 2 điểm và điểm đầu khác 0 (tránh chia cho 0); còn lại để `null` và UI
+  /// sẽ ẩn phần xu hướng.
   static MetricSummary? _buildLatestMetric(
     List<HealthDataPoint> all,
     HealthDataType type,
@@ -125,7 +158,15 @@ class DeviceStatsConverter {
     );
   }
 
-  /// Dùng tổng (steps, calories).
+  /// Chỉ số kiểu "tích luỹ": cộng dồn rồi chia cho số NGÀY CÓ DỮ LIỆU để ra
+  /// trung bình mỗi ngày (bước chân, calo).
+  ///
+  /// Cố ý chia theo số ngày thực sự có số liệu, không phải độ dài khoảng thời
+  /// gian — ngày người dùng không đeo thiết bị mà tính vào mẫu số sẽ kéo tụt
+  /// trung bình một cách vô lý.
+  ///
+  /// Không tính xu hướng cho nhóm này (`trendPercentage` luôn `null`) vì số
+  /// hiển thị đã là một giá trị trung bình.
   static MetricSummary? _buildSumMetric(
     List<HealthDataPoint> all,
     HealthDataType type,
@@ -172,6 +213,14 @@ class DeviceStatsConverter {
     return null;
   }
 
+  /// Đổi điểm đo thành các chuỗi để vẽ biểu đồ đường.
+  ///
+  /// Điểm được sắp theo thời gian tăng dần và giữ nguyên độ phân giải gốc —
+  /// không gộp theo ngày, nên khoảng `'30d'` của thiết bị đo dày có thể ra
+  /// rất nhiều điểm; cần thì hãy giảm mẫu ở tầng vẽ.
+  ///
+  /// Màu đường được gán cứng theo từng chỉ số để màu giữ nguyên qua các lần
+  /// tải lại.
   static List<MetricChart> toChartData(
     List<HealthDataPoint> points, {
     String range = '7d',
@@ -270,6 +319,13 @@ class DeviceStatsConverter {
         .toList();
   }
 
+  /// Ngưỡng tô màu cảnh báo cho thẻ chỉ số.
+  ///
+  /// Đây CHỈ là mốc tham khảo cho người lớn khoẻ mạnh lúc nghỉ, dùng để đổi
+  /// màu thẻ — KHÔNG phải chẩn đoán y tế. Đừng dựa vào hàm này để đưa ra lời
+  /// khuyên sức khoẻ trong app.
+  ///
+  /// Chỉ số không có ngưỡng (bước chân, calo) luôn trả `normal`.
   static MetricStatus _status(String id, double v) {
     switch (id) {
       case 'heart_rate':

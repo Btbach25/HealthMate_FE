@@ -1,6 +1,14 @@
-import '../models/medication/medication.dart';
-import '../models/medication/medication_share.dart';
+import 'package:fe/data/models/medication/medication.dart';
+import 'package:fe/data/models/medication/medication_share.dart';
 
+/// Hợp đồng quản lý thuốc: danh sách thuốc và lịch nhắc, đánh dấu đã uống,
+/// chia sẻ thuốc cho thành viên trong nhóm, và đăng ký device token để nhận
+/// push nhắc uống thuốc.
+///
+/// Ánh xạ với nhóm endpoint `/medications/...` của backend.
+///
+/// Muốn đổi nguồn dữ liệu (mock / API khác), implement lại interface này rồi
+/// đăng ký implementation ở `lib/core/di/app_dependencies.dart` (composition root).
 abstract class MedicationService {
   Future<List<Medication>> getMedications();
   Future<Medication> addMedication(Medication medication);

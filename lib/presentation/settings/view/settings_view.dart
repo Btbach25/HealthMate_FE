@@ -7,14 +7,16 @@ import 'package:fe/presentation/settings/tabs/privacy_security_tab.dart';
 import 'package:fe/presentation/settings/tabs/profile_settings_tab.dart';
 import 'package:flutter/material.dart';
 
-enum SettingsTab {
-  profile,
-  notifications,
-  privacy,
-  sync,
-  general,
-}
-
+/// Màn hình Cài đặt: header cố định + 5 tab cuộn ngang.
+///
+/// Chỉ lo phần khung (tiêu đề, [TabBar], [TabBarView]); mọi logic đọc/ghi cài
+/// đặt nằm trong từng tab con ở `lib/presentation/settings/tabs/`.
+///
+/// Thêm một tab cài đặt mới: thêm một phần tử vào [_SettingsViewState._tabs]
+/// (icon + nhãn) VÀ thêm widget tab tương ứng vào `children` của [TabBarView],
+/// **cùng vị trí**. Hai danh sách này khớp nhau theo chỉ số, lệch là bấm tab
+/// này ra nội dung tab khác. `TabController.length` tự lấy theo `_tabs` nên
+/// không phải sửa.
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
 
@@ -27,6 +29,8 @@ class _SettingsViewState extends State<SettingsView>
   static const double _contentMaxWidth = 800;
   late TabController _tabController;
 
+  /// Nhãn các tab, theo đúng thứ tự với `children` của [TabBarView] trong
+  /// [build]. Bề rộng mỗi tab bị ghim cứng 98px ở dưới nên nhãn phải ngắn.
   final List<({IconData icon, String label})> _tabs = const [
     (icon: Icons.person_outline, label: 'Hồ sơ'),
     (icon: Icons.notifications_outlined, label: 'Thông báo'),

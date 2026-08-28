@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:fe/core/config/api_base_url.dart';
+
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/utils/auth_http_helper.dart';
 import 'package:fe/data/models/health/stress_prediction.dart';
 import 'package:fe/data/services/local_storage_service.dart';
@@ -12,7 +13,7 @@ class StressService {
       {Future<String?> Function()? onRefresh})
       : _http = AuthHttpHelper(localStorage, onRefresh);
 
-  String get _baseUrl => resolveApiBaseUrl();
+  String get _baseUrl => AppConfig.apiBaseUrl;
 
   Future<StressPrediction?> predict({
     required double hrMean,

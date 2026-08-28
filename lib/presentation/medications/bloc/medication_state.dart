@@ -2,6 +2,15 @@ part of 'medication_bloc.dart';
 
 enum MedicationStatus { initial, loading, loaded, error }
 
+/// State của [MedicationBloc] — một object duy nhất cho cả tab Thuốc.
+///
+/// Đọc [status] để chọn màn hình (đang tải / danh sách / lỗi), đọc
+/// [feedbackMessage] để hiện snackbar, đọc [deletingMedicationId] để hiện
+/// spinner trên đúng một dòng.
+///
+/// Lưu ý về [copyWith]: các trường nullable KHÔNG xoá được bằng cách truyền
+/// `null` (truyền null nghĩa là "giữ nguyên"). Muốn xoá phải dùng cờ đi kèm:
+/// `clearErrorMessage`, `clearFeedback`, `clearDeletingMedicationId`.
 class MedicationState extends Equatable {
   final MedicationStatus status;
   final List<Medication> medications;

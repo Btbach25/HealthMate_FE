@@ -10,9 +10,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+/// Thẻ một thành viên ở màn chi tiết nhóm.
+///
+/// Bộ nút hiện ra phụ thuộc vai trò: nút xoá chỉ hiện với chủ nhóm và không bao
+/// giờ hiện trên thẻ của chính mình (chủ nhóm muốn ra thì dùng "Rời nhóm");
+/// thẻ của chính mình có "Chia sẻ chỉ số", thẻ người khác có "Giới hạn" khi
+/// người xem là chủ nhóm, còn lại là "Theo dõi".
 class FamilyMemberCard extends StatelessWidget {
   final FamilyMember member;
+  /// True khi **người đang xem** là chủ nhóm (không phải chủ sở hữu của thẻ này).
   final bool isOwner;
+  /// True khi **thành viên trên thẻ này** là chủ nhóm → hiện huy hiệu "Chủ nhóm".
   final bool isGroupOwner;
   final String groupId;
   /// True khi đây là thẻ của chính bạn (chủ nhóm) → ẩn nút xóa, dùng "Rời nhóm" thay.
@@ -246,6 +254,7 @@ class FamilyMemberCard extends StatelessWidget {
     );
   }
 
+  /// Hỏi xác nhận rồi bắn [RemoveMember]. Chỉ tới được từ nút xoá của chủ nhóm.
   void _showDeleteMemberDialog(BuildContext context) {
     ConfirmationDialog.showErrorConfirmation(
       context: context,

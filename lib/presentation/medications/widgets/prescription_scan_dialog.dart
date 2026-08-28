@@ -1,18 +1,19 @@
+import 'dart:async';
+
 import 'package:fe/core/allergy/allergy_matcher.dart';
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/constants/app_size.dart';
-import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/prescription/prescription_ocr.dart';
 import 'package:fe/core/prescription/prescription_plan_parser.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/utils/user_facing_error.dart';
 import 'package:fe/core/widgets/labeled_column.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
 import 'package:fe/data/services/api_ocr_service.dart';
 import 'package:fe/data/services/local_storage_service.dart';
-import 'dart:async';
-
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/medications/bloc/medication_bloc.dart';
 import 'package:fe/presentation/medications/widgets/medication_dialog_components.dart';
@@ -22,7 +23,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
-/// Mở dialog quét đơn thuốc (OCR → chỉnh sửa → lưu lô).
+/// Mở dialog quét đơn thuốc. Dùng hàm này thay vì gọi [showDialog] trực tiếp:
+/// nó lấy sẵn [MedicationBloc] từ [context] và truyền lại cho dialog (dialog
+/// mở ở root navigator nên không thừa hưởng được provider của cây phía dưới).
+///
+/// `Future` hoàn tất khi dialog đóng — dù người dùng đã lưu hay huỷ, nên phía
+/// gọi vẫn nên bắn [FetchMedications] sau đó.
 Future<void> showPrescriptionScanDialog(BuildContext context) {
   final bloc = context.read<MedicationBloc>();
   return showDialog<void>(
@@ -36,6 +42,11 @@ Future<void> showPrescriptionScanDialog(BuildContext context) {
   );
 }
 
+/// Một dòng thuốc đang chỉnh dở trong dialog: bản [ParsedPrescriptionLine] đã
+/// được đổ vào các [TextEditingController] để người dùng sửa trực tiếp.
+///
+/// Bắt buộc gọi [dispose] khi bỏ dòng — xem cách dialog hoãn dispose để tránh
+/// đụng controller đang được [AnimatedSwitcher] animate.
 class _DraftEntry {
   _DraftEntry.fromParsed(ParsedPrescriptionLine p)
       : includeInSchedule = p.likelyOral,
@@ -60,6 +71,26 @@ class _DraftEntry {
   }
 }
 
+/// Dialog quét đơn thuốc: chọn ảnh → OCR → người dùng sửa lại → lưu cả lô vào
+/// lịch uống.
+///
+/// Mở qua [showPrescriptionScanDialog], đừng dựng trực tiếp. Không nhận tham
+/// số; cần [MedicationBloc] và [AuthBloc] trong context.
+///
+/// Đường đi của một lần quét:
+/// 1. Chọn ảnh (máy ảnh chỉ có trên mobile; web chỉ chọn file).
+/// 2. Chặn sớm ảnh mờ bằng phương sai Laplacian — thà bắt chụp lại còn hơn
+///    dựng ra một lịch uống sai.
+/// 3. Ưu tiên OCR phía server (`ApiOcrService`); server không dùng được thì
+///    quay về OCR trên máy (`recognizePrescriptionImage`).
+/// 4. Nếu server chỉ tách được 0–1 dòng thuốc thì chạy thêm OCR cục bộ và trộn
+///    kết quả (chỉ nhận thêm dòng có tên đủ "giống thuốc" và không trùng).
+/// 5. Đối chiếu hồ sơ dị ứng của người dùng để hiện cảnh báo.
+/// 6. Người dùng sửa tên/liều/giờ, tắt những mục không muốn nhắc, rồi lưu qua
+///    [AddMedicationsBatch].
+///
+/// Không mục nào tự vào lịch: mọi thứ OCR đọc được đều chỉ là bản nháp chờ
+/// người dùng xác nhận.
 class PrescriptionScanDialog extends StatefulWidget {
   const PrescriptionScanDialog({super.key});
 
@@ -75,9 +106,12 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   String? _error;
   bool _requireReselect = false;
   List<_DraftEntry>? _entries;
-  /// Bumped whenever OCR replaces the whole draft list so [AnimatedSwitcher] and
-  /// list rows do not reuse [TextField] elements across different controllers
-  /// (avoids stale selection/composing asserts on web: text_input.dart).
+  /// Tăng mỗi lần OCR thay TOÀN BỘ danh sách nháp.
+  ///
+  /// Số này đi vào key của [AnimatedSwitcher] để Flutter không tái dùng element
+  /// [TextField] cũ cho bộ controller mới. Bỏ nó đi thì trên web sẽ dính assert
+  /// trong `text_input.dart` do selection/composing của lần quét trước không
+  /// còn hợp lệ với nội dung mới.
   int _entriesGeneration = 0;
   List<AllergyMatch> _allergyMatches = [];
 
@@ -106,8 +140,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       return;
     }
 
-    // AnimatedSwitcher giữ widget cũ trong lúc animate-out.
-    // Dispose trễ để tránh "TextEditingController was used after being disposed".
+    // AnimatedSwitcher vẫn giữ widget cũ trong lúc animate-out, nên dispose
+    // ngay sẽ gây "TextEditingController was used after being disposed".
+    // Hoãn quá thời gian chuyển cảnh rồi mới dispose.
     Future<void>.delayed(_stateSwitchDuration + const Duration(milliseconds: 40), () {
       for (final e in entries) {
         e.dispose();
@@ -115,6 +150,11 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     });
   }
 
+  /// Chấm điểm 0–1 xem chuỗi này có giống tên thuốc thật không.
+  ///
+  /// Điểm gốc = tỉ lệ ký tự "sạch" (OCR hỏng thường sinh ký tự lạ), cộng thêm
+  /// nếu có đơn vị liều và nếu có ít nhất một từ dài ≥4 chữ cái. Chỉ dùng để
+  /// lọc rác khi trộn kết quả OCR cục bộ vào kết quả server.
   double _nameQualityScore(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return 0;
@@ -138,6 +178,13 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
+  /// So khớp lỏng hai tên thuốc để tránh thêm trùng khi trộn kết quả server và
+  /// kết quả OCR cục bộ.
+  ///
+  /// Coi là trùng khi: giống hệt, tên này chứa tên kia, có ≥2 từ dài trùng
+  /// nhau, hoặc có một từ ≥6 chữ cái chứa/bị chứa lẫn nhau (bắt các trường hợp
+  /// OCR đọc thiếu vài ký tự cuối). Thà bỏ sót một dòng còn hơn hiện hai dòng
+  /// cùng một thuốc rồi người dùng lưu nhầm hai lần.
   bool _isLikelyDuplicateName(String a, String b) {
     final na = _normalizeNameForMatch(a);
     final nb = _normalizeNameForMatch(b);
@@ -149,7 +196,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     final overlap = ta.intersection(tb).length;
     if (overlap >= 2) return true;
 
-    // lightweight fuzzy containment by first 6-letter token
+    // So khớp lỏng theo từ dài ≥6 chữ cái
     final leadA = ta.where((t) => t.length >= 6).toList();
     final leadB = tb.where((t) => t.length >= 6).toList();
     for (final x in leadA) {
@@ -160,6 +207,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return false;
   }
 
+  /// Cửa ải cho dòng thuốc do OCR cục bộ tách ra: phải đủ sạch (điểm ≥ 0,68)
+  /// VÀ hoặc khớp danh sách hoạt chất quen thuộc, hoặc có đơn vị liều. Đặt cao
+  /// vì đây chỉ là nguồn bổ sung — kết quả server vẫn là chính.
   bool _isAcceptableLocalName(String name) {
     final n = name.trim();
     final q = _nameQualityScore(n);
@@ -173,6 +223,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return medLike || hasDoseUnit;
   }
 
+  /// Bổ sung các dòng OCR cục bộ vào kết quả server (server luôn được giữ
+  /// nguyên và đứng trước), chỉ nhận dòng qua được [_isAcceptableLocalName] và
+  /// không trùng theo [_isLikelyDuplicateName].
   List<ParsedPrescriptionLine> _mergeServerWithLocalCandidates(
     List<ParsedPrescriptionLine> serverItems,
     List<ParsedPrescriptionLine> localItems,
@@ -189,6 +242,11 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return merged;
   }
 
+  /// Đọc ô "Lịch" người dùng gõ ("08:00, 20:00") thành danh sách giờ hợp lệ.
+  ///
+  /// Bỏ qua mọi mẩu sai định dạng thay vì báo lỗi, và không bao giờ trả về danh
+  /// sách rỗng — không đọc được gì thì mặc định 08:00, để thuốc luôn có ít nhất
+  /// một lần nhắc.
   List<String> _parseTimeList(String s) {
     final parts = s
         .split(RegExp(r'[,;]+'))
@@ -216,6 +274,15 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return out.isEmpty ? ['08:00'] : out;
   }
 
+  /// Quyết định có bắt người dùng chọn lại ảnh không, dựa trên `warnings` của
+  /// OCR service.
+  ///
+  /// So khớp theo NỘI DUNG CHUỖI cảnh báo (cả bản có dấu lẫn không dấu) — đây
+  /// là hợp đồng ngầm với backend: đổi câu chữ cảnh báo bên server mà không sửa
+  /// hàm này thì luồng chặn ảnh xấu sẽ âm thầm ngừng hoạt động.
+  ///
+  /// "Số thuốc parse được thấp" chỉ chặn khi ra ≤1 dòng, vì đơn 2 thuốc thật
+  /// cũng hay dính cảnh báo này.
   bool _shouldForceReselectFromWarnings(List<String> warnings, int parsedCount) {
     if (warnings.isEmpty) return false;
     final joined = warnings.join(' ').toLowerCase();
@@ -233,6 +300,14 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     return false;
   }
 
+  /// Chạy toàn bộ chuỗi nhận dạng cho một ảnh và dựng danh sách nháp.
+  ///
+  /// Thứ tự ưu tiên: OCR server → (nếu server ra quá ít dòng) parse lại chính
+  /// `raw_text` của server → (vẫn ≤1 dòng) trộn thêm OCR cục bộ. Server không
+  /// dùng được thì chạy thẳng OCR cục bộ.
+  ///
+  /// Mọi nhánh kết thúc đều đặt lại `_busy` trong `finally`, và mọi `setState`
+  /// đều sau kiểm tra `mounted` vì OCR có thể chạy lâu hơn vòng đời dialog.
   Future<void> _runOcr(XFile file) async {
     setState(() {
       _busy = true;
@@ -243,7 +318,12 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     try {
       List<ParsedPrescriptionLine> parsed = const [];
       bool forceReselect = false;
-      final apiResult = await _apiOcrService.tryParsePrescription(file);
+      // Chế độ demo không được chạm mạng: bỏ qua OCR phía server và đi
+      // thẳng vào OCR cục bộ — đúng nhánh mà `tryParsePrescription`
+      // trả `null` (server lỗi/không cấu hình) vẫn luôn xử lý được.
+      final apiResult = AppConfig.isDemoMode
+          ? null
+          : await _apiOcrService.tryParsePrescription(file);
       if (apiResult != null && apiResult.hasUsableData) {
         final serverText = (apiResult.rawText ?? '').trim();
         final shouldRescueWithText =
@@ -359,9 +439,18 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     }
   }
 
-  /// Load user allergies and run matcher for each parsed item.
-  /// Enriches [_DraftEntry.allergyHints] with user-specific reason text
-  /// and populates [_allergyMatches] for the top-level banner.
+  /// Đối chiếu danh sách thuốc vừa đọc với hồ sơ dị ứng của người dùng.
+  ///
+  /// Nguồn dị ứng: [AuthBloc] trước, không có thì lấy cache
+  /// [LocalStorageService] (để vẫn cảnh báo được khi offline).
+  ///
+  /// Kết quả ghi vào hai chỗ: thay `allergyHints` chung chung của từng dòng
+  /// bằng lý do cụ thể theo hồ sơ người dùng, và dựng `_allergyMatches` cho
+  /// banner cảnh báo ở đầu dialog.
+  ///
+  /// Độ tin cậy OCR thấp (`avg_confidence` < 0,65) được truyền xuống matcher để
+  /// nó nới tay hơn — đọc nhầm tên thuốc mà bỏ sót cảnh báo dị ứng thì nguy
+  /// hiểm hơn là cảnh báo thừa.
   Future<void> _runAllergyCheck(
     List<ParsedPrescriptionLine> parsed,
     Map<String, dynamic>? meta,
@@ -376,7 +465,8 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
         userAllergies = await _localStorage.getAllergies();
       }
     } catch (_) {
-      return; // Storage failure — skip silently, don't block scan flow
+      // Không đọc được hồ sơ dị ứng: bỏ qua im lặng, không chặn luồng quét.
+      return;
     }
     if (userAllergies.isEmpty || _entries == null) return;
 
@@ -394,7 +484,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       );
       if (match.hasWarning) {
         newMatches.add(match);
-        // Replace generic OCR hints with the user-specific reason on this entry.
+        // Thay cảnh báo nhóm chung chung bằng lý do gắn với hồ sơ người dùng.
         _entries![i].allergyHints
           ..clear()
           ..add(match.reason);
@@ -406,6 +496,12 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     }
   }
 
+  /// Đoán ảnh có bị mờ không, để chặn trước khi tốn một lượt OCR.
+  ///
+  /// Dùng xấp xỉ phương sai Laplacian: ảnh nét có nhiều biên nên phương sai
+  /// cao, ảnh mờ thì thấp. Chỉ lấy mẫu cách 2 pixel cho nhanh (ảnh đơn thuốc
+  /// khá lớn). Có lỗi khi giải mã thì trả `false` — thà cứ thử OCR còn hơn từ
+  /// chối nhầm ảnh tốt.
   Future<bool> _isLikelyBlurred(XFile file) async {
     try {
       final bytes = await file.readAsBytes();
@@ -413,8 +509,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       if (decoded == null) return false;
       final gray = img.grayscale(decoded);
 
-      // Variance of Laplacian approximation:
-      // lower variance often indicates blurred images.
+      // Xấp xỉ phương sai Laplacian: phương sai thấp thường là ảnh mờ.
       final w = gray.width;
       final h = gray.height;
       if (w < 3 || h < 3) return false;
@@ -440,12 +535,15 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       final mean = sum / n;
       final variance = (sumSq / n) - (mean * mean);
       debugPrint('[OCR] blur variance=$variance for file=${file.name}');
-      return variance < 70; // softer threshold for real-world hospital photos
+      // Ngưỡng để thấp có chủ ý: ảnh chụp đơn thuốc thật (giấy in mờ, thiếu
+      // sáng) hay có phương sai thấp dù vẫn đọc được.
+      return variance < 70;
     } catch (_) {
       return false;
     }
   }
 
+  /// Chọn ảnh rồi chạy [_runOcr]. Lọc ảnh mờ ngay tại đây, trước khi gọi OCR.
   Future<void> _pick(ImageSource source) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
@@ -505,6 +603,8 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     );
   }
 
+  /// Hỏi nguồn ảnh. Trên web chỉ có "chọn từ máy" — `image_picker` không mở
+  /// được máy ảnh ở trình duyệt, nên nhánh camera bị ẩn theo [kIsWeb].
   Future<void> _chooseSource() async {
     if (!mounted) return;
     await showDialog<void>(
@@ -831,6 +931,14 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     );
   }
 
+  /// Kiểm tra lần cuối rồi lưu cả lô vào lịch uống.
+  ///
+  /// Chỉ lấy các dòng đang bật "Thêm vào lịch uống". Chặn trước khi gửi nếu:
+  /// thiếu tên/liều, không bật dòng nào, hoặc liều không chứa chữ số (trừ giá
+  /// trị mặc định "Theo đơn") — đây là lưới cuối chống dữ liệu OCR sai.
+  ///
+  /// Sau khi bắn [AddMedicationsBatch], chờ state có đủ số thuốc mới hoặc có
+  /// lỗi, tối đa 90 giây, rồi mới đóng dialog.
   Future<void> _confirmPlan() async {
     if (_entries == null || _entries!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1094,6 +1202,11 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   }
 }
 
+/// Thẻ chỉnh một dòng thuốc trong bản nháp quét đơn.
+///
+/// Đọc/ghi thẳng vào các controller của [_DraftEntry] nên không cần
+/// `setState`; chỉ công tắc "Thêm vào lịch uống" mới báo lên qua
+/// [onIncludeChanged] vì nó đổi phần mô tả hiển thị.
 class _PlanItemCard extends StatelessWidget {
   const _PlanItemCard({
     super.key,

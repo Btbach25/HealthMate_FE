@@ -1,7 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-/// Model for notification settings
-/// Contains all notification-related preferences
+/// Tuỳ chọn thông báo của người dùng (nhắc thuốc, cảnh báo sức khoẻ, thông
+/// báo nhóm, âm thanh/rung).
+///
+/// Thuần local: chỉ lưu trong SharedPreferences qua `SettingsService`,
+/// không đồng bộ với backend. JSON dùng snake_case.
 class NotificationSettings extends Equatable {
   final bool medicationReminders;
   final bool healthAlerts;
