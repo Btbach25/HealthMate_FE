@@ -3,6 +3,9 @@
 
 include: package:flutter_lints/flutter.yaml
 
+formatter:
+  trailing_commas: preserve
+
 analyzer:
   errors:
     # Log chẩn đoán trong app dùng `debugPrint` (tự cắt bớt output, tắt ở release).
