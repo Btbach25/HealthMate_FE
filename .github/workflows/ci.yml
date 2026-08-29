@@ -1,0 +1,95 @@
+# Kiểm tra tự động cho mọi PR — khớp với `make check` chạy ở máy local.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, master]
+  push:
+    branches: [dev, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Format · Analyze · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.32.0
+          cache: true
+
+      # `.env` được khai báo là asset trong pubspec.yaml nên phải tồn tại,
+      # nhưng file thật không được commit → dựng từ template.
+      - name: Tạo .env từ template
+        run: cp .env.example .env
+
+      - name: Cài dependencies
+        run: flutter pub get
+
+      - name: Kiểm tra format
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            DIFF_BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            DIFF_BASE="${{ github.event.before }}"
+          fi
+
+          if [[ -z "$DIFF_BASE" || "$DIFF_BASE" == "0000000000000000000000000000000000000000" ]]; then
+            mapfile -d '' -t CHANGED_DART_FILES < <(git ls-files -z '*.dart')
+          else
+            if ! git cat-file -e "$DIFF_BASE^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$DIFF_BASE"
+            fi
+            mapfile -d '' -t CHANGED_DART_FILES < <(git diff --name-only -z "$DIFF_BASE" "$GITHUB_SHA" -- '*.dart')
+          fi
+
+          if [[ ${#CHANGED_DART_FILES[@]} -eq 0 ]]; then
+            echo "Không có file Dart thay đổi."
+            exit 0
+          fi
+
+          dart format --output=none --set-exit-if-changed "${CHANGED_DART_FILES[@]}"
+
+      - name: Phân tích tĩnh
+        run: flutter analyze
+
+      - name: Chạy test
+        run: flutter test
+
+  build-web:
+    name: Build web (demo)
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.32.0
+          cache: true
+
+      - name: Tạo .env từ template
+        run: cp .env.example .env
+
+      - run: flutter pub get
+
+      # Build bản demo (mock data) để chắc chắn app luôn chạy được mà không cần backend.
+      - name: Build web demo
+        run: flutter build web --release --dart-define=DEMO_MODE=true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: healthmate-web-demo
+          path: build/web
+          retention-days: 7

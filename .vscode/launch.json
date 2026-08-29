@@ -1,0 +1,54 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ──────────────────────────────────────────────
+    // DEVELOPMENT (debug)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Dev – Debug (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Dev – Debug (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "flutterMode": "debug",
+      "args": [
+        "--web-port=7000"
+      ]
+    },
+    {
+      "name": "Dev – Debug (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "windows",
+      "flutterMode": "debug"
+    },
+    // ──────────────────────────────────────────────
+    // PRODUCTION (release / profile)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Prod – Release (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release"
+    },
+    {
+      "name": "Prod – Profile (Mobile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile"
+    },
+    // ──────────────────────────────────────────────
+    // ATTACH (attach to running app)
+    // ──────────────────────────────────────────────
+    {
+      "name": "Attach",
+      "request": "attach",
+      "type": "dart"
+    }
+  ]
+}

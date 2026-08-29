@@ -1,28 +1,33 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# Cấu hình cho `flutter analyze` (và cả gạch chân trong IDE).
+# Xem danh sách rule tại https://dart.dev/lints.
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
-linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
-  rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+formatter:
+  trailing_commas: preserve
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+analyzer:
+  errors:
+    # Log chẩn đoán trong app dùng `debugPrint` (tự cắt bớt output, tắt ở release).
+    # `print()` thẳng bị coi là lỗi để không lọt vào bản release.
+    avoid_print: error
+
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  rules:
+    # Cố tình để trống: hiện chỉ dùng bộ mặc định của flutter_lints để CI luôn xanh.
+    #
+    # Muốn siết thêm thì mở TỪNG rule một, mỗi rule một PR, và sửa hết vi phạm
+    # trong chính PR đó. Gợi ý theo thứ tự ưu tiên:
+    #   - prefer_single_quotes
+    #   - always_declare_return_types
+    #   - unnecessary_lambdas
+    #   - unnecessary_parenthesis
+    #   - avoid_dynamic_calls
+    #   - public_member_api_docs      # bắt buộc doc comment cho mọi API public
+    #
+    # Quy ước KHÔNG bật `prefer_relative_imports`: repo này thống nhất dùng
+    # import tuyệt đối `package:fe/...` ở mọi nơi.

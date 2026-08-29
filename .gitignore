@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment files — chứa khoá/URL, KHÔNG commit.
+# `.env.example` là template public nên được giữ lại.
+.env
+.env.*
+!.env.example
+
+# Công cụ local
+.claude
+.vscode
