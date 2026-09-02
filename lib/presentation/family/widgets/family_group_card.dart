@@ -2,6 +2,7 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/utils/string_helper.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/data/enums/metric_type_extension.dart';
 import 'package:fe/data/models/group/family_group.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,8 @@ class FamilyGroupCard extends StatelessWidget {
   });
 
   /// BE GET /groups không trả member_count đúng → luôn hiển thị ≥ 1 vì user đang ở trong nhóm.
-  int get _effectiveMemberCount => group.memberCount < 1 ? 1 : group.memberCount;
+  int get _effectiveMemberCount =>
+      group.memberCount < 1 ? 1 : group.memberCount;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class FamilyGroupCard extends StatelessWidget {
     final visibleMetrics = group.sharedMetrics.take(3).toList();
     final remainingMetrics = group.sharedMetrics.length - visibleMetrics.length;
 
-    return GestureDetector(
+    return Clickable(
       onTap: () => context.push('/family/group/${group.id}'),
       child: Container(
         padding: const EdgeInsets.all(AppSize.p20),
@@ -80,7 +82,9 @@ class FamilyGroupCard extends StatelessWidget {
                                 Icon(
                                   Icons.person_outline,
                                   size: 14,
-                                  color: AppColors.textGrey.withValues(alpha: 0.7),
+                                  color: AppColors.textGrey.withValues(
+                                    alpha: 0.7,
+                                  ),
                                 ),
                                 const SizedBox(width: 4),
                                 Expanded(
@@ -90,7 +94,9 @@ class FamilyGroupCard extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.textGrey.withValues(alpha: 0.8),
+                                      color: AppColors.textGrey.withValues(
+                                        alpha: 0.8,
+                                      ),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -115,7 +121,9 @@ class FamilyGroupCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: isOwner ? Colors.white : AppColors.textGrey,
+                                color: isOwner
+                                    ? Colors.white
+                                    : AppColors.textGrey,
                               ),
                             ),
                           ),
@@ -140,7 +148,8 @@ class FamilyGroupCard extends StatelessWidget {
             ),
 
             // ── Shared metrics chips ────────────────────────────────────
-            if (visibleMetrics.isNotEmpty || group.medicationSharingAllowed) ...[
+            if (visibleMetrics.isNotEmpty ||
+                group.medicationSharingAllowed) ...[
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -206,7 +215,11 @@ class FamilyGroupCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.mail_outline, size: 14, color: Colors.orange.shade700),
+                        Icon(
+                          Icons.mail_outline,
+                          size: 14,
+                          color: Colors.orange.shade700,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${group.pendingInvitations} lời mời',

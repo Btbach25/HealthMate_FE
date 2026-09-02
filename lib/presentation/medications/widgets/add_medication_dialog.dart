@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/data/models/medication/medication.dart';
 import 'package:fe/data/models/medication/medication_frequency.dart';
 import 'package:fe/data/models/medication/medication_reminder.dart';
@@ -42,7 +43,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
   final _prescribedByCtrl = TextEditingController();
 
   MedicationFrequencyType _frequencyType = MedicationFrequencyType.daily;
-  final List<TimeOfDay> _times = [ _defaultReminderTime ];
+  final List<TimeOfDay> _times = [_defaultReminderTime];
   DateTime? _startDate;
   DateTime? _endDate;
   bool _submitting = false;
@@ -121,7 +122,9 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       _showErrorSnack('Vui lòng nhập tên thuốc và liều lượng');
       return;
     }
-    if (_startDate != null && _endDate != null && _endDate!.isBefore(_startDate!)) {
+    if (_startDate != null &&
+        _endDate != null &&
+        _endDate!.isBefore(_startDate!)) {
       _showErrorSnack('Ngày kết thúc không được sớm hơn ngày bắt đầu.');
       return;
     }
@@ -158,11 +161,13 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       reminders: timeStrings
           .asMap()
           .entries
-          .map((e) => MedicationReminder(
-                id: 'rem-${DateTime.now().millisecondsSinceEpoch}-${e.key}',
-                medicationId: id,
-                time: e.value,
-              ))
+          .map(
+            (e) => MedicationReminder(
+              id: 'rem-${DateTime.now().millisecondsSinceEpoch}-${e.key}',
+              medicationId: id,
+              time: e.value,
+            ),
+          )
           .toList(),
     );
 
@@ -174,9 +179,8 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
       await bloc.stream
           .timeout(_submitTimeout)
           .firstWhere(
-        (s) =>
-            s.medications.length > countBefore || s.errorMessage != null,
-      );
+            (s) => s.medications.length > countBefore || s.errorMessage != null,
+          );
     } on TimeoutException {
       if (!mounted) return;
       _showErrorSnack('Hết thời gian chờ. Kiểm tra kết nối và thử lại.');
@@ -208,293 +212,318 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
           maxHeight: mq.size.height * 0.88,
         ),
         child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              MedicationDialogHeader(
-                title: 'Thêm thuốc mới',
-                subtitle: 'Điền thông tin cơ bản và lịch nhắc uống mỗi ngày.',
-                onClose: () => Navigator.of(context).pop(),
-              ),
-              const Divider(height: 1, color: AppColors.cardBorder),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 22 + bottomInset),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Tên thuốc *'),
-                      _buildTextField(_nameCtrl, hint: 'Nhập tên thuốc'),
-                      const SizedBox(height: 14),
-                      _buildLabel('Liều lượng *'),
-                      _buildTextField(_dosageCtrl, hint: 'VD: 40mg, 1 viên, 5ml'),
-                      const SizedBox(height: 14),
-                      _buildLabel('Tần suất'),
-                      _buildFrequencyDropdown(),
-                      const SizedBox(height: 14),
-                      MedicationSectionCard(
-                        title: 'Lịch uống',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Thời gian uống'),
-                            ..._times.asMap().entries.map((e) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () => _pickTime(e.key),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 15,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.surface,
-                                              borderRadius:
-                                                  BorderRadius.circular(_fieldRadius),
-                                              border: Border.all(
-                                                color: AppColors.cardBorder,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                const Icon(Icons.access_time,
-                                                    size: 18, color: AppColors.textGrey),
-                                                const SizedBox(width: 8),
-                                                Text(_formatTime(e.value),
-                                                    style: AppTextStyles.bodyMedium),
-                                              ],
-                                            ),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MedicationDialogHeader(
+              title: 'Thêm thuốc mới',
+              subtitle: 'Điền thông tin cơ bản và lịch nhắc uống mỗi ngày.',
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            const Divider(height: 1, color: AppColors.cardBorder),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 22 + bottomInset),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel('Tên thuốc *'),
+                    _buildTextField(_nameCtrl, hint: 'Nhập tên thuốc'),
+                    const SizedBox(height: 14),
+                    _buildLabel('Liều lượng *'),
+                    _buildTextField(_dosageCtrl, hint: 'VD: 40mg, 1 viên, 5ml'),
+                    const SizedBox(height: 14),
+                    _buildLabel('Tần suất'),
+                    _buildFrequencyDropdown(),
+                    const SizedBox(height: 14),
+                    MedicationSectionCard(
+                      title: 'Lịch uống',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Thời gian uống'),
+                          ..._times.asMap().entries.map(
+                            (e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Clickable(
+                                      onTap: () => _pickTime(e.key),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 15,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surface,
+                                          borderRadius: BorderRadius.circular(
+                                            _fieldRadius,
                                           ),
+                                          border: Border.all(
+                                            color: AppColors.cardBorder,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.access_time,
+                                              size: 18,
+                                              color: AppColors.textGrey,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _formatTime(e.value),
+                                              style: AppTextStyles.bodyMedium,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      if (_times.length > 1) ...[
-                                        const SizedBox(width: 8),
-                                        GestureDetector(
-                                          onTap: () =>
-                                              setState(() => _times.removeAt(e.key)),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.errorLight,
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: const Icon(Icons.close,
-                                                size: 18, color: AppColors.error),
+                                    ),
+                                  ),
+                                  if (_times.length > 1) ...[
+                                    const SizedBox(width: 8),
+                                    Clickable(
+                                      onTap: () => setState(
+                                        () => _times.removeAt(e.key),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.errorLight,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
                                           ),
                                         ),
-                                      ],
-                                    ],
-                                  ),
-                                )),
-                            TextButton.icon(
-                              onPressed: () =>
-                                  setState(() => _times.add(_defaultReminderTime)),
-                              icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-                              label: Text(
-                                'Thêm giờ uống',
-                                style: AppTextStyles.labelMedium.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                  vertical: 6,
-                                ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 18,
+                                          color: AppColors.error,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('Ngày bắt đầu'),
-                                      _buildDateButton(
-                                          label: _formatDate(_startDate),
-                                          onTap: () => _pickDate(isStart: true)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('Ngày kết thúc'),
-                                      _buildDateButton(
-                                          label: _formatDate(_endDate),
-                                          onTap: () => _pickDate(isStart: false)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _buildLabel('Hướng dẫn sử dụng'),
-                      _buildTextField(
-                        _instructionsCtrl,
-                        hint: 'VD: Uống sau ăn, tránh ánh nắng...',
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 14),
-                      _buildLabel('Bác sĩ kê đơn'),
-                      _buildTextField(_prescribedByCtrl,
-                          hint: 'Tên bác sĩ (tùy chọn)'),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _submitting ? null : _submit,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_fieldRadius),
-                            ),
-                            elevation: 0,
                           ),
-                          child: _submitting
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('Thêm thuốc',
-                                  style: AppTextStyles.buttonLarge),
-                        ),
+                          TextButton.icon(
+                            onPressed: () => setState(
+                              () => _times.add(_defaultReminderTime),
+                            ),
+                            icon: const Icon(
+                              Icons.add,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            label: Text(
+                              'Thêm giờ uống',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                                vertical: 6,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('Ngày bắt đầu'),
+                                    _buildDateButton(
+                                      label: _formatDate(_startDate),
+                                      onTap: () => _pickDate(isStart: true),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('Ngày kết thúc'),
+                                    _buildDateButton(
+                                      label: _formatDate(_endDate),
+                                      onTap: () => _pickDate(isStart: false),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildLabel('Hướng dẫn sử dụng'),
+                    _buildTextField(
+                      _instructionsCtrl,
+                      hint: 'VD: Uống sau ăn, tránh ánh nắng...',
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildLabel('Bác sĩ kê đơn'),
+                    _buildTextField(
+                      _prescribedByCtrl,
+                      hint: 'Tên bác sĩ (tùy chọn)',
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(_fieldRadius),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Thêm thuốc',
+                                style: AppTextStyles.buttonLarge,
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Text(
-          text,
-          style: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 7),
+    child: Text(
+      text,
+      style: AppTextStyles.labelMedium.copyWith(
+        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 
   Widget _buildTextField(
     TextEditingController ctrl, {
     required String hint,
     int maxLines = 1,
-  }) =>
-      TextField(
-        controller: ctrl,
-        maxLines: maxLines,
-        style: AppTextStyles.bodyMedium,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
-          filled: true,
-          fillColor: AppColors.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(_fieldRadius),
-            borderSide: const BorderSide(color: AppColors.cardBorder),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(_fieldRadius),
-            borderSide: const BorderSide(color: AppColors.cardBorder),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(_fieldRadius),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
-          ),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: maxLines > 1 ? 14 : 15,
-          ),
-        ),
-      );
+  }) => TextField(
+    controller: ctrl,
+    maxLines: maxLines,
+    style: AppTextStyles.bodyMedium,
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
+      filled: true,
+      fillColor: AppColors.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_fieldRadius),
+        borderSide: const BorderSide(color: AppColors.cardBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_fieldRadius),
+        borderSide: const BorderSide(color: AppColors.cardBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_fieldRadius),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+      ),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: maxLines > 1 ? 14 : 15,
+      ),
+    ),
+  );
 
   Widget _buildFrequencyDropdown() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(_fieldRadius),
-          border: Border.all(color: AppColors.cardBorder),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(_fieldRadius),
+      border: Border.all(color: AppColors.cardBorder),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<MedicationFrequencyType>(
+        value: _frequencyType,
+        isExpanded: true,
+        style: AppTextStyles.bodyMedium,
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppColors.textGrey,
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<MedicationFrequencyType>(
-            value: _frequencyType,
-            isExpanded: true,
-            style: AppTextStyles.bodyMedium,
-            icon: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.textGrey,
-            ),
-            items: MedicationFrequencyType.values
-                .map((t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(
-                        t.label,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textBlack,
-                        ),
-                      ),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _frequencyType = v);
-            },
-          ),
-        ),
-      );
-
-  Widget _buildDateButton(
-          {required String label, required VoidCallback onTap}) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(_fieldRadius),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today,
-                  size: 16, color: AppColors.textGrey),
-              const SizedBox(width: 8),
-              Expanded(
+        items: MedicationFrequencyType.values
+            .map(
+              (t) => DropdownMenuItem(
+                value: t,
                 child: Text(
-                  label,
-                  style: label == _selectDateLabel
-                      ? AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey)
-                      : AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textBlack,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  overflow: TextOverflow.ellipsis,
+                  t.label,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textBlack,
+                  ),
                 ),
               ),
-            ],
+            )
+            .toList(),
+        onChanged: (v) {
+          if (v != null) setState(() => _frequencyType = v);
+        },
+      ),
+    ),
+  );
+
+  Widget _buildDateButton({
+    required String label,
+    required VoidCallback onTap,
+  }) => Clickable(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(_fieldRadius),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today, size: 16, color: AppColors.textGrey),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: label == _selectDateLabel
+                  ? AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey)
+                  : AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textBlack,
+                      fontWeight: FontWeight.w500,
+                    ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
