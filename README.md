@@ -6,7 +6,21 @@
 </p>
 
 <p align="center">
-  <a href="#chạy-thử-trong-2-phút">Chạy thử</a> ·
+  <a href="https://btbach25.github.io/HealthMate_FE/"><b>▶ Dùng thử trực tiếp trên trình duyệt</b></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Btbach25/HealthMate_FE/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/Btbach25/HealthMate_FE/actions/workflows/ci.yml/badge.svg?branch=master">
+  </a>
+  <a href="https://github.com/Btbach25/HealthMate_FE/actions/workflows/deploy-demo.yml">
+    <img alt="Deploy demo" src="https://github.com/Btbach25/HealthMate_FE/actions/workflows/deploy-demo.yml/badge.svg?branch=master">
+  </a>
+  <img alt="Flutter" src="https://img.shields.io/badge/Flutter-3.47.2-02569B?logo=flutter&logoColor=white">
+</p>
+
+<p align="center">
+  <a href="#dùng-thử-ngay">Dùng thử</a> ·
   <a href="#cài-đặt-đầy-đủ">Cài đặt</a> ·
   <a href="#deploy">Deploy</a> ·
   <a href="ARCHITECTURE.md">Kiến trúc</a> ·
@@ -29,12 +43,19 @@
 
 ---
 
-## Chạy thử trong 2 phút
+## Dùng thử ngay
 
-Không cần backend, không cần cấu hình — app chạy bằng **dữ liệu giả lập**:
+### Cách nhanh nhất — không cần cài gì
+
+**https://btbach25.github.io/HealthMate_FE/**
+
+Bản demo chạy trên trình duyệt bằng **dữ liệu giả lập**, không gọi backend, mở
+là dùng được ngay. Email và mật khẩu đã được điền sẵn, chỉ cần bấm *Đăng nhập*.
+
+### Hoặc chạy tại máy
 
 ```bash
-git clone <repo-url> && cd HealthMate_FE
+git clone https://github.com/Btbach25/HealthMate_FE.git && cd HealthMate_FE
 make setup
 make run-demo
 ```
@@ -73,7 +94,7 @@ Kiểm tra môi trường: `make doctor`
 ### Các bước
 
 ```bash
-git clone <repo-url> && cd HealthMate_FE
+git clone https://github.com/Btbach25/HealthMate_FE.git && cd HealthMate_FE
 make setup            # tạo .env từ .env.example + flutter pub get
 ```
 
@@ -272,7 +293,7 @@ Bật một lần rồi thôi:
 
 1. **Settings → Pages → Source** chọn **GitHub Actions**.
 2. Đẩy lên `master` (hoặc chạy tay workflow *Deploy demo lên GitHub Pages*).
-3. URL nhận được: `https://<tài-khoản>.github.io/HealthMate_FE/`
+3. URL nhận được: **https://btbach25.github.io/HealthMate_FE/**
 
 Bản này build với `--dart-define=DEMO_MODE=true` nên chạy hoàn toàn bằng mock
 data: **không gọi backend, không cần secret, an toàn để public**. Đây là bản
