@@ -43,6 +43,8 @@ $Commands = [ordered]@{
     'build-web'      = 'Build bản web release'
     'build-demo-apk' = 'Build APK demo chạy hoàn toàn bằng mock data'
     'build-demo-web' = 'Build web demo chạy hoàn toàn bằng mock data'
+    'deploy-demo'    = 'Deploy bản demo lên Firebase Hosting'
+    'deploy-web'     = 'Deploy bản gọi API thật lên Firebase Hosting'
     'icons'          = 'Sinh lại app icon'
     'splash'         = 'Sinh lại native splash screen'
     'outdated'       = 'Liệt kê dependency có bản mới'
@@ -105,6 +107,15 @@ switch ($Command) {
     'build-web'      { Invoke-Step 'flutter' @('build', 'web', '--release') }
     'build-demo-apk' { Invoke-Step 'flutter' @('build', 'apk', '--release', '--dart-define=DEMO_MODE=true') }
     'build-demo-web' { Invoke-Step 'flutter' @('build', 'web', '--release', '--dart-define=DEMO_MODE=true') }
+
+    'deploy-demo' {
+        Invoke-Step 'flutter'  @('build', 'web', '--release', '--dart-define=DEMO_MODE=true')
+        Invoke-Step 'firebase' @('deploy', '--only', 'hosting')
+    }
+    'deploy-web' {
+        Invoke-Step 'flutter'  @('build', 'web', '--release')
+        Invoke-Step 'firebase' @('deploy', '--only', 'hosting')
+    }
 
     'icons'  { Invoke-Step 'dart' @('run', 'flutter_launcher_icons') }
     'splash' { Invoke-Step 'dart' @('run', 'flutter_native_splash:create') }
