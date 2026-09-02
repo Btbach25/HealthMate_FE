@@ -30,6 +30,18 @@
 
 ---
 
+> [!IMPORTANT]
+> **Backend hiện chưa hoạt động.** Máy chủ API đã bị tắt và tên miền cũng đã gỡ,
+> nên mọi tính năng cần dữ liệu thật (đăng nhập bằng tài khoản thật, đồng bộ chỉ
+> số, nhóm gia đình, nhắc thuốc) tạm thời không dùng được.
+>
+> **Chế độ demo vẫn chạy bình thường** vì nó không gọi mạng —
+> [dùng thử tại đây](https://btbach25.github.io/HealthMate_FE/) hoặc `make run-demo`.
+>
+> Khi dựng lại backend, xem [Kết nối lại backend](#kết-nối-lại-backend) bên dưới.
+
+---
+
 ## Tính năng
 
 | Nhóm | Mô tả |
@@ -145,7 +157,7 @@ từng biến: [`.env.example`](.env.example).
 
 | Biến | Bắt buộc | Ý nghĩa |
 |---|---|---|
-| `BASE_URL` | ✅ | URL gốc api-gateway, không có `/` ở cuối |
+| `BASE_URL` | ✅ | URL gốc api-gateway, không có `/` ở cuối. **Hiện chưa có giá trị dùng được — backend đang tắt.** |
 | `GOOGLE_CLIENT_ID` | ✅ | OAuth 2.0 **Web** client ID (mobile dùng lại qua `serverClientId`) |
 | `DEMO_MODE` | — | `true` → chạy bằng mock data |
 | `FIREBASE_*` | Chỉ Web | `FirebaseOptions` cho push notification trên trình duyệt |
@@ -407,6 +419,37 @@ Bốn việc, thiếu một là hỏng:
 
 `build/web` là thư mục tĩnh thuần, kéo thả lên Netlify / Vercel / Cloudflare
 Pages đều chạy. Chỉ cần cấu hình rewrite mọi đường dẫn về `/index.html` (SPA).
+
+---
+
+## Kết nối lại backend
+
+Backend đang tắt. Khi dựng lại, làm đủ các bước sau — thiếu bước nào là hỏng
+bước đó, không phải lỗi frontend:
+
+1. **Dựng lại API gateway** và mở cổng cho truy cập từ ngoài (kiểm tra cả
+   firewall lẫn security group của nhà cung cấp).
+
+2. **Cấp HTTPS cho backend.** Bắt buộc, không phải tuỳ chọn: trang FE chạy trên
+   `https://` nên trình duyệt chặn thẳng mọi request sang `http://`. Xem
+   [Điều kiện bắt buộc: backend phải chạy HTTPS](#điều-kiện-bắt-buộc-backend-phải-chạy-https).
+   Vì Let's Encrypt không cấp chứng chỉ cho IP trần nên cần một tên miền mới —
+   tên miền cũ đã bị gỡ.
+
+3. **Cập nhật `BASE_URL`** trong `.env` thành tên miền HTTPS mới.
+
+4. **Bật CORS** ở backend cho origin của trang FE
+   (`https://btbach25.github.io`).
+
+5. **Đăng ký lại OAuth origin.** Google Cloud Console → Credentials → OAuth Web
+   client → *Authorized JavaScript origins*. Thiếu bước này thì đăng nhập Google
+   báo `Error 400: origin_mismatch`.
+
+6. **Kiểm tra lại trước khi công bố:** `curl -I https://<tên-miền-mới>` phải trả
+   về mã 2xx/3xx, không phải timeout.
+
+Trong lúc chờ, mọi thứ vẫn phát triển tiếp được bằng chế độ demo — xem
+[Dùng thử ngay](#dùng-thử-ngay).
 
 ---
 
