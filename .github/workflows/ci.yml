@@ -24,7 +24,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.32.0
+          # Phải khớp bản dùng ở máy dev: mã nguồn đã format bằng formatter
+          # của 3.47 và dùng API chỉ có từ 3.33+ (DropdownButtonFormField.
+          # initialValue) và 3.41+ (SizeTransition.alignment). Hạ xuống 3.32
+          # sẽ lỗi biên dịch.
+          flutter-version: 3.47.2
           cache: true
 
       # `.env` được khai báo là asset trong pubspec.yaml nên phải tồn tại,
@@ -76,7 +80,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.32.0
+          # Phải khớp bản dùng ở máy dev: mã nguồn đã format bằng formatter
+          # của 3.47 và dùng API chỉ có từ 3.33+ (DropdownButtonFormField.
+          # initialValue) và 3.41+ (SizeTransition.alignment). Hạ xuống 3.32
+          # sẽ lỗi biên dịch.
+          flutter-version: 3.47.2
           cache: true
 
       - name: Tạo .env từ template
