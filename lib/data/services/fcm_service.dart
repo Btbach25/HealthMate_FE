@@ -36,7 +36,8 @@ class FcmService {
 
     // Lấy token và gửi lên BE
     final token = await messaging.getToken();
-    debugPrint('[FCM] TOKEN: $token');
+    // Chỉ log độ dài: device token đủ để gửi thông báo giả danh người dùng.
+    debugPrint('[FCM] Đã lấy token (${token?.length ?? 0} ký tự)');
     if (token != null) await _registerToken(token);
 
     // Cập nhật token khi bị refresh
@@ -59,7 +60,8 @@ class FcmService {
       debugPrint('[FCM] Foreground message: ${message.messageId}');
       if (message.notification != null) {
         debugPrint('[FCM] Title: ${message.notification!.title}');
-        debugPrint('[FCM] Body: ${message.notification!.body}');
+        // Nội dung thông báo có thể chứa tên thuốc, tên người thân.
+        debugPrint('[FCM] Có nội dung thông báo');
       }
       if (message.data.isNotEmpty) {
         debugPrint('[FCM] Data: ${message.data}');

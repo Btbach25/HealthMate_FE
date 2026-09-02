@@ -93,11 +93,12 @@ abstract class ApiClient {
       // -> bỏ qua, dùng message mặc định theo status code.
     }
 
-    final preview = response.body.length > 300
-        ? '${response.body.substring(0, 300)}...'
-        : response.body;
+    // Chỉ log method/URL/status. KHÔNG log body: `debugPrint` vẫn chạy ở bản
+    // release nên mọi thứ ở đây sẽ hiện trong Console của trình duyệt, mà body
+    // lỗi có thể chứa email, tên thành viên nhóm hay chỉ số sức khoẻ.
     debugPrint(
-      '[API] ${response.request?.method} ${response.request?.url} → $statusCode | $preview',
+      '[API] ${response.request?.method} ${response.request?.url} → $statusCode '
+      '(${response.body.length}B)',
     );
 
     final errorMessage =
