@@ -1,0 +1,31 @@
+# Chủ sở hữu code — GitHub tự động request review từ những người ở đây khi có
+# PR chạm vào đường dẫn tương ứng.
+#
+# LƯU Ý: file này chỉ *gợi ý* reviewer. Muốn BẮT BUỘC phải có review mới merge
+# được thì phải bật thêm trong Settings → Rules → Rulesets:
+#   - Require a pull request before merging
+#   - Require review from Code Owners
+# Không bật hai mục đó thì PR vẫn merge được dù chưa ai duyệt.
+#
+# Dòng khớp SAU sẽ ghi đè dòng khớp trước, nên quy tắc chung phải đặt trên cùng.
+
+# Mặc định: mọi thay đổi cần chủ repo duyệt.
+*                       @Btbach25
+
+# --- Những vùng nhạy cảm, đổi là ảnh hưởng toàn dự án ---
+
+# Pipeline CI/CD và cấu hình deploy.
+/.github/               @Btbach25
+/firebase.json          @Btbach25
+/.firebaserc            @Btbach25
+
+# Khai báo biến môi trường: thêm/bớt biến ở đây là kéo theo cả CI lẫn bản deploy.
+/.env.example           @Btbach25
+
+# Dependency và cấu hình phân tích tĩnh.
+/pubspec.yaml           @Btbach25
+/analysis_options.yaml  @Btbach25
+
+# Composition root và cấu hình runtime — nơi duy nhất khởi tạo service.
+/lib/core/di/           @Btbach25
+/lib/core/config/       @Btbach25
