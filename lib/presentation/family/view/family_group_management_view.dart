@@ -59,9 +59,10 @@ class FamilyGroupManagementView extends StatefulWidget {
       _FamilyGroupManagementViewState();
 }
 
-class _FamilyGroupManagementViewState
-    extends State<FamilyGroupManagementView> with SingleTickerProviderStateMixin {
+class _FamilyGroupManagementViewState extends State<FamilyGroupManagementView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
   /// Các tab đã nạp dữ liệu ít nhất một lần; tab 0 nạp sẵn cùng màn hình.
   final Set<int> _loadedTabs = {0};
 
@@ -135,82 +136,84 @@ class _FamilyGroupManagementViewState
           }
         },
         child: BlocBuilder<FamilyBloc, FamilyState>(
-        builder: (context, state) {
-          // Chỉ chặn màn hình lúc tải lần đầu; đổi tab thì giữ nguyên nội dung cũ.
-          if (FamilyStateHelper.shouldShowLoading(state)) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          builder: (context, state) {
+            // Chỉ chặn màn hình lúc tải lần đầu; đổi tab thì giữ nguyên nội dung cũ.
+            if (FamilyStateHelper.shouldShowLoading(state)) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (FamilyStateHelper.shouldShowErrorScreen(state)) {
-            return Center(
-              child: Text(
-                UserFacingError.message(state.errorMessage),
-                style: const TextStyle(color: AppColors.error),
-              ),
-            );
-          }
-
-          // Có dữ liệu là hiển thị, kể cả khi vẫn còn request chạy nền.
-          if (FamilyStateHelper.shouldShowContent(state)) {
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
-                child: Column(
-                  children: [
-                    FamilyManagementAppBar(
-                      onCreateGroup: _openCreateGroupDialog,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSize.p16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Quản lý nhóm chia sẻ',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textBlack,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TabBar(
-                            controller: _tabController,
-                            labelColor: AppColors.primary,
-                            unselectedLabelColor: AppColors.textGrey,
-                            indicatorColor: AppColors.primary,
-                            tabs: const [
-                              Tab(text: 'Nhóm của tôi'),
-                              Tab(text: 'Lời mời tham gia'),
-                              Tab(text: 'Lời mời đã gửi'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _MyGroupsTab(
-                            groups: state.summary.groups,
-                            onCopyLink: _copyGroupLink,
-                            onEditPermissions: _editGroupPermissions,
-                          ),
-                          _IncomingInvitationsTab(),
-                          _OutgoingInvitationsTab(),
-                        ],
-                      ),
-                    ),
-                  ],
+            if (FamilyStateHelper.shouldShowErrorScreen(state)) {
+              return Center(
+                child: Text(
+                  UserFacingError.message(state.errorMessage),
+                  style: const TextStyle(color: AppColors.error),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          return const Center(child: Text('Trạng thái không xác định'));
-        },
+            // Có dữ liệu là hiển thị, kể cả khi vẫn còn request chạy nền.
+            if (FamilyStateHelper.shouldShowContent(state)) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppSize.shellMaxWidth,
+                  ),
+                  child: Column(
+                    children: [
+                      FamilyManagementAppBar(
+                        onCreateGroup: _openCreateGroupDialog,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(AppSize.p16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Quản lý nhóm chia sẻ',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textBlack,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TabBar(
+                              controller: _tabController,
+                              labelColor: AppColors.primary,
+                              unselectedLabelColor: AppColors.textGrey,
+                              indicatorColor: AppColors.primary,
+                              tabs: const [
+                                Tab(text: 'Nhóm của tôi'),
+                                Tab(text: 'Lời mời tham gia'),
+                                Tab(text: 'Lời mời đã gửi'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            _MyGroupsTab(
+                              groups: state.summary.groups,
+                              onCopyLink: _copyGroupLink,
+                              onEditPermissions: _editGroupPermissions,
+                            ),
+                            _IncomingInvitationsTab(),
+                            _OutgoingInvitationsTab(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return const Center(child: Text('Trạng thái không xác định'));
+          },
         ),
       ),
     );
@@ -296,7 +299,8 @@ class _MyGroupsTab extends StatelessWidget {
                     left: AppSize.p16,
                     right: AppSize.p16,
                     top: AppSize.p16,
-                    bottom: AppSize.p16 +
+                    bottom:
+                        AppSize.p16 +
                         MediaQuery.of(context).padding.bottom +
                         AppSize.bottomTabSafeInset,
                   ),
@@ -310,7 +314,6 @@ class _MyGroupsTab extends StatelessWidget {
     );
   }
 
-
   static final _groupDateFormat = DateFormat('dd/MM/yyyy');
 
   Widget _buildGroupCard(BuildContext context, FamilyGroup group) {
@@ -318,165 +321,164 @@ class _MyGroupsTab extends StatelessWidget {
     final isOwner = authUserId.isNotEmpty && group.ownerId == authUserId;
     final displayMemberCount = group.memberCount < 1 ? 1 : group.memberCount;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(AppSize.p16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppSize.r12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(AppSize.p16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSize.r12),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textBlack,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isOwner
-                                    ? AppColors.primary
-                                    : AppColors.inputBackground,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                isOwner ? 'Chủ nhóm' : 'Thành viên',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: isOwner
-                                      ? Colors.white
-                                      : AppColors.textGrey,
-                                ),
-                              ),
-                            ),
-                            if (group.pendingInvitations > 0) ...[
-                              const SizedBox(width: 8),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.mail_outline,
-                                    size: 16,
-                                    color: Colors.orange,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${group.pendingInvitations} lời mời',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.orange,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      group.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textBlack,
+                      ),
                     ),
-                  ),
-                  if (isOwner)
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.copy, size: 20),
-                          onPressed: () => onCopyLink(context, group),
-                          color: AppColors.textGrey,
-                          tooltip: 'Sao chép link nhóm',
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isOwner
+                                ? AppColors.primary
+                                : AppColors.inputBackground,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            isOwner ? 'Chủ nhóm' : 'Thành viên',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: isOwner
+                                  ? Colors.white
+                                  : AppColors.textGrey,
+                            ),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => onEditPermissions(context, group),
-                          color: AppColors.textGrey,
-                          tooltip: 'Chỉnh sửa nhóm',
-                        ),
+                        if (group.pendingInvitations > 0) ...[
+                          const SizedBox(width: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.mail_outline,
+                                size: 16,
+                                color: Colors.orange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${group.pendingInvitations} lời mời',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '$displayMemberCount thành viên • Tạo ${_groupDateFormat.format(group.createdAt)}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textGrey,
-                ),
-              ),
-              if (group.sharedMetrics.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: group.sharedMetrics.map((metric) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.inputBackground,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        metric.displayLabel,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textBlack,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ] else if (group.medicationSharingAllowed) ...[
-                const SizedBox(height: 12),
-              ],
-              if (group.medicationSharingAllowed)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.inputBackground,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        'Nhắc nhở uống thuốc',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textBlack,
-                        ),
-                      ),
                     ),
                   ],
                 ),
-              
+              ),
+              if (isOwner)
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 20),
+                      onPressed: () => onCopyLink(context, group),
+                      color: AppColors.textGrey,
+                      tooltip: 'Sao chép link nhóm',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20),
+                      onPressed: () => onEditPermissions(context, group),
+                      color: AppColors.textGrey,
+                      tooltip: 'Chỉnh sửa nhóm',
+                    ),
+                  ],
+                ),
             ],
           ),
-        );
+          const SizedBox(height: 12),
+          Text(
+            '$displayMemberCount thành viên • Tạo ${_groupDateFormat.format(group.createdAt)}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textGrey,
+            ),
+          ),
+          if (group.sharedMetrics.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: group.sharedMetrics.map((metric) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.inputBackground,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    metric.displayLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textBlack,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ] else if (group.medicationSharingAllowed) ...[
+            const SizedBox(height: 12),
+          ],
+          if (group.medicationSharingAllowed)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.inputBackground,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Nhắc nhở uống thuốc',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textBlack,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -518,7 +520,8 @@ class _IncomingInvitationsTab extends StatelessWidget {
               left: AppSize.p16,
               right: AppSize.p16,
               top: AppSize.p16,
-              bottom: AppSize.p16 +
+              bottom:
+                  AppSize.p16 +
                   MediaQuery.of(context).padding.bottom +
                   AppSize.bottomTabSafeInset,
             ),
@@ -535,7 +538,10 @@ class _IncomingInvitationsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildIncomingInvitationCard(BuildContext context, IncomingInvitation invitation) {
+  Widget _buildIncomingInvitationCard(
+    BuildContext context,
+    IncomingInvitation invitation,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(AppSize.p16),
@@ -590,14 +596,20 @@ class _IncomingInvitationsTab extends StatelessWidget {
               runSpacing: 8,
               children: invitation.sharedMetrics.map((metric) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.inputBackground,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     metric.displayLabel,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textBlack),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textBlack,
+                    ),
                   ),
                 );
               }).toList(),
@@ -648,8 +660,9 @@ class _IncomingInvitationsTab extends StatelessWidget {
                     showDialog<void>(
                       context: context,
                       barrierDismissible: false,
-                      barrierColor:
-                          Colors.black.withValues(alpha: _kDialogBarrierAlpha),
+                      barrierColor: Colors.black.withValues(
+                        alpha: _kDialogBarrierAlpha,
+                      ),
                       builder: (dialogContext) {
                         return BlocProvider.value(
                           value: bloc,
@@ -673,20 +686,23 @@ class _IncomingInvitationsTab extends StatelessWidget {
     );
   }
 
-  void _showDeclineConfirmationDialog(BuildContext context, IncomingInvitation invitation) {
+  void _showDeclineConfirmationDialog(
+    BuildContext context,
+    IncomingInvitation invitation,
+  ) {
     ConfirmationDialog.showErrorConfirmation(
       context: context,
       title: 'Xác nhận từ chối',
-      message: 'Bạn có chắc chắn muốn từ chối lời mời tham gia nhóm "${invitation.groupName}"?',
+      message:
+          'Bạn có chắc chắn muốn từ chối lời mời tham gia nhóm "${invitation.groupName}"?',
       confirmText: 'Từ chối',
       onConfirm: () {
         context.read<FamilyBloc>().add(
-              DeclineInvitation(groupId: invitation.groupId),
-            );
+          DeclineInvitation(groupId: invitation.groupId),
+        );
       },
     );
   }
-
 }
 
 /// Xem trước nhóm trước khi phản hồi lời mời — mở từ nút "Xem chi tiết nhóm".
@@ -831,7 +847,8 @@ class _InvitationGroupDetailsDialogState
           child: FutureBuilder<List<FamilyMember>?>(
             future: _detailsFuture,
             builder: (context, snapshot) {
-              final loading = snapshot.connectionState == ConnectionState.waiting;
+              final loading =
+                  snapshot.connectionState == ConnectionState.waiting;
               final members = snapshot.data ?? const <FamilyMember>[];
               final ownerId = widget.invitation.group?.ownerId ?? '';
               final canShowMembers = !loading && members.isNotEmpty;
@@ -966,7 +983,8 @@ class _InvitationGroupDetailsDialogState
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'TẠO BỞI',
@@ -1050,8 +1068,13 @@ class _InvitationGroupDetailsDialogState
                           else
                             Column(
                               children: members
-                                  .map((member) =>
-                                      _buildMemberTile(context, member, ownerId))
+                                  .map(
+                                    (member) => _buildMemberTile(
+                                      context,
+                                      member,
+                                      ownerId,
+                                    ),
+                                  )
                                   .toList(),
                             ),
                         ],
@@ -1101,7 +1124,7 @@ class _OutgoingInvitationsTab extends StatelessWidget {
     return BlocBuilder<FamilyBloc, FamilyState>(
       builder: (context, state) {
         // Hiện ngay trạng thái rỗng, không chờ loading — tránh nháy vòng xoay.
-        if (state.outgoingInvitations.isEmpty && 
+        if (state.outgoingInvitations.isEmpty &&
             state.status != FamilyStatus.loading) {
           return _RefreshableEmptyState(
             onRefresh: () => _refreshOutgoingInvitations(context),
@@ -1118,7 +1141,8 @@ class _OutgoingInvitationsTab extends StatelessWidget {
               left: AppSize.p16,
               right: AppSize.p16,
               top: AppSize.p16,
-              bottom: AppSize.p16 +
+              bottom:
+                  AppSize.p16 +
                   MediaQuery.of(context).padding.bottom +
                   AppSize.bottomTabSafeInset,
             ),
@@ -1135,7 +1159,10 @@ class _OutgoingInvitationsTab extends StatelessWidget {
 
   static final _outgoingDateFormat = DateFormat('dd/MM/yyyy');
 
-  Widget _buildOutgoingInvitationCard(BuildContext context, OutgoingInvitation invitation) {
+  Widget _buildOutgoingInvitationCard(
+    BuildContext context,
+    OutgoingInvitation invitation,
+  ) {
     String statusText;
     Color statusColor;
     IconData statusIcon;
@@ -1227,9 +1254,12 @@ class _OutgoingInvitationsTab extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha:0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: statusColor),
                 ),
@@ -1258,14 +1288,20 @@ class _OutgoingInvitationsTab extends StatelessWidget {
               runSpacing: 8,
               children: invitation.sharedMetrics.map((metric) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.inputBackground,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     metric.displayLabel,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textBlack),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textBlack,
+                    ),
                   ),
                 );
               }).toList(),
@@ -1275,7 +1311,6 @@ class _OutgoingInvitationsTab extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Trạng thái rỗng vẫn kéo-để-làm-mới được: bọc trong vùng cuộn cao cố định để
@@ -1333,4 +1368,3 @@ class _RefreshableEmptyState extends StatelessWidget {
     );
   }
 }
-

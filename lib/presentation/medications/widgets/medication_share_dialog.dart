@@ -277,15 +277,17 @@ class _MedicationShareDialogState extends State<MedicationShareDialog> {
               ),
               const SizedBox(height: 12),
               Flexible(
-                child: onGroupsScreen ? _buildGroupsList() : _buildMembersList(),
+                child: onGroupsScreen
+                    ? _buildGroupsList()
+                    : _buildMembersList(),
               ),
               if (!onGroupsScreen) ...[
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed:
                       (_selectedUserIds.isEmpty || _sharing || _loadingMembers)
-                          ? null
-                          : _onConfirm,
+                      ? null
+                      : _onConfirm,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,

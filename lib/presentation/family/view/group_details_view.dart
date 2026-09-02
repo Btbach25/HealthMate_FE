@@ -184,6 +184,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                   ),
                 );
               }
+
               final isCurrentUserOwner =
                   authUser.id.isNotEmpty &&
                   sameUserId(details.group.ownerId, authUser.id);
@@ -236,7 +237,8 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                           ),
                                           label: const Text('Chọn nhóm khác'),
                                           style: TextButton.styleFrom(
-                                            foregroundColor: AppColors.textBlack,
+                                            foregroundColor:
+                                                AppColors.textBlack,
                                             alignment: Alignment.centerLeft,
                                           ),
                                         ),
@@ -254,8 +256,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                       label: const Text('Rời nhóm'),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Colors.orange,
-                                        side:
-                                            const BorderSide(color: Colors.orange),
+                                        side: const BorderSide(
+                                          color: Colors.orange,
+                                        ),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
                                           vertical: 10,
@@ -278,7 +281,10 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                   onPressed: () {
                                     context.push('/family');
                                   },
-                                  icon: const Icon(Icons.people_outline, size: 18),
+                                  icon: const Icon(
+                                    Icons.people_outline,
+                                    size: 18,
+                                  ),
                                   label: const Text('Chọn nhóm khác'),
                                   style: TextButton.styleFrom(
                                     foregroundColor: AppColors.textBlack,
@@ -293,7 +299,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                   label: const Text('Rời nhóm'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.orange,
-                                    side: const BorderSide(color: Colors.orange),
+                                    side: const BorderSide(
+                                      color: Colors.orange,
+                                    ),
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 10,
@@ -351,7 +359,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryContainer.withValues(alpha: 0.45),
+                            color: AppColors.primaryContainer.withValues(
+                              alpha: 0.45,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.16),
@@ -377,32 +387,33 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                   TextButton(
                                     onPressed:
                                         details.group.medicationSharingAllowed
-                                            ? () async {
-                                                final ok = await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (_) => GroupMedicationShareDialog(
+                                        ? () async {
+                                            final ok = await showDialog<bool>(
+                                              context: context,
+                                              builder: (_) =>
+                                                  GroupMedicationShareDialog(
                                                     groupId: details.group.id,
                                                     members: details.members,
                                                     currentUserId: authUser.id,
                                                   ),
-                                                );
-                                                if (ok == true &&
-                                                    context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Đã cập nhật chia sẻ nhắc thuốc cho nhóm',
-                                                      ),
-                                                      backgroundColor:
-                                                          AppColors.primary,
-                                                      behavior:
-                                                          SnackBarBehavior.floating,
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            : null,
+                                            );
+                                            if (ok == true && context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Đã cập nhật chia sẻ nhắc thuốc cho nhóm',
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.primary,
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        : null,
                                     child: const Text('Quản lý tại đây'),
                                   ),
                                 ],
@@ -412,7 +423,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                 details.group.medicationSharingAllowed
                                     ? 'Nhấn "Quản lý tại đây" để chọn từng loại thuốc và thành viên nhận nhắc. Chỉ thành viên đủ điều kiện theo quyền nhóm và quyền cá nhân mới xuất hiện.'
                                     : 'Nhóm chưa bật chia sẻ nhắc uống thuốc. Hãy chỉnh quyền chung của nhóm trước, rồi mới thiết lập chia sẻ nhắc thuốc.',
-                                style: AppTextStyles.caption.copyWith(height: 1.4),
+                                style: AppTextStyles.caption.copyWith(
+                                  height: 1.4,
+                                ),
                               ),
                             ],
                           ),
@@ -430,10 +443,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.08),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -512,44 +529,55 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                           ),
                         ),
                         const SizedBox(height: AppSize.spacing32),
-                        ...effectiveMembers.map((member) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: FamilyMemberCard(
-                                member: member,
-                                // BE dùng owner_id, role "owner". Dùng ownerId để chắc chắn đúng.
-                                isOwner: isCurrentUserOwner,
-                                isGroupOwner:
-                                    sameUserId(member.userId, details.group.ownerId),
-                                groupId: details.group.id,
-                                isCurrentUser: sameUserId(member.userId, authUser.id),
-                                onViewMetrics: () => tryOpenMemberMetrics(member),
-                                onFollow: () => tryOpenMemberMetrics(member),
-                                onShareMyMetrics: sameUserId(member.userId, authUser.id)
-                                    ? openMySharingDialog
-                                    : null,
-                                onEditPermissions: isCurrentUserOwner &&
-                                        !sameUserId(member.userId, authUser.id)
-                                    ? () {
-                                        showDialog<void>(
-                                          context: context,
-                                          builder: (dialogContext) {
-                                            return BlocProvider.value(
-                                              value: context.read<FamilyBloc>(),
-                                              child: EditMemberPermissionsDialog(
-                                                groupId: details.group.id,
-                                                member: member,
-                                                globalMetrics:
-                                                    details.group.sharedMetrics,
-                                                groupMedicationReminderShareAllowed:
-                                                    details.group.medicationSharingAllowed,
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      }
-                                    : null,
+                        ...effectiveMembers.map(
+                          (member) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: FamilyMemberCard(
+                              member: member,
+                              // BE dùng owner_id, role "owner". Dùng ownerId để chắc chắn đúng.
+                              isOwner: isCurrentUserOwner,
+                              isGroupOwner: sameUserId(
+                                member.userId,
+                                details.group.ownerId,
                               ),
-                            )),
+                              groupId: details.group.id,
+                              isCurrentUser: sameUserId(
+                                member.userId,
+                                authUser.id,
+                              ),
+                              onViewMetrics: () => tryOpenMemberMetrics(member),
+                              onFollow: () => tryOpenMemberMetrics(member),
+                              onShareMyMetrics:
+                                  sameUserId(member.userId, authUser.id)
+                                  ? openMySharingDialog
+                                  : null,
+                              onEditPermissions:
+                                  isCurrentUserOwner &&
+                                      !sameUserId(member.userId, authUser.id)
+                                  ? () {
+                                      showDialog<void>(
+                                        context: context,
+                                        builder: (dialogContext) {
+                                          return BlocProvider.value(
+                                            value: context.read<FamilyBloc>(),
+                                            child: EditMemberPermissionsDialog(
+                                              groupId: details.group.id,
+                                              member: member,
+                                              globalMetrics:
+                                                  details.group.sharedMetrics,
+                                              groupMedicationReminderShareAllowed:
+                                                  details
+                                                      .group
+                                                      .medicationSharingAllowed,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }
+                                  : null,
+                            ),
+                          ),
+                        ),
                         SizedBox(
                           height: MediaQuery.of(context).padding.bottom + 100,
                         ),
@@ -574,7 +602,8 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
   /// Mở [AddMemberModal] để mời thêm người bằng email.
   void _showAddMemberModal(BuildContext context, String groupId) {
     final bloc = context.read<FamilyBloc>();
-    final allowedMetrics = bloc.state.groupDetails?.group.sharedMetrics ?? const [];
+    final allowedMetrics =
+        bloc.state.groupDetails?.group.sharedMetrics ?? const [];
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -685,9 +714,9 @@ class _PendingApprovalsSectionState extends State<_PendingApprovalsSection> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context
-          .read<FamilyBloc>()
-          .add(FetchPendingApprovals(groupId: widget.groupId));
+      context.read<FamilyBloc>().add(
+        FetchPendingApprovals(groupId: widget.groupId),
+      );
     });
   }
 
@@ -695,8 +724,7 @@ class _PendingApprovalsSectionState extends State<_PendingApprovalsSection> {
   Widget build(BuildContext context) {
     return BlocBuilder<FamilyBloc, FamilyState>(
       buildWhen: (p, c) =>
-          p.pendingApprovals != c.pendingApprovals ||
-          p.status != c.status,
+          p.pendingApprovals != c.pendingApprovals || p.status != c.status,
       builder: (context, state) {
         final pendingList = state.pendingApprovals
             .where((inv) => inv.groupId == widget.groupId)
@@ -715,8 +743,7 @@ class _PendingApprovalsSectionState extends State<_PendingApprovalsSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
                 child: Row(
                   children: [
                     const Icon(
@@ -835,11 +862,11 @@ class _PendingApprovalTile extends StatelessWidget {
           OutlinedButton(
             onPressed: () {
               context.read<FamilyBloc>().add(
-                    ApproveJoinRequest(
-                      groupId: groupId,
-                      memberId: invitation.invitee?.id ?? '',
-                    ),
-                  );
+                ApproveJoinRequest(
+                  groupId: groupId,
+                  memberId: invitation.invitee?.id ?? '',
+                ),
+              );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
@@ -854,11 +881,11 @@ class _PendingApprovalTile extends StatelessWidget {
           OutlinedButton(
             onPressed: () {
               context.read<FamilyBloc>().add(
-                    RejectJoinRequest(
-                      groupId: groupId,
-                      memberId: invitation.invitee?.id ?? '',
-                    ),
-                  );
+                RejectJoinRequest(
+                  groupId: groupId,
+                  memberId: invitation.invitee?.id ?? '',
+                ),
+              );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.error,

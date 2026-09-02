@@ -37,13 +37,13 @@ class MedicationReminder {
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'medication_id': medicationId,
-        'time': time,
-        'is_enabled': isEnabled,
-        'last_taken': lastTaken?.toIso8601String(),
-        'missed_count': missedCount,
-      };
+    'id': id,
+    'medication_id': medicationId,
+    'time': time,
+    'is_enabled': isEnabled,
+    'last_taken': lastTaken?.toIso8601String(),
+    'missed_count': missedCount,
+  };
 
   MedicationReminder copyWith({
     String? id,
@@ -53,13 +53,12 @@ class MedicationReminder {
     DateTime? lastTaken,
     bool clearLastTaken = false,
     int? missedCount,
-  }) =>
-      MedicationReminder(
-        id: id ?? this.id,
-        medicationId: medicationId ?? this.medicationId,
-        time: time ?? this.time,
-        isEnabled: isEnabled ?? this.isEnabled,
-        lastTaken: clearLastTaken ? null : (lastTaken ?? this.lastTaken),
-        missedCount: missedCount ?? this.missedCount,
-      );
+  }) => MedicationReminder(
+    id: id ?? this.id,
+    medicationId: medicationId ?? this.medicationId,
+    time: time ?? this.time,
+    isEnabled: isEnabled ?? this.isEnabled,
+    lastTaken: clearLastTaken ? null : (lastTaken ?? this.lastTaken),
+    missedCount: missedCount ?? this.missedCount,
+  );
 }

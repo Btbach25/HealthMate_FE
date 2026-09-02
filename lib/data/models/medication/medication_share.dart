@@ -24,7 +24,8 @@ class MedicationShare {
       medicationId: json['medication_id'] as String? ?? '',
       groupId: json['group_id'] as String? ?? '',
       sharedWithUserId: json['shared_with_user_id'] as String? ?? '',
-      notifyOffsetMinutes: (json['notify_offset_minutes'] as num?)?.toInt() ?? 0,
+      notifyOffsetMinutes:
+          (json['notify_offset_minutes'] as num?)?.toInt() ?? 0,
     );
   }
 

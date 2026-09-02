@@ -50,14 +50,11 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         .map((m) => m.type)
         .toSet();
     if (widget.invitation.sharedMetrics.isNotEmpty) {
-      for (final s in widget.invitation.sharedMetrics) {
-        try {
-          final t = MetricType.fromValue(s);
-          if (_selectableMetrics.contains(t)) {
-            _selectedMetrics.add(t);
-          }
-        } catch (_) {}
-      }
+      // `sharedMetrics` đã là List<MetricType> (mapper đã parse từ JSON), chỉ
+      // cần lọc bỏ chỉ số mà backend không còn hỗ trợ.
+      _selectedMetrics.addAll(
+        widget.invitation.sharedMetrics.where(_selectableMetrics.contains),
+      );
     } else {
       _selectedMetrics.addAll(_selectableMetrics);
     }
@@ -146,7 +143,10 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close, color: AppColors.textGrey),
+                            icon: const Icon(
+                              Icons.close,
+                              color: AppColors.textGrey,
+                            ),
                           ),
                         ],
                       ),
@@ -208,7 +208,8 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                       FamilyStatus.invitationPreviewLoading &&
                                   previous.invitationPreviewGroupId ==
                                       widget.invitation.groupId;
-                              final isNowLoaded = current.status ==
+                              final isNowLoaded =
+                                  current.status ==
                                       FamilyStatus.invitationPreviewLoaded &&
                                   current.invitationPreviewGroupId ==
                                       widget.invitation.groupId;
@@ -257,16 +258,22 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                 final columns = isCompact ? 1 : 2;
                                 final itemWidth = columns == 1
                                     ? constraints.maxWidth
-                                    : (constraints.maxWidth - AppSize.spacing12) / 2;
-                                final allowedMetrics = MetricHelper.availableMetrics
-                                    .where((m) => _selectableMetrics.contains(m.type))
+                                    : (constraints.maxWidth -
+                                              AppSize.spacing12) /
+                                          2;
+                                final allowedMetrics = MetricHelper
+                                    .availableMetrics
+                                    .where(
+                                      (m) =>
+                                          _selectableMetrics.contains(m.type),
+                                    )
                                     .toList();
                                 return Wrap(
                                   spacing: AppSize.spacing12,
                                   runSpacing: AppSize.spacing12,
                                   children: allowedMetrics.map((metric) {
-                                    final isSelected =
-                                        _selectedMetrics.contains(metric.type);
+                                    final isSelected = _selectedMetrics
+                                        .contains(metric.type);
                                     return SizedBox(
                                       width: itemWidth,
                                       child: MetricCheckbox(
@@ -279,7 +286,9 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                                             if (selected) {
                                               _selectedMetrics.add(metric.type);
                                             } else {
-                                              _selectedMetrics.remove(metric.type);
+                                              _selectedMetrics.remove(
+                                                metric.type,
+                                              );
                                             }
                                           });
                                         },
@@ -295,36 +304,47 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
                             const SizedBox(height: 12),
                           ],
                           const SizedBox(height: 8),
-                          Builder(builder: (context) {
-                            final canAccept =
-                                _previewLoaded && _selectableMetrics.isNotEmpty;
-                            return Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                gradient: canAccept
-                                    ? AppColors.primaryGradient
-                                    : null,
-                                color: canAccept
-                                    ? null
-                                    : AppColors.textGrey.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(AppSize.r12),
-                                boxShadow:
-                                    canAccept ? AppColors.buttonShadow : null,
-                              ),
-                              child: LoadingButton(
-                                text: 'Gửi yêu cầu tham gia',
-                                onPressed: canAccept ? _handleAccept : null,
-                                isLoading: _isLoading,
-                                backgroundColor: Colors.transparent,
-                                foregroundColor:
-                                    canAccept ? Colors.white : AppColors.textGrey,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: AppSize.p16),
-                                borderRadius:
-                                    BorderRadius.circular(AppSize.r12),
-                              ),
-                            );
-                          }),
+                          Builder(
+                            builder: (context) {
+                              final canAccept =
+                                  _previewLoaded &&
+                                  _selectableMetrics.isNotEmpty;
+                              return Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  gradient: canAccept
+                                      ? AppColors.primaryGradient
+                                      : null,
+                                  color: canAccept
+                                      ? null
+                                      : AppColors.textGrey.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSize.r12,
+                                  ),
+                                  boxShadow: canAccept
+                                      ? AppColors.buttonShadow
+                                      : null,
+                                ),
+                                child: LoadingButton(
+                                  text: 'Gửi yêu cầu tham gia',
+                                  onPressed: canAccept ? _handleAccept : null,
+                                  isLoading: _isLoading,
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: canAccept
+                                      ? Colors.white
+                                      : AppColors.textGrey,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppSize.p16,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSize.r12,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -371,8 +391,10 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
       );
     }
 
-    final groupName = details?.group.name ?? widget.invitation.group?.name ?? 'Nhóm';
-    final memberCount = details?.members.length ?? widget.invitation.group?.memberCount ?? 0;
+    final groupName =
+        details?.group.name ?? widget.invitation.group?.name ?? 'Nhóm';
+    final memberCount =
+        details?.members.length ?? widget.invitation.group?.memberCount ?? 0;
     final members = details?.members ?? [];
 
     return Container(
@@ -388,7 +410,9 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
         children: [
           Text(
             groupName,
-            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -396,19 +420,23 @@ class _AcceptInvitationDialogState extends State<AcceptInvitationDialog>
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
           ),
           const SizedBox(height: 8),
-          ...members.take(5).map(
-            (m) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '- ${m.name}${(m.relationship ?? '').isNotEmpty ? ' (${m.relationship})' : ''}',
-                style: AppTextStyles.bodySmall,
+          ...members
+              .take(5)
+              .map(
+                (m) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '- ${m.name}${(m.relationship ?? '').isNotEmpty ? ' (${m.relationship})' : ''}',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ),
               ),
-            ),
-          ),
           if (members.length > 5)
             Text(
               '... và ${members.length - 5} thành viên khác',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textGrey),
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textGrey,
+              ),
             ),
         ],
       ),

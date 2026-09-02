@@ -138,175 +138,175 @@ class MockFamilyData {
 
   /// Thành viên của nhóm "Gia đình nhà mình".
   static List<FamilyMember> get group1Members => [
-        _member(
-          groupId: group1Id,
-          userId: MockUsers.demoUserId,
-          name: MockUsers.demoUser.name,
-          email: MockUsers.demoEmail,
-          age: 37,
-          relationship: 'Bố',
-          healthStatus: HealthStatus.good,
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.stepsCount,
-            MetricType.caloriesBurnt,
-            MetricType.bloodPressure,
-            MetricType.spo2,
-          ],
-          medicationReminderShareAllowed: true,
-          joinedDaysAgo: 210,
-          lastUpdatedMinutesAgo: 4,
-        ),
-        _member(
-          groupId: group1Id,
-          userId: MockUsers.hoaId,
-          name: MockUsers.hoa.name,
-          email: MockUsers.hoa.email,
-          age: 35,
-          relationship: 'Mẹ',
-          healthStatus: HealthStatus.healthy,
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.stepsCount,
-            MetricType.bloodPressure,
-          ],
-          medicationReminderShareAllowed: true,
-          joinedDaysAgo: 208,
-          lastUpdatedMinutesAgo: 12,
-        ),
-        _member(
-          groupId: group1Id,
-          userId: MockUsers.minhAnhId,
-          name: MockUsers.minhAnh.name,
-          email: MockUsers.minhAnh.email,
-          age: 15,
-          relationship: 'Con gái',
-          healthStatus: HealthStatus.good,
-          sharedMetrics: const [
-            MetricType.stepsCount,
-            MetricType.caloriesBurnt,
-            MetricType.heartRate,
-          ],
-          joinedDaysAgo: 195,
-          lastUpdatedMinutesAgo: 48,
-        ),
-        _member(
-          groupId: group1Id,
-          userId: MockUsers.baoLongId,
-          name: MockUsers.baoLong.name,
-          email: MockUsers.baoLong.email,
-          age: 30,
-          relationship: 'Em trai',
-          healthStatus: HealthStatus.needsAttention,
-          healthConditions: const ['Huyết áp cao'],
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.bloodPressure,
-            MetricType.spo2,
-          ],
-          joinedDaysAgo: 60,
-          lastUpdatedMinutesAgo: 95,
-        ),
-      ];
+    _member(
+      groupId: group1Id,
+      userId: MockUsers.demoUserId,
+      name: MockUsers.demoUser.name,
+      email: MockUsers.demoEmail,
+      age: 37,
+      relationship: 'Bố',
+      healthStatus: HealthStatus.good,
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.stepsCount,
+        MetricType.caloriesBurnt,
+        MetricType.bloodPressure,
+        MetricType.spo2,
+      ],
+      medicationReminderShareAllowed: true,
+      joinedDaysAgo: 210,
+      lastUpdatedMinutesAgo: 4,
+    ),
+    _member(
+      groupId: group1Id,
+      userId: MockUsers.hoaId,
+      name: MockUsers.hoa.name,
+      email: MockUsers.hoa.email,
+      age: 35,
+      relationship: 'Mẹ',
+      healthStatus: HealthStatus.healthy,
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.stepsCount,
+        MetricType.bloodPressure,
+      ],
+      medicationReminderShareAllowed: true,
+      joinedDaysAgo: 208,
+      lastUpdatedMinutesAgo: 12,
+    ),
+    _member(
+      groupId: group1Id,
+      userId: MockUsers.minhAnhId,
+      name: MockUsers.minhAnh.name,
+      email: MockUsers.minhAnh.email,
+      age: 15,
+      relationship: 'Con gái',
+      healthStatus: HealthStatus.good,
+      sharedMetrics: const [
+        MetricType.stepsCount,
+        MetricType.caloriesBurnt,
+        MetricType.heartRate,
+      ],
+      joinedDaysAgo: 195,
+      lastUpdatedMinutesAgo: 48,
+    ),
+    _member(
+      groupId: group1Id,
+      userId: MockUsers.baoLongId,
+      name: MockUsers.baoLong.name,
+      email: MockUsers.baoLong.email,
+      age: 30,
+      relationship: 'Em trai',
+      healthStatus: HealthStatus.needsAttention,
+      healthConditions: const ['Huyết áp cao'],
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.bloodPressure,
+        MetricType.spo2,
+      ],
+      joinedDaysAgo: 60,
+      lastUpdatedMinutesAgo: 95,
+    ),
+  ];
 
   /// Thành viên của nhóm "Ông bà & các cháu".
   static List<FamilyMember> get group2Members => [
-        _member(
-          groupId: group2Id,
-          userId: MockUsers.hungId,
-          name: MockUsers.hung.name,
-          email: MockUsers.hung.email,
-          age: 68,
-          relationship: 'Ông',
-          healthStatus: HealthStatus.needsAttention,
-          healthConditions: const ['Tiểu đường tuýp 2', 'Huyết áp cao'],
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.bloodPressure,
-            MetricType.stepsCount,
-          ],
-          medicationReminderShareAllowed: true,
-          joinedDaysAgo: 140,
-          lastUpdatedMinutesAgo: 18,
-        ),
-        _member(
-          groupId: group2Id,
-          userId: MockUsers.demoUserId,
-          name: MockUsers.demoUser.name,
-          email: MockUsers.demoEmail,
-          age: 37,
-          relationship: 'Con trai',
-          healthStatus: HealthStatus.good,
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.stepsCount,
-          ],
-          joinedDaysAgo: 138,
-          lastUpdatedMinutesAgo: 4,
-        ),
-        _member(
-          groupId: group2Id,
-          userId: MockUsers.minhAnhId,
-          name: MockUsers.minhAnh.name,
-          email: MockUsers.minhAnh.email,
-          age: 15,
-          relationship: 'Cháu gái',
-          healthStatus: HealthStatus.healthy,
-          sharedMetrics: const [MetricType.stepsCount],
-          joinedDaysAgo: 130,
-          lastUpdatedMinutesAgo: 48,
-        ),
-      ];
+    _member(
+      groupId: group2Id,
+      userId: MockUsers.hungId,
+      name: MockUsers.hung.name,
+      email: MockUsers.hung.email,
+      age: 68,
+      relationship: 'Ông',
+      healthStatus: HealthStatus.needsAttention,
+      healthConditions: const ['Tiểu đường tuýp 2', 'Huyết áp cao'],
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.bloodPressure,
+        MetricType.stepsCount,
+      ],
+      medicationReminderShareAllowed: true,
+      joinedDaysAgo: 140,
+      lastUpdatedMinutesAgo: 18,
+    ),
+    _member(
+      groupId: group2Id,
+      userId: MockUsers.demoUserId,
+      name: MockUsers.demoUser.name,
+      email: MockUsers.demoEmail,
+      age: 37,
+      relationship: 'Con trai',
+      healthStatus: HealthStatus.good,
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.stepsCount,
+      ],
+      joinedDaysAgo: 138,
+      lastUpdatedMinutesAgo: 4,
+    ),
+    _member(
+      groupId: group2Id,
+      userId: MockUsers.minhAnhId,
+      name: MockUsers.minhAnh.name,
+      email: MockUsers.minhAnh.email,
+      age: 15,
+      relationship: 'Cháu gái',
+      healthStatus: HealthStatus.healthy,
+      sharedMetrics: const [MetricType.stepsCount],
+      joinedDaysAgo: 130,
+      lastUpdatedMinutesAgo: 48,
+    ),
+  ];
 
   /// Thành viên nhóm chưa tham gia (xem trước khi bấm Đồng ý lời mời).
   static List<FamilyMember> get group3Members => [
-        _member(
-          groupId: group3Id,
-          userId: MockUsers.thuMaiId,
-          name: MockUsers.thuMai.name,
-          email: MockUsers.thuMai.email,
-          age: 40,
-          relationship: 'Chị',
-          healthStatus: HealthStatus.healthy,
-          sharedMetrics: const [
-            MetricType.heartRate,
-            MetricType.bloodPressure,
-          ],
-          joinedDaysAgo: 45,
-          lastUpdatedMinutesAgo: 120,
-        ),
-        _member(
-          groupId: group3Id,
-          userId: MockUsers.hoaId,
-          name: MockUsers.hoa.name,
-          email: MockUsers.hoa.email,
-          age: 35,
-          relationship: 'Em dâu',
-          healthStatus: HealthStatus.healthy,
-          sharedMetrics: const [MetricType.heartRate],
-          joinedDaysAgo: 40,
-          lastUpdatedMinutesAgo: 12,
-        ),
-        _member(
-          groupId: group3Id,
-          userId: MockUsers.baoLongId,
-          name: MockUsers.baoLong.name,
-          email: MockUsers.baoLong.email,
-          age: 30,
-          relationship: 'Em trai',
-          healthStatus: HealthStatus.needsAttention,
-          sharedMetrics: const [MetricType.bloodPressure],
-          joinedDaysAgo: 38,
-          lastUpdatedMinutesAgo: 95,
-        ),
-      ];
+    _member(
+      groupId: group3Id,
+      userId: MockUsers.thuMaiId,
+      name: MockUsers.thuMai.name,
+      email: MockUsers.thuMai.email,
+      age: 40,
+      relationship: 'Chị',
+      healthStatus: HealthStatus.healthy,
+      sharedMetrics: const [
+        MetricType.heartRate,
+        MetricType.bloodPressure,
+      ],
+      joinedDaysAgo: 45,
+      lastUpdatedMinutesAgo: 120,
+    ),
+    _member(
+      groupId: group3Id,
+      userId: MockUsers.hoaId,
+      name: MockUsers.hoa.name,
+      email: MockUsers.hoa.email,
+      age: 35,
+      relationship: 'Em dâu',
+      healthStatus: HealthStatus.healthy,
+      sharedMetrics: const [MetricType.heartRate],
+      joinedDaysAgo: 40,
+      lastUpdatedMinutesAgo: 12,
+    ),
+    _member(
+      groupId: group3Id,
+      userId: MockUsers.baoLongId,
+      name: MockUsers.baoLong.name,
+      email: MockUsers.baoLong.email,
+      age: 30,
+      relationship: 'Em trai',
+      healthStatus: HealthStatus.needsAttention,
+      sharedMetrics: const [MetricType.bloodPressure],
+      joinedDaysAgo: 38,
+      lastUpdatedMinutesAgo: 95,
+    ),
+  ];
 
   /// Thành viên ban đầu của từng nhóm.
   static Map<String, List<FamilyMember>> get membersByGroup => {
-        group1Id: group1Members,
-        group2Id: group2Members,
-        group3Id: group3Members,
-      };
+    group1Id: group1Members,
+    group2Id: group2Members,
+    group3Id: group3Members,
+  };
 
   // ---------- Lời mời ----------
 
@@ -355,35 +355,35 @@ class MockFamilyData {
   /// Danh sách thông báo giả cho trang chủ (nhắc thuốc, cảnh báo chỉ số,
   /// hoạt động của người nhà). Sửa ở đây để đổi nội dung thông báo demo.
   static List<FamilyNotification> get notifications => [
-        FamilyNotification(
-          id: 'demo-noti-1',
-          message:
-              'Bạn chưa uống Vitamin D3 lúc 12:00. Nhớ uống cùng bữa trưa nhé!',
-          timeAgo: '12:00',
-          type: NotificationType.important,
-        ),
-        FamilyNotification(
-          id: 'demo-noti-2',
-          message:
-              '${MockUsers.baoLong.name} có huyết áp 142/92 mmHg, cao hơn bình thường',
-          timeAgo: '1 giờ trước',
-          type: NotificationType.urgent,
-        ),
-        FamilyNotification(
-          id: 'demo-noti-3',
-          message:
-              '${MockUsers.thuMai.name} đã mời bạn vào nhóm "Nhóm chăm sóc mẹ"',
-          timeAgo: '20 giờ trước',
-          type: NotificationType.info,
-        ),
-        FamilyNotification(
-          id: 'demo-noti-4',
-          message:
-              '${MockUsers.hoa.name} đã hoàn thành 10.240 bước hôm nay — vượt mục tiêu!',
-          timeAgo: 'Sáng nay',
-          type: NotificationType.info,
-        ),
-      ];
+    FamilyNotification(
+      id: 'demo-noti-1',
+      message:
+          'Bạn chưa uống Vitamin D3 lúc 12:00. Nhớ uống cùng bữa trưa nhé!',
+      timeAgo: '12:00',
+      type: NotificationType.important,
+    ),
+    FamilyNotification(
+      id: 'demo-noti-2',
+      message:
+          '${MockUsers.baoLong.name} có huyết áp 142/92 mmHg, cao hơn bình thường',
+      timeAgo: '1 giờ trước',
+      type: NotificationType.urgent,
+    ),
+    FamilyNotification(
+      id: 'demo-noti-3',
+      message:
+          '${MockUsers.thuMai.name} đã mời bạn vào nhóm "Nhóm chăm sóc mẹ"',
+      timeAgo: '20 giờ trước',
+      type: NotificationType.info,
+    ),
+    FamilyNotification(
+      id: 'demo-noti-4',
+      message:
+          '${MockUsers.hoa.name} đã hoàn thành 10.240 bước hôm nay — vượt mục tiêu!',
+      timeAgo: 'Sáng nay',
+      type: NotificationType.info,
+    ),
+  ];
 
   /// Yêu cầu đang chờ **chủ nhóm duyệt** (người được mời đã bấm Đồng ý).
   static List<OutgoingInvitation> get pendingApprovals {

@@ -30,7 +30,7 @@ class HealthWsService {
   final Future<String?> Function()? _onRefresh;
 
   HealthWsService(this._localStorage, {Future<String?> Function()? onRefresh})
-      : _onRefresh = onRefresh;
+    : _onRefresh = onRefresh;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _socketSubscription;
@@ -284,12 +284,14 @@ class HealthWsService {
       final value = _extractNumeric(entry.value);
       if (value == null) continue;
       try {
-        _channel!.sink.add(jsonEncode({
-          'user_id': _userId,
-          'metric_type': entry.key,
-          'value': value,
-          'timestamp': entry.value.dateFrom.toUtc().toIso8601String(),
-        }));
+        _channel!.sink.add(
+          jsonEncode({
+            'user_id': _userId,
+            'metric_type': entry.key,
+            'value': value,
+            'timestamp': entry.value.dateFrom.toUtc().toIso8601String(),
+          }),
+        );
       } catch (e) {
         debugPrint('[HealthWs] Send error: $e');
         _onDisconnected();
@@ -304,12 +306,14 @@ class HealthWsService {
     if (!_connected) await connect();
     if (!_connected || _channel == null || _userId == null) return;
     try {
-      _channel!.sink.add(jsonEncode({
-        'user_id': _userId,
-        'metric_type': metricType,
-        'value': value,
-        'timestamp': DateTime.now().toUtc().toIso8601String(),
-      }));
+      _channel!.sink.add(
+        jsonEncode({
+          'user_id': _userId,
+          'metric_type': metricType,
+          'value': value,
+          'timestamp': DateTime.now().toUtc().toIso8601String(),
+        }),
+      );
       debugPrint('[HealthWs] Manual metric sent: $metricType=$value');
     } catch (e) {
       debugPrint('[HealthWs] Manual send error: $e');

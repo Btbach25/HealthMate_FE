@@ -138,7 +138,9 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                 _buildPermissionGrantedRow(),
                 const SizedBox(height: 12),
                 Semantics(
-                  label: _isSyncing ? 'Đang đồng bộ dữ liệu' : 'Đồng bộ dữ liệu ngay',
+                  label: _isSyncing
+                      ? 'Đang đồng bộ dữ liệu'
+                      : 'Đồng bộ dữ liệu ngay',
                   button: true,
                   child: SizedBox(
                     width: double.infinity,
@@ -150,12 +152,15 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Icon(Icons.sync, size: 18),
-                      label: Text(_isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'),
+                      label: Text(
+                        _isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -194,11 +199,21 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                 },
               ),
               if (_autoSyncEnabled && _hasPermissions) ...[
-                const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+                const Divider(
+                  height: 24,
+                  thickness: 0.8,
+                  color: AppColors.cardBorder,
+                ),
                 SettingsDropdown(
                   label: 'Chu kỳ đồng bộ',
                   value: _syncInterval,
-                  items: const ['1 phút', '5 phút', '10 phút', '30 phút', '1 giờ'],
+                  items: const [
+                    '1 phút',
+                    '5 phút',
+                    '10 phút',
+                    '30 phút',
+                    '1 giờ',
+                  ],
                   onChanged: (value) {
                     setState(() {
                       _syncInterval = value ?? '5 phút';
@@ -222,21 +237,33 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
                 key: 'heart_rate',
                 enabled: _healthDataTypes['heart_rate'] ?? false,
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               _buildHealthDataTypeRow(
                 name: 'Số bước chân',
                 icon: Icons.directions_walk,
                 key: 'steps',
                 enabled: _healthDataTypes['steps'] ?? false,
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               _buildHealthDataTypeRow(
                 name: 'Lượng calo',
                 icon: Icons.local_fire_department,
                 key: 'calories',
                 enabled: _healthDataTypes['calories'] ?? false,
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               _buildHealthDataTypeRow(
                 name: 'Giấc ngủ',
                 icon: Icons.bedtime,
@@ -247,7 +274,8 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
           ),
 
           SizedBox(
-            height: MediaQuery.of(context).padding.bottom +
+            height:
+                MediaQuery.of(context).padding.bottom +
                 AppSize.bottomTabSafeInset,
           ),
         ],
@@ -265,7 +293,11 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.warning,
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -287,7 +319,11 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
             color: AppColors.successLight,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+          child: const Icon(
+            Icons.check_circle,
+            color: AppColors.success,
+            size: 16,
+          ),
         ),
         const SizedBox(width: 8),
         Text(
@@ -315,7 +351,9 @@ class _HealthSyncTabState extends State<HealthSyncTab> {
         Container(
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: enabled ? AppColors.primaryContainer : AppColors.surfaceVariant,
+            color: enabled
+                ? AppColors.primaryContainer
+                : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(9),
           ),
           child: Icon(

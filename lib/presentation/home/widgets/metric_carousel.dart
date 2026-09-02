@@ -1,5 +1,6 @@
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/data/models/health/blood_pressure.dart';
 import 'package:fe/data/models/health/health_overview.dart';
 import 'package:fe/data/models/health/heart_rate.dart';
@@ -14,10 +15,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Khoá metric backend quy ước cho kênh WebSocket. Chuỗi phải khớp đúng phía server
 // (xem DeviceHealthCubit.pushManualMetric) — gõ sai thì gói tin bị bỏ im lặng, không lỗi.
-const _kHeartRate     = 'heart_rate';
+const _kHeartRate = 'heart_rate';
 const _kBloodPressure = 'blood_pressure';
-const _kSpo2          = 'spo2';
-const _kSteps         = 'steps_count';
+const _kSpo2 = 'spo2';
+const _kSteps = 'steps_count';
 
 /// Đường ghi dữ liệu người dùng nhập tay: [ws] đẩy chỉ số đo được qua WebSocket,
 /// [profile] gọi REST cập nhật hồ sơ (cân nặng, chiều cao). Hai đường khác nhau vì
@@ -59,7 +60,11 @@ class _MetricCarouselState extends State<MetricCarousel> {
     super.dispose();
   }
 
-  List<_CardData> _buildCards(DeviceHealthState dev, HealthOverview ov, User user) {
+  List<_CardData> _buildCards(
+    DeviceHealthState dev,
+    HealthOverview ov,
+    User user,
+  ) {
     final reached = dev.totalSteps != null && dev.totalSteps! >= 10000;
     return [
       // 1. Bước chân
@@ -67,7 +72,9 @@ class _MetricCarouselState extends State<MetricCarousel> {
         type: _CardType.steps,
         icon: AppIcons.steps,
         iconColor: reached ? AppColors.success : AppColors.primary,
-        iconBgColor: reached ? AppColors.successLight : AppColors.primaryContainer,
+        iconBgColor: reached
+            ? AppColors.successLight
+            : AppColors.primaryContainer,
         label: 'Bước chân hôm nay',
         value: dev.totalSteps?.toString(),
         unit: 'bước',
@@ -185,8 +192,10 @@ class _MetricCarouselState extends State<MetricCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final dev  = context.watch<DeviceHealthCubit>().state;
-    final ov   = context.watch<HealthOverviewBloc>().state.overview ?? HealthOverview.empty();
+    final dev = context.watch<DeviceHealthCubit>().state;
+    final ov =
+        context.watch<HealthOverviewBloc>().state.overview ??
+        HealthOverview.empty();
     final user = context.select((AuthBloc b) => b.state.user);
     final cards = _buildCards(dev, ov, user);
 
@@ -197,7 +206,8 @@ class _MetricCarouselState extends State<MetricCarousel> {
           height: 148,
           child: PageView.builder(
             controller: _controller,
-            onPageChanged: (i) => setState(() => _currentPage = i % cards.length),
+            onPageChanged: (i) =>
+                setState(() => _currentPage = i % cards.length),
             itemBuilder: (context, i) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -243,6 +253,7 @@ class _DotIndicator extends StatelessWidget {
 
 /// Kiểu bố cục của thẻ — quyết định [_MetricCard] dựng widget nào.
 enum _CardType { steps, simple, bloodPressure, sleep }
+
 /// Trường hồ sơ được cập nhật khi [_UpdateType.profile].
 enum _ProfileField { weight, height }
 
@@ -298,10 +309,10 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (data.type) {
-      _CardType.steps        => _StepsCard(data: data),
+      _CardType.steps => _StepsCard(data: data),
       _CardType.bloodPressure => _BloodPressureCard(data: data),
-      _CardType.sleep        => _SleepCard(data: data),
-      _CardType.simple       => _SimpleCard(data: data),
+      _CardType.sleep => _SleepCard(data: data),
+      _CardType.simple => _SimpleCard(data: data),
     };
   }
 }
@@ -346,12 +357,17 @@ class _EmptyState extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () => _openDialog(context),
               icon: const Icon(Icons.add, size: 15),
-              label: const Text('Thêm thủ công', style: TextStyle(fontSize: 12)),
+              label: const Text(
+                'Thêm thủ công',
+                style: TextStyle(fontSize: 12),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 elevation: 0,
               ),
             ),
@@ -359,9 +375,16 @@ class _EmptyState extends StatelessWidget {
         else
           Row(
             children: const [
-              Icon(Icons.devices_outlined, size: 13, color: AppColors.textLight),
+              Icon(
+                Icons.devices_outlined,
+                size: 13,
+                color: AppColors.textLight,
+              ),
               SizedBox(width: 4),
-              Text('Cập nhật từ thiết bị', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+              Text(
+                'Cập nhật từ thiết bị',
+                style: TextStyle(fontSize: 12, color: AppColors.textLight),
+              ),
             ],
           ),
       ],
@@ -389,7 +412,7 @@ class _EditButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Clickable(
       onTap: () => _openDialog(context),
       child: Container(
         padding: const EdgeInsets.all(5),
@@ -397,7 +420,11 @@ class _EditButton extends StatelessWidget {
           color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: const Icon(Icons.edit_outlined, size: 14, color: AppColors.textGrey),
+        child: const Icon(
+          Icons.edit_outlined,
+          size: 14,
+          color: AppColors.textGrey,
+        ),
       ),
     );
   }
@@ -435,9 +462,19 @@ class _StepsCard extends StatelessWidget {
             children: [
               _IconBadge(data: data),
               const SizedBox(width: 8),
-              Text(data.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textBlack)),
+              Text(
+                data.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
+              ),
               const Spacer(),
-              Text(_syncLabel(), style: const TextStyle(fontSize: 11, color: AppColors.textGrey)),
+              Text(
+                _syncLabel(),
+                style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
+              ),
             ],
           ),
           if (data.isEmpty)
@@ -448,17 +485,32 @@ class _StepsCard extends StatelessWidget {
               children: [
                 Text(
                   steps!.toString(),
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold,
-                    color: reached ? AppColors.success : AppColors.textBlack, height: 1),
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: reached ? AppColors.success : AppColors.textBlack,
+                    height: 1,
+                  ),
                 ),
                 const SizedBox(width: 5),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
-                  child: Text('bước', style: TextStyle(fontSize: 13,
-                    color: reached ? AppColors.success : AppColors.textGrey)),
+                  child: Text(
+                    'bước',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: reached ? AppColors.success : AppColors.textGrey,
+                    ),
+                  ),
                 ),
                 const Spacer(),
-                Text('/ ${_goal ~/ 1000}k', style: const TextStyle(fontSize: 11, color: AppColors.textGrey)),
+                Text(
+                  '/ ${_goal ~/ 1000}k',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textGrey,
+                  ),
+                ),
               ],
             ),
             Column(
@@ -476,20 +528,38 @@ class _StepsCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Row(
                   children: [
-                    Icon(Icons.devices_outlined, size: 11, color: AppColors.textLight),
+                    Icon(
+                      Icons.devices_outlined,
+                      size: 11,
+                      color: AppColors.textLight,
+                    ),
                     const SizedBox(width: 3),
-                    Text('$dataCount chỉ số từ thiết bị',
-                      style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
+                    Text(
+                      '$dataCount chỉ số từ thiết bị',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                     if (reached) ...[
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.successLight,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text('Đạt mục tiêu! 🎉',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success)),
+                        child: const Text(
+                          'Đạt mục tiêu! 🎉',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success,
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -520,7 +590,14 @@ class _BloodPressureCard extends StatelessWidget {
             children: [
               _IconBadge(data: data),
               const SizedBox(width: 8),
-              Text(data.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textBlack)),
+              Text(
+                data.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
+              ),
               const Spacer(),
               if (data.canManualAdd) _EditButton(data: data),
             ],
@@ -535,16 +612,28 @@ class _BloodPressureCard extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(data.value!,
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold,
-                        color: data.iconColor, height: 1)),
+                    child: Text(
+                      data.value!,
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: data.iconColor,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Text(data.unit,
-                    style: const TextStyle(fontSize: 14, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
+                  child: Text(
+                    data.unit,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -571,7 +660,14 @@ class _SimpleCard extends StatelessWidget {
             children: [
               _IconBadge(data: data),
               const SizedBox(width: 8),
-              Text(data.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textBlack)),
+              Text(
+                data.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
+              ),
               const Spacer(),
               if (!data.isEmpty && data.canManualAdd) _EditButton(data: data),
             ],
@@ -586,16 +682,28 @@ class _SimpleCard extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(data.value!,
-                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold,
-                        color: data.iconColor, height: 1)),
+                    child: Text(
+                      data.value!,
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: data.iconColor,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Text(data.unit,
-                    style: const TextStyle(fontSize: 14, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
+                  child: Text(
+                    data.unit,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -639,18 +747,33 @@ class _SleepCard extends StatelessWidget {
             children: [
               _IconBadge(data: data),
               const SizedBox(width: 8),
-              Text(data.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textBlack)),
+              Text(
+                data.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
+              ),
               if (hours != null) ...[
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: _qualityColor(hours).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(_qualityLabel(hours),
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                      color: _qualityColor(hours))),
+                  child: Text(
+                    _qualityLabel(hours),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _qualityColor(hours),
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -661,15 +784,32 @@ class _SleepCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(hours!.toStringAsFixed(1),
-                  style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: _color, height: 1)),
+                Text(
+                  hours!.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 38,
+                    fontWeight: FontWeight.bold,
+                    color: _color,
+                    height: 1,
+                  ),
+                ),
                 const SizedBox(width: 5),
                 const Padding(
                   padding: EdgeInsets.only(bottom: 5),
-                  child: Text('giờ', style: TextStyle(fontSize: 14, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
+                  child: Text(
+                    'giờ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
                 const Spacer(),
-                const Text('Mục tiêu: 8h', style: TextStyle(fontSize: 11, color: AppColors.textGrey)),
+                const Text(
+                  'Mục tiêu: 8h',
+                  style: TextStyle(fontSize: 11, color: AppColors.textGrey),
+                ),
               ],
             ),
             ClipRRect(
@@ -713,8 +853,9 @@ class _ManualEntryDialog extends StatefulWidget {
 
 class _ManualEntryDialogState extends State<_ManualEntryDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _ctrl1   = TextEditingController();
-  final _ctrl2   = TextEditingController(); // chỉ dùng cho tâm trương của huyết áp
+  final _ctrl1 = TextEditingController();
+  final _ctrl2 =
+      TextEditingController(); // chỉ dùng cho tâm trương của huyết áp
 
   bool _loading = false;
 
@@ -736,19 +877,23 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
     final userId = widget.authBloc.state.user.id;
     switch (widget.data.wsKey) {
       case _kHeartRate:
-        widget.overviewBloc.add(HealthOverviewManualPatched(
-          heartRate: HeartRate(time: now, userId: userId, value: v1),
-        ));
+        widget.overviewBloc.add(
+          HealthOverviewManualPatched(
+            heartRate: HeartRate(time: now, userId: userId, value: v1),
+          ),
+        );
       case _kBloodPressure:
         final dia = double.tryParse(_ctrl2.text.trim());
-        widget.overviewBloc.add(HealthOverviewManualPatched(
-          bloodPressure: BloodPressure(
-            time: now,
-            userId: userId,
-            systolic: v1.toInt(),
-            diastolic: dia?.toInt(),
+        widget.overviewBloc.add(
+          HealthOverviewManualPatched(
+            bloodPressure: BloodPressure(
+              time: now,
+              userId: userId,
+              systolic: v1.toInt(),
+              diastolic: dia?.toInt(),
+            ),
           ),
-        ));
+        );
       case _kSpo2:
         widget.cubit.patchBloodOxygen(v1);
       case _kSteps:
@@ -791,9 +936,11 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok
-          ? 'Đã cập nhật ${widget.data.label}'
-          : 'Gửi thất bại, kiểm tra kết nối'),
+        content: Text(
+          ok
+              ? 'Đã cập nhật ${widget.data.label}'
+              : 'Gửi thất bại, kiểm tra kết nối',
+        ),
         backgroundColor: ok ? AppColors.success : AppColors.error,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
@@ -811,7 +958,7 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
   @override
   Widget build(BuildContext context) {
     final label = widget.data.inputLabel ?? widget.data.label;
-    final unit  = widget.data.inputUnit  ?? widget.data.unit;
+    final unit = widget.data.inputUnit ?? widget.data.unit;
     final isProfile = widget.data.updateType == _UpdateType.profile;
 
     return AlertDialog(
@@ -824,12 +971,18 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
               color: widget.data.iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(widget.data.icon, color: widget.data.iconColor, size: 18),
+            child: Icon(
+              widget.data.icon,
+              color: widget.data.iconColor,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('Nhập $label',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(
+              'Nhập $label',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -849,12 +1002,20 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFF57C00)),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 15,
+                    color: Color(0xFFF57C00),
+                  ),
                   SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Vui lòng nhập đúng thông tin. Dữ liệu sai sẽ ảnh hưởng đến kết quả dự báo và thông báo sức khỏe.',
-                      style: TextStyle(fontSize: 11, color: Color(0xFFF57C00), height: 1.4),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFF57C00),
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
@@ -875,10 +1036,15 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
               decoration: InputDecoration(
                 labelText: _isBP ? 'Tâm thu (Systolic)' : label,
                 suffixText: unit,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
               validator: _validate,
@@ -887,15 +1053,24 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _ctrl2,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'\d'))],
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: false,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'\d')),
+                ],
                 decoration: InputDecoration(
                   labelText: 'Tâm trương (Diastolic)',
                   suffixText: unit,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -927,12 +1102,20 @@ class _ManualEntryDialogState extends State<_ManualEntryDialog> {
           onPressed: _loading ? null : _submit,
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           child: _loading
-            ? const SizedBox(width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Text('Lưu'),
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Lưu'),
         ),
       ],
     );

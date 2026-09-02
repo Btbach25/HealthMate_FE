@@ -46,7 +46,8 @@ List<FamilyMember> buildEffectiveMembersForGroupDetails({
         ),
       );
     } else {
-      final isOwnerWithNoName = sameUserId(m.userId, details.group.ownerId) &&
+      final isOwnerWithNoName =
+          sameUserId(m.userId, details.group.ownerId) &&
           (m.name.isEmpty || m.name == 'Thành viên');
       out.add(isOwnerWithNoName ? m.copyWith(name: 'Chủ nhóm') : m);
     }

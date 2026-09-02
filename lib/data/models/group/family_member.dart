@@ -48,7 +48,9 @@ class FamilyMember extends Equatable {
       age: cvToIntOrNull(json['age']),
       relationship: cvToStringOrNull(json['relationship']),
       avatar: cvToStringOrNull(json['avatar']),
-      healthStatus: HealthStatus.fromValue(cvToStringOrNull(json['health_status'])),
+      healthStatus: HealthStatus.fromValue(
+        cvToStringOrNull(json['health_status']),
+      ),
       lastUpdated: cvToDateOrNull(json['last_updated']),
       healthConditions: cvToList(
         json['health_conditions'],
@@ -131,21 +133,21 @@ class FamilyMember extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        groupId,
-        name,
-        email,
-        age,
-        relationship,
-        avatar,
-        healthStatus,
-        lastUpdated,
-        healthConditions,
-        sharedMetrics,
-        medicationReminderShareAllowed,
-        createdAt,
-      ];
+    id,
+    userId,
+    groupId,
+    name,
+    email,
+    age,
+    relationship,
+    avatar,
+    healthStatus,
+    lastUpdated,
+    healthConditions,
+    sharedMetrics,
+    medicationReminderShareAllowed,
+    createdAt,
+  ];
 }
 
 enum HealthStatus {
@@ -177,4 +179,3 @@ enum HealthStatus {
     }
   }
 }
-

@@ -7,6 +7,7 @@ import 'package:fe/data/models/health/health_overview.dart';
 import 'package:fe/data/models/health/heart_rate.dart';
 import 'package:fe/data/models/health/temperature.dart';
 import 'package:fe/data/models/health/weight.dart';
+import 'package:health/health.dart';
 
 /// Cấu hình sinh dữ liệu cho **một** chỉ số sức khoẻ trong chế độ DEMO.
 ///
@@ -215,7 +216,8 @@ class MockHealthData {
   /// Giá trị của chỉ số tại vị trí [index] trong chuỗi (0 = xa nhất).
   static double valueAt(MockMetricProfile profile, int index, double seed) {
     final x = index + seed;
-    final wave = math.sin(x * 0.55) * profile.amplitude +
+    final wave =
+        math.sin(x * 0.55) * profile.amplitude +
         math.sin(x * 0.17) * profile.amplitude * 0.35;
     final raw = profile.base + wave + profile.trendPerPoint * index;
     final clamped = raw.clamp(profile.minValue, profile.maxValue).toDouble();
@@ -325,5 +327,173 @@ class MockHealthData {
     final dayIndex = DateTime.now().difference(DateTime(2024, 1, 1)).inDays;
     final v = 7.4 + math.sin(dayIndex * 0.4) * 0.6;
     return double.parse(v.toStringAsFixed(1));
+  }
+
+  // ---------- Dữ liệu thô kiểu Health Connect / HealthKit ----------
+
+  /// Dựng một [HealthDataPoint] giả.
+  ///
+  /// `DeviceHealthCubit` đọc thẳng kiểu của package `health`, nên muốn thẻ
+  /// "Điểm sẵn sàng" và "Mức độ căng thẳng" có số ở chế độ demo thì phải dựng
+  /// đúng kiểu này chứ không thể dùng model riêng của app.
+  static HealthDataPoint _point({
+    required String id,
+    required HealthDataType type,
+    required HealthDataUnit unit,
+    required num value,
+    required DateTime from,
+    DateTime? to,
+  }) {
+    return HealthDataPoint(
+      uuid: 'demo-$id',
+      value: NumericHealthValue(numericValue: value),
+      type: type,
+      unit: unit,
+      dateFrom: from,
+      dateTo: to ?? from,
+      sourcePlatform: HealthPlatformType.googleHealthConnect,
+      sourceDeviceId: 'demo-device',
+      sourceId: 'vn.healthmate.demo',
+      sourceName: 'HealthMate Demo',
+      recordingMethod: RecordingMethod.automatic,
+    );
+  }
+
+  /// Dữ liệu thô giả lập trả về từ "thiết bị" trong chế độ DEMO.
+  ///
+  /// Nội dung được chọn để đủ đầu vào cho cả hai phép tính trong
+  /// `DeviceHealthCubit` — thiếu bất kỳ mục nào là thẻ tương ứng sẽ trống:
+  ///
+  /// | Thẻ | Cần |
+  /// |---|---|
+  /// | Điểm sẵn sàng | `HEART_RATE` (bắt buộc), `BLOOD_OXYGEN`, các mốc `SLEEP_*`, `ACTIVE_ENERGY_BURNED` |
+  /// | Mức độ căng thẳng | `HEART_RATE` (bắt buộc, cần ≥2 điểm để có độ lệch chuẩn), `HEART_RATE_VARIABILITY_RMSSD`, `SKIN_TEMPERATURE` |
+  ///
+  /// Nhịp tim sinh bằng `sin` nên có độ lệch chuẩn thật (không phải hằng số) —
+  /// nếu mọi điểm bằng nhau thì `hrStd = 0` và phần ước tính RMSSD sẽ rơi về
+  /// giá trị mặc định cứng.
+  ///
+  /// Mọi mốc thời gian tính tương đối theo `DateTime.now()` nên dữ liệu không
+  /// bao giờ bị "cũ", và giá trị hoàn toàn xác định (không dùng `Random`).
+  static List<HealthDataPoint> get deviceDataPoints {
+    final now = DateTime.now();
+    final points = <HealthDataPoint>[];
+
+    // 24 mẫu nhịp tim rải trong 2 giờ gần nhất, dao động ~62–76 bpm — dùng cho
+    // biểu đồ và cho phần readiness.
+    for (var i = 0; i < 24; i++) {
+      final at = now.subtract(Duration(minutes: (23 - i) * 5));
+      final bpm = 69 + math.sin(i * 0.55) * 5 + math.cos(i * 0.23) * 2;
+      points.add(
+        _point(
+          id: 'hr-$i',
+          type: HealthDataType.HEART_RATE,
+          unit: HealthDataUnit.BEATS_PER_MINUTE,
+          value: double.parse(bpm.toStringAsFixed(1)),
+          from: at,
+        ),
+      );
+    }
+
+    // Thêm một chùm mẫu dày trong 60 GIÂY gần nhất.
+    //
+    // Bắt buộc phải có: `DeviceHealthCubit._hrMeanStd` chỉ lấy điểm nhịp tim
+    // trong 60 giây đổ lại. Nếu các mẫu cách nhau vài phút thì chỉ đúng một
+    // điểm lọt cửa sổ → độ lệch chuẩn ra 0 và phần ước tính RMSSD mất ý nghĩa.
+    // Đồng hồ thật ghi liên tục vài giây một lần, nên đây mới là mô phỏng đúng.
+    for (var i = 0; i < 12; i++) {
+      final at = now.subtract(Duration(seconds: (11 - i) * 5));
+      final bpm = 71 + math.sin(i * 1.1) * 4 + math.cos(i * 0.6) * 2.5;
+      points.add(
+        _point(
+          id: 'hr-live-$i',
+          type: HealthDataType.HEART_RATE,
+          unit: HealthDataUnit.BEATS_PER_MINUTE,
+          value: double.parse(bpm.toStringAsFixed(1)),
+          from: at,
+        ),
+      );
+    }
+
+    points.add(
+      _point(
+        id: 'hrv',
+        type: HealthDataType.HEART_RATE_VARIABILITY_RMSSD,
+        unit: HealthDataUnit.MILLISECOND,
+        value: 42.0,
+        from: now.subtract(const Duration(minutes: 12)),
+      ),
+    );
+
+    points.add(
+      _point(
+        id: 'spo2',
+        type: HealthDataType.BLOOD_OXYGEN,
+        unit: HealthDataUnit.PERCENT,
+        value: 97.0,
+        from: now.subtract(const Duration(minutes: 18)),
+      ),
+    );
+
+    points.add(
+      _point(
+        id: 'skin-temp',
+        type: HealthDataType.SKIN_TEMPERATURE,
+        unit: HealthDataUnit.DEGREE_CELSIUS,
+        value: 33.4,
+        from: now.subtract(const Duration(minutes: 20)),
+      ),
+    );
+
+    // Giấc ngủ đêm qua, chia ba giai đoạn cộng lại đúng `demoSleepHours`.
+    // Cubit cộng khoảng `dateTo - dateFrom`, nên phải đặt mốc chứ không đặt giá trị.
+    final wakeUp = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(hours: 6, minutes: 30));
+    final totalSleepMinutes = (demoSleepHours * 60).round();
+    final bedTime = wakeUp.subtract(Duration(minutes: totalSleepMinutes));
+
+    final deepMinutes = (totalSleepMinutes * 0.25).round();
+    final remMinutes = (totalSleepMinutes * 0.22).round();
+    final lightMinutes = totalSleepMinutes - deepMinutes - remMinutes;
+
+    var cursor = bedTime;
+    for (final stage in <(String, HealthDataType, int)>[
+      ('deep', HealthDataType.SLEEP_DEEP, deepMinutes),
+      ('rem', HealthDataType.SLEEP_REM, remMinutes),
+      ('light', HealthDataType.SLEEP_ASLEEP, lightMinutes),
+    ]) {
+      final end = cursor.add(Duration(minutes: stage.$3));
+      points.add(
+        _point(
+          id: 'sleep-${stage.$1}',
+          type: stage.$2,
+          unit: HealthDataUnit.MINUTE,
+          value: stage.$3,
+          from: cursor,
+          to: end,
+        ),
+      );
+      cursor = end;
+    }
+
+    // Calo tiêu hao, chia đều 6 khoảng trong ngày.
+    for (var i = 0; i < 6; i++) {
+      final from = now.subtract(Duration(hours: (6 - i) * 2));
+      points.add(
+        _point(
+          id: 'cal-$i',
+          type: HealthDataType.ACTIVE_ENERGY_BURNED,
+          unit: HealthDataUnit.KILOCALORIE,
+          value: 55 + math.sin(i * 0.9) * 25,
+          from: from,
+          to: from.add(const Duration(hours: 2)),
+        ),
+      );
+    }
+
+    return points;
   }
 }

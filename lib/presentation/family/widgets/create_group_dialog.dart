@@ -83,7 +83,9 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
   void _submitMetrics() {
     if (_isSubmittingMetrics) return;
     if (!MetricSelectionHelper.validateSelection(_selectedMetrics)) {
-      setState(() => _metricsError = MetricSelectionHelper.getValidationErrorMessage());
+      setState(
+        () => _metricsError = MetricSelectionHelper.getValidationErrorMessage(),
+      );
       return;
     }
     setState(() {
@@ -91,12 +93,12 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
       _metricsError = null;
     });
     context.read<FamilyBloc>().add(
-          UpdateGroup(
-            groupId: _createdGroupId,
-            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
-            enableMedicationReminderShare: _allowMedication,
-          ),
-        );
+      UpdateGroup(
+        groupId: _createdGroupId,
+        sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+        enableMedicationReminderShare: _allowMedication,
+      ),
+    );
   }
 
   /// Xác nhận trước khi bỏ dở bước 2 — nhóm đã được tạo ở bước 1 nên đóng dialog
@@ -135,13 +137,15 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
   Widget build(BuildContext context) {
     return BlocListener<FamilyBloc, FamilyState>(
       listener: (context, state) {
-        if (state.status == FamilyStatus.groupNameCreated && _isSubmittingName) {
+        if (state.status == FamilyStatus.groupNameCreated &&
+            _isSubmittingName) {
           setState(() {
             _isSubmittingName = false;
             _createdGroupId = state.createdGroupId ?? '';
             _step = _Step.metrics;
           });
-        } else if (state.status == FamilyStatus.groupUpdated && _isSubmittingMetrics) {
+        } else if (state.status == FamilyStatus.groupUpdated &&
+            _isSubmittingMetrics) {
           if (!mounted) return;
           Navigator.of(context).pop();
           ScaffoldMessenger.of(widget.rootContext).showSnackBar(
@@ -153,7 +157,9 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
           );
         } else if (state.status == FamilyStatus.error) {
           if (_isSubmittingName) setState(() => _isSubmittingName = false);
-          if (_isSubmittingMetrics) setState(() => _isSubmittingMetrics = false);
+          if (_isSubmittingMetrics) {
+            setState(() => _isSubmittingMetrics = false);
+          }
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -199,7 +205,9 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
                 const Text('Tạo nhóm mới', style: AppTextStyles.h4),
                 const Spacer(),
                 IconButton(
-                  onPressed: _isSubmittingName ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSubmittingName
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close, color: AppColors.textGrey),
                 ),
               ],
@@ -214,9 +222,20 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submitName(),
               validator: (value) =>
-                  FormValidationHelper.validateRequired(value, fieldName: 'tên nhóm') ??
-                  FormValidationHelper.validateMinLength(value, 3, fieldName: 'Tên nhóm') ??
-                  FormValidationHelper.validateMaxLength(value, 100, fieldName: 'Tên nhóm'),
+                  FormValidationHelper.validateRequired(
+                    value,
+                    fieldName: 'tên nhóm',
+                  ) ??
+                  FormValidationHelper.validateMinLength(
+                    value,
+                    3,
+                    fieldName: 'Tên nhóm',
+                  ) ??
+                  FormValidationHelper.validateMaxLength(
+                    value,
+                    100,
+                    fieldName: 'Tên nhóm',
+                  ),
             ),
             const SizedBox(height: AppSize.spacing24),
             LoadingButton(
@@ -248,7 +267,10 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
                     const SizedBox(height: 4),
                     Text(
                       'Bước 2/2 — Chọn chỉ số chia sẻ trong nhóm',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textGrey),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textGrey,
+                      ),
                     ),
                   ],
                 ),
@@ -314,10 +336,14 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
               width: 180,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: _allowMedication ? AppColors.primaryContainer : Colors.white,
+                color: _allowMedication
+                    ? AppColors.primaryContainer
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _allowMedication ? AppColors.primary : AppColors.cardBorder,
+                  color: _allowMedication
+                      ? AppColors.primary
+                      : AppColors.cardBorder,
                 ),
               ),
               child: Row(
@@ -325,14 +351,20 @@ class _CreateGroupDialogState extends State<CreateGroupDialog> {
                   Icon(
                     Icons.medication_outlined,
                     size: 18,
-                    color: _allowMedication ? AppColors.primary : AppColors.textGrey,
+                    color: _allowMedication
+                        ? AppColors.primary
+                        : AppColors.textGrey,
                   ),
                   const SizedBox(width: 8),
                   const Expanded(child: Text('Nhắc thuốc')),
                   Icon(
-                    _allowMedication ? Icons.check_circle : Icons.radio_button_unchecked,
+                    _allowMedication
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
                     size: 18,
-                    color: _allowMedication ? AppColors.primary : AppColors.textLight,
+                    color: _allowMedication
+                        ? AppColors.primary
+                        : AppColors.textLight,
                   ),
                 ],
               ),

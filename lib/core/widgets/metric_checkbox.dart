@@ -1,5 +1,6 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/data/models/ui/metric_option.dart';
 import 'package:flutter/material.dart';
 
@@ -47,76 +48,72 @@ class MetricCheckbox extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = Opacity(
       opacity: enabled ? 1 : 0.5,
-      child: GestureDetector(
+      child: Clickable(
         onTap: enabled ? () => onChanged(!isSelected) : null,
         child: Container(
-        padding: const EdgeInsets.all(AppSize.p16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryContainer
-              : Colors.white,
-          borderRadius: BorderRadius.circular(AppSize.r12),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.cardBorder,
-            width: isSelected ? 2 : 1,
+          padding: const EdgeInsets.all(AppSize.p16),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryContainer : Colors.white,
+            borderRadius: BorderRadius.circular(AppSize.r12),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.cardBorder,
+              width: isSelected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            if (showCheckbox) ...[
-              Checkbox(
-                value: isSelected,
-                onChanged: enabled ? (value) => onChanged(value ?? false) : null,
-                activeColor: AppColors.primary,
+          child: Row(
+            children: [
+              if (showCheckbox) ...[
+                Checkbox(
+                  value: isSelected,
+                  onChanged: enabled
+                      ? (value) => onChanged(value ?? false)
+                      : null,
+                  activeColor: AppColors.primary,
+                ),
+                const SizedBox(width: 12),
+              ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.inputBackground,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  metric.icon,
+                  color: isSelected ? Colors.white : AppColors.textGrey,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-            ],
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.inputBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                metric.icon,
-                color: isSelected
-                    ? Colors.white
-                    : AppColors.textGrey,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                metric.label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                  color: isSelected
-                      ? AppColors.primaryDark
-                      : AppColors.textBlack,
+              Expanded(
+                child: Text(
+                  metric.label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.primaryDark
+                        : AppColors.textBlack,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            if (showCheckIcon && isSelected) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.check_circle,
-                size: 18,
-                color: AppColors.primary,
-              ),
+              if (showCheckIcon && isSelected) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.check_circle,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
       ),
     );
 
@@ -127,7 +124,3 @@ class MetricCheckbox extends StatelessWidget {
     return content;
   }
 }
-
-
-
-

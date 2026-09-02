@@ -68,12 +68,14 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     );
 
     on<AuthFormInitialized>((event, emit) {
-      emit(state.copyWith(
-        email: event.email,
-        status: FormStatus.initial,
-        errorMessage: '',
-        successMessage: '',
-      ));
+      emit(
+        state.copyWith(
+          email: event.email,
+          status: FormStatus.initial,
+          errorMessage: '',
+          successMessage: '',
+        ),
+      );
     });
 
     on<LoginSubmitted>(_onLoginSubmitted);
@@ -94,10 +96,12 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
       await _authRepository.loginWithGoogle(idToken: event.idToken);
       emit(state.copyWith(status: FormStatus.success));
     } catch (e) {
-      emit(state.copyWith(
-        status: FormStatus.failure,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -125,17 +129,22 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
         try {
           await _authRepository.resendOtp(email: state.email);
         } catch (_) {}
-        emit(state.copyWith(
-          status: FormStatus.success,
-          successMessage: 'Tài khoản chưa xác thực. Đã gửi lại OTP, vui lòng kiểm tra email.',
-          needsVerification: true,
-          verificationEmail: state.email,
-        ));
+        emit(
+          state.copyWith(
+            status: FormStatus.success,
+            successMessage:
+                'Tài khoản chưa xác thực. Đã gửi lại OTP, vui lòng kiểm tra email.',
+            needsVerification: true,
+            verificationEmail: state.email,
+          ),
+        );
       } else {
-        emit(state.copyWith(
-          status: FormStatus.failure,
-          errorMessage: UserFacingError.message(e),
-        ));
+        emit(
+          state.copyWith(
+            status: FormStatus.failure,
+            errorMessage: UserFacingError.message(e),
+          ),
+        );
       }
     }
   }
@@ -168,7 +177,8 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
         emit(
           state.copyWith(
             status: FormStatus.success,
-            successMessage: 'Registration successful. Please check your email to verify your account.',
+            successMessage:
+                'Registration successful. Please check your email to verify your account.',
             needsVerification: true,
             verificationEmail: user.email,
           ),
@@ -222,27 +232,41 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     // khi đếm độ dài, nếu không mã 6 số dán vào sẽ bị coi là sai định dạng.
     final otp = state.otp.trim().replaceAll(RegExp(r'\s+'), '');
     if (otp.length != 6) {
-      emit(state.copyWith(
-        status: FormStatus.failure,
-        errorMessage: 'Mã OTP phải đủ 6 chữ số.',
-      ));
+      emit(
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: 'Mã OTP phải đủ 6 chữ số.',
+        ),
+      );
       return;
     }
     // Email rỗng nghĩa là màn OTP được mở mà thiếu AuthFormInitialized.
     if (state.email.trim().isEmpty) {
-      emit(state.copyWith(
-        status: FormStatus.failure,
-        errorMessage: 'Thiếu email. Vui lòng quay lại và thử đăng nhập lại.',
-      ));
+      emit(
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: 'Thiếu email. Vui lòng quay lại và thử đăng nhập lại.',
+        ),
+      );
       return;
     }
 
     emit(state.copyWith(status: FormStatus.inProgress));
     try {
       await _authRepository.verifyOtp(email: state.email.trim(), otp: otp);
-      emit(state.copyWith(status: FormStatus.success, successMessage: 'Xác thực thành công!'));
+      emit(
+        state.copyWith(
+          status: FormStatus.success,
+          successMessage: 'Xác thực thành công!',
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: UserFacingError.message(e)));
+      emit(
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -256,7 +280,12 @@ class AuthFormBloc extends Bloc<AuthFormEvent, AuthFormState> {
     try {
       await _authRepository.resendOtp(email: state.email);
     } catch (e) {
-      emit(state.copyWith(status: FormStatus.failure, errorMessage: UserFacingError.message(e)));
+      emit(
+        state.copyWith(
+          status: FormStatus.failure,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 

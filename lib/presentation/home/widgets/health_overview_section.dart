@@ -43,11 +43,17 @@ class _HealthOverviewSectionState extends State<HealthOverviewSection> {
             return const _LoadingCard();
           case HealthOverviewStatus.failure:
             return _ErrorCard(
-              message: state.errorMessage ?? 'Không tải được chỉ số sức khỏe. Kiểm tra kết nối và thử lại.',
-              onRetry: () => context.read<HealthOverviewBloc>().add(const HealthOverviewRetried()),
+              message:
+                  state.errorMessage ??
+                  'Không tải được chỉ số sức khỏe. Kiểm tra kết nối và thử lại.',
+              onRetry: () => context.read<HealthOverviewBloc>().add(
+                const HealthOverviewRetried(),
+              ),
             );
           case HealthOverviewStatus.success:
-            return _DataCard(overview: state.overview ?? HealthOverview.empty());
+            return _DataCard(
+              overview: state.overview ?? HealthOverview.empty(),
+            );
         }
       },
     );
@@ -99,13 +105,21 @@ class _ErrorCard extends StatelessWidget {
               color: AppColors.warningLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.cloud_off_outlined, color: AppColors.warning, size: 22),
+            child: const Icon(
+              Icons.cloud_off_outlined,
+              color: AppColors.warning,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -117,7 +131,10 @@ class _ErrorCard extends StatelessWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Thử lại', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Thử lại',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -135,7 +152,9 @@ class _DataCard extends StatelessWidget {
   const _DataCard({required this.overview});
 
   String _fmt(Object? value) =>
-      (value == null || (value is String && value.isEmpty)) ? '—' : value.toString();
+      (value == null || (value is String && value.isEmpty))
+      ? '—'
+      : value.toString();
 
   String _bpValue(HealthOverview o) {
     final bp = o.bloodPressure;
@@ -152,7 +171,9 @@ class _DataCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final profileWeight = context.select((AuthBloc b) => b.state.user.weight);
     final weightValue = overview.weight?.value ?? profileWeight;
-    final deviceSpo2 = context.select((DeviceHealthCubit c) => c.state.bloodOxygen);
+    final deviceSpo2 = context.select(
+      (DeviceHealthCubit c) => c.state.bloodOxygen,
+    );
     final spo2 = overview.bloodOxygen ?? deviceSpo2;
 
     final metrics = [
@@ -209,12 +230,20 @@ class _DataCard extends StatelessWidget {
                   color: AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.monitor_heart_outlined, color: AppColors.primary, size: 16),
+                child: const Icon(
+                  Icons.monitor_heart_outlined,
+                  color: AppColors.primary,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               const Text(
                 'Tình trạng sức khỏe',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textBlack),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textBlack,
+                ),
               ),
             ],
           ),
@@ -291,7 +320,11 @@ class _MetricTile extends StatelessWidget {
               children: [
                 Text(
                   item.label,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textGrey, height: 1.2),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textGrey,
+                    height: 1.2,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -309,7 +342,11 @@ class _MetricTile extends StatelessWidget {
                 if (!isEmpty && item.unit.isNotEmpty)
                   Text(
                     item.unit,
-                    style: const TextStyle(fontSize: 10, color: AppColors.textGrey, height: 1.1),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textGrey,
+                      height: 1.1,
+                    ),
                   ),
               ],
             ),

@@ -38,7 +38,9 @@ class IncomingInvitation extends Equatable {
   factory IncomingInvitation.fromJson(Map<String, dynamic> json) {
     // BE ListInvitations hiện trả group_id ở nested group.id, không có group_id top-level.
     // Ưu tiên field group_id nếu có, fallback sang group.id.
-    final rawGroupId = json['group_id'] ?? (json['group'] is Map ? (json['group'] as Map)['id'] : null);
+    final rawGroupId =
+        json['group_id'] ??
+        (json['group'] is Map ? (json['group'] as Map)['id'] : null);
     return IncomingInvitation(
       id: cvToString(json['id']),
       groupId: cvToString(rawGroupId),
@@ -176,13 +178,12 @@ class IncomingInvitation extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        groupId,
-        group,
-        inviter,
-        sentAt,
-        sharedMetrics,
-        memberCount,
-      ];
+    id,
+    groupId,
+    group,
+    inviter,
+    sentAt,
+    sharedMetrics,
+    memberCount,
+  ];
 }
-

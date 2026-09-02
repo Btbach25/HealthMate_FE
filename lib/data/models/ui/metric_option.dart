@@ -30,8 +30,3 @@ class MetricOption extends Equatable {
   @override
   int get hashCode => type.hashCode;
 }
-
-
-
-
-

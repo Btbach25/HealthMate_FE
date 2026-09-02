@@ -36,7 +36,9 @@ Future<void> main() async {
   // Chế độ demo phải tuyệt đối không chạm mạng — Firebase và FCM đều bị bỏ qua.
   if (!AppConfig.isDemoMode) {
     if (await initializeFirebase()) {
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
     }
 
     // Fire-and-forget: tác vụ này chạm network/permission nên không được chặn

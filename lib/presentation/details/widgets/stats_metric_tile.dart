@@ -36,8 +36,12 @@ class StatsMetricTile extends StatelessWidget {
   String _metricKey() {
     final t = metric.title.toLowerCase();
     final u = metric.unit.toLowerCase();
-    if (t.contains('huyết áp') || t.contains('blood') || u == 'mmhg') return 'bp';
-    if (t.contains('spo2') || t.contains('oxy') || t.contains('o2')) return 'spo2';
+    if (t.contains('huyết áp') || t.contains('blood') || u == 'mmhg') {
+      return 'bp';
+    }
+    if (t.contains('spo2') || t.contains('oxy') || t.contains('o2')) {
+      return 'spo2';
+    }
     if (t.contains('nhiệt') || t.contains('temp') || u == '°c') return 'temp';
     if (t.contains('cân') || t.contains('weight') || u == 'kg') return 'weight';
     if (t.contains('bước') || t.contains('step')) return 'steps';
@@ -47,8 +51,9 @@ class StatsMetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String lastUpdateFormatted =
-        DateFormat('dd/MM/yyyy').format(metric.lastUpdate);
+    final String lastUpdateFormatted = DateFormat(
+      'dd/MM/yyyy',
+    ).format(metric.lastUpdate);
 
     const valueStyle = TextStyle(
       fontSize: 22,
@@ -129,11 +134,14 @@ class StatsMetricTile extends StatelessWidget {
       );
     }
 
-    bool isGoodTrend = (metric.isIncreaseGood && trend > 0) ||
-                       (!metric.isIncreaseGood && trend < 0);
+    bool isGoodTrend =
+        (metric.isIncreaseGood && trend > 0) ||
+        (!metric.isIncreaseGood && trend < 0);
 
     final Color trendColor = isGoodTrend ? AppColors.primary : AppColors.error;
-    final IconData trendIcon = trend > 0 ? AppIcons.trendUp : AppIcons.trendDown;
+    final IconData trendIcon = trend > 0
+        ? AppIcons.trendUp
+        : AppIcons.trendDown;
 
     return Row(
       children: [
@@ -149,7 +157,11 @@ class StatsMetricTile extends StatelessWidget {
         Icon(trendIcon, color: trendColor, size: 14),
         Text(
           '${trend.toStringAsFixed(1)}%',
-          style: TextStyle(color: trendColor, fontSize: 11, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: trendColor,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -206,24 +218,41 @@ class StatsMetricTile extends StatelessWidget {
     final Color bg;
     switch (key) {
       case 'bp':
-        icon = AppIcons.bloodPressure; color = AppColors.primary;       bg = AppColors.primaryContainer;
+        icon = AppIcons.bloodPressure;
+        color = AppColors.primary;
+        bg = AppColors.primaryContainer;
       case 'spo2':
-        icon = AppIcons.spo2;          color = AppColors.info;           bg = AppColors.infoLight;
+        icon = AppIcons.spo2;
+        color = AppColors.info;
+        bg = AppColors.infoLight;
       case 'temp':
-        icon = AppIcons.temperature;   color = AppColors.tempIconColor;  bg = AppColors.tempIconBg;
+        icon = AppIcons.temperature;
+        color = AppColors.tempIconColor;
+        bg = AppColors.tempIconBg;
       case 'weight':
-        icon = AppIcons.weight;        color = AppColors.weightIconColor; bg = AppColors.weightIconBg;
+        icon = AppIcons.weight;
+        color = AppColors.weightIconColor;
+        bg = AppColors.weightIconBg;
       case 'steps':
-        icon = AppIcons.steps;         color = AppColors.success;        bg = AppColors.successLight;
+        icon = AppIcons.steps;
+        color = AppColors.success;
+        bg = AppColors.successLight;
       case 'sleep':
-        icon = AppIcons.sleep;         color = const Color(0xFF5C6BC0);  bg = const Color(0xFFE8EAF6);
+        icon = AppIcons.sleep;
+        color = const Color(0xFF5C6BC0);
+        bg = const Color(0xFFE8EAF6);
       default:
-        icon = AppIcons.heart;         color = AppColors.heartIconColor; bg = AppColors.heartIconBg;
+        icon = AppIcons.heart;
+        color = AppColors.heartIconColor;
+        bg = AppColors.heartIconBg;
     }
     return Container(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Icon(icon, color: color, size: 24),
     );
   }

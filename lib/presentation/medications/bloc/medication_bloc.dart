@@ -34,8 +34,8 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
   final MedicationRepository _repository;
 
   MedicationBloc({required MedicationRepository repository})
-      : _repository = repository,
-        super(const MedicationState()) {
+    : _repository = repository,
+      super(const MedicationState()) {
     on<FetchMedications>(_onFetch);
     on<TakeMedication>(_onTake);
     on<AddMedication>(_onAdd);
@@ -55,18 +55,22 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     FetchMedications event,
     Emitter<MedicationState> emit,
   ) async {
-    emit(state.copyWith(
-      status: MedicationStatus.loading,
-      clearFeedback: true,
-    ));
+    emit(
+      state.copyWith(
+        status: MedicationStatus.loading,
+        clearFeedback: true,
+      ),
+    );
     try {
       final meds = await _repository.getMedications();
       emit(state.copyWith(status: MedicationStatus.loaded, medications: meds));
     } catch (e) {
-      emit(state.copyWith(
-        status: MedicationStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: MedicationStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -79,23 +83,32 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     Emitter<MedicationState> emit,
   ) async {
     final original = state.medications;
-    final optimistic =
-        _toggleLocally(original, event.medicationId, event.reminderId);
-    emit(state.copyWith(
-      medications: optimistic,
-      clearFeedback: true,
-    ));
+    final optimistic = _toggleLocally(
+      original,
+      event.medicationId,
+      event.reminderId,
+    );
+    emit(
+      state.copyWith(
+        medications: optimistic,
+        clearFeedback: true,
+      ),
+    );
 
     try {
       final confirmed = await _repository.takeMedication(
-          event.medicationId, event.reminderId);
+        event.medicationId,
+        event.reminderId,
+      );
       emit(state.copyWith(medications: confirmed, clearFeedback: true));
     } catch (e) {
-      emit(state.copyWith(
-        medications: original,
-        feedbackMessage: UserFacingError.message(e),
-        feedbackIsError: true,
-      ));
+      emit(
+        state.copyWith(
+          medications: original,
+          feedbackMessage: UserFacingError.message(e),
+          feedbackIsError: true,
+        ),
+      );
     }
   }
 
@@ -106,13 +119,15 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     try {
       await _repository.addMedication(event.medication);
       final meds = await _repository.getMedications();
-      emit(state.copyWith(
-        status: MedicationStatus.loaded,
-        medications: meds,
-        clearErrorMessage: true,
-        feedbackMessage: 'Đã thêm thuốc vào lịch',
-        feedbackIsError: false,
-      ));
+      emit(
+        state.copyWith(
+          status: MedicationStatus.loaded,
+          medications: meds,
+          clearErrorMessage: true,
+          feedbackMessage: 'Đã thêm thuốc vào lịch',
+          feedbackIsError: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(errorMessage: UserFacingError.message(e)));
     }
@@ -135,13 +150,15 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
         await _repository.addMedication(m);
       }
       final meds = await _repository.getMedications();
-      emit(state.copyWith(
-        status: MedicationStatus.loaded,
-        medications: meds,
-        clearErrorMessage: true,
-        feedbackMessage: 'Đã thêm $n thuốc vào lịch',
-        feedbackIsError: false,
-      ));
+      emit(
+        state.copyWith(
+          status: MedicationStatus.loaded,
+          medications: meds,
+          clearErrorMessage: true,
+          feedbackMessage: 'Đã thêm $n thuốc vào lịch',
+          feedbackIsError: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(errorMessage: UserFacingError.message(e)));
     }
@@ -151,46 +168,56 @@ class MedicationBloc extends Bloc<MedicationEvent, MedicationState> {
     DeleteMedication event,
     Emitter<MedicationState> emit,
   ) async {
-    emit(state.copyWith(
-      deletingMedicationId: event.medicationId,
-      clearFeedback: true,
-    ));
+    emit(
+      state.copyWith(
+        deletingMedicationId: event.medicationId,
+        clearFeedback: true,
+      ),
+    );
     try {
       await _repository.deleteMedication(event.medicationId);
       final meds = await _repository.getMedications();
-      emit(state.copyWith(
-        status: MedicationStatus.loaded,
-        medications: meds,
-        clearErrorMessage: true,
-        clearDeletingMedicationId: true,
-        feedbackMessage: 'Đã xóa thuốc khỏi lịch',
-        feedbackIsError: false,
-      ));
+      emit(
+        state.copyWith(
+          status: MedicationStatus.loaded,
+          medications: meds,
+          clearErrorMessage: true,
+          clearDeletingMedicationId: true,
+          feedbackMessage: 'Đã xóa thuốc khỏi lịch',
+          feedbackIsError: false,
+        ),
+      );
     } on NotFoundException {
       // 404: bản ghi không còn (hoặc route sai — sau khi sửa gateway vẫn an toàn làm mới list)
       try {
         final meds = await _repository.getMedications();
-        emit(state.copyWith(
-          status: MedicationStatus.loaded,
-          medications: meds,
-          clearDeletingMedicationId: true,
-          feedbackMessage:
-              'Không tìm thấy thuốc này trên tài khoản. Danh sách đã được làm mới.',
-          feedbackIsError: false,
-        ));
+        emit(
+          state.copyWith(
+            status: MedicationStatus.loaded,
+            medications: meds,
+            clearDeletingMedicationId: true,
+            feedbackMessage:
+                'Không tìm thấy thuốc này trên tài khoản. Danh sách đã được làm mới.',
+            feedbackIsError: false,
+          ),
+        );
       } catch (e) {
-        emit(state.copyWith(
+        emit(
+          state.copyWith(
+            clearDeletingMedicationId: true,
+            feedbackMessage: UserFacingError.message(e),
+            feedbackIsError: true,
+          ),
+        );
+      }
+    } catch (e) {
+      emit(
+        state.copyWith(
           clearDeletingMedicationId: true,
           feedbackMessage: UserFacingError.message(e),
           feedbackIsError: true,
-        ));
-      }
-    } catch (e) {
-      emit(state.copyWith(
-        clearDeletingMedicationId: true,
-        feedbackMessage: UserFacingError.message(e),
-        feedbackIsError: true,
-      ));
+        ),
+      );
     }
   }
 

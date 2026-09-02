@@ -13,7 +13,7 @@ class HealthService {
   late final AuthHttpHelper _http;
 
   HealthService(this._localStorage, {Future<String?> Function()? onRefresh})
-      : _http = AuthHttpHelper(_localStorage, onRefresh);
+    : _http = AuthHttpHelper(_localStorage, onRefresh);
 
   String get _baseUrl => AppConfig.apiBaseUrl;
 
@@ -48,12 +48,13 @@ class HealthService {
 
   Future<double?> _fetchLatestValue(String userId, String metricType) async {
     try {
-      final uri =
-          Uri.parse('$_baseUrl/metrics/charts').replace(queryParameters: {
-        'user_id': userId,
-        'metric_type': metricType,
-        'range': '24h',
-      });
+      final uri = Uri.parse('$_baseUrl/metrics/charts').replace(
+        queryParameters: {
+          'user_id': userId,
+          'metric_type': metricType,
+          'range': '24h',
+        },
+      );
       final response = await _http.get(uri);
 
       if (response.statusCode == 200) {
@@ -71,7 +72,9 @@ class HealthService {
       final preview = response.body.length > 300
           ? '${response.body.substring(0, 300)}...'
           : response.body;
-      debugPrint('[HealthService] $metricType: ${response.statusCode} | $preview');
+      debugPrint(
+        '[HealthService] $metricType: ${response.statusCode} | $preview',
+      );
     } catch (e) {
       debugPrint('[HealthService] $metricType error: $e');
     }

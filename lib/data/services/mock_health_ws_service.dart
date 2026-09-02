@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:fe/data/mock_data/mock_health_data.dart';
 import 'package:fe/data/mock_data/mock_users.dart';
 import 'package:fe/data/services/health_ws_service.dart';
-import 'package:fe/data/services/local_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 
@@ -17,7 +16,7 @@ import 'package:health/health.dart';
 /// Giá trị phát ra lấy từ `MockHealthData.valueAt` (xác định, không random)
 /// nên vẫn nằm trong khoảng sinh lý bình thường.
 class MockHealthWsService extends HealthWsService {
-  MockHealthWsService(LocalStorageService localStorage) : super(localStorage);
+  MockHealthWsService(super.localStorage);
 
   /// Nhịp phát sự kiện giả.
   static const Duration _tickInterval = Duration(seconds: 5);
@@ -105,7 +104,9 @@ class MockHealthWsService extends HealthWsService {
 
   @override
   Future<void> sendManualMetric(String metricType, double value) async {
-    debugPrint('[MockHealthWs] Nhận chỉ số nhập tay (DEMO): $metricType=$value');
+    debugPrint(
+      '[MockHealthWs] Nhận chỉ số nhập tay (DEMO): $metricType=$value',
+    );
   }
 
   @override

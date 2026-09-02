@@ -27,8 +27,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final HomeRepository _homeRepository;
 
   HomeBloc({required HomeRepository homeRepository})
-      : _homeRepository = homeRepository,
-        super(HomeState.initial()) {
+    : _homeRepository = homeRepository,
+      super(HomeState.initial()) {
     on<FetchHomeData>(_onFetchHomeData);
   }
 
@@ -40,15 +40,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     try {
       final homeData = await _homeRepository.getHomeData();
 
-      emit(state.copyWith(
-        status: HomeStatus.loaded,
-        homeData: homeData,
-      ));
+      emit(
+        state.copyWith(
+          status: HomeStatus.loaded,
+          homeData: homeData,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: HomeStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: HomeStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 }

@@ -15,7 +15,9 @@ abstract class MedicationService {
 
   /// Toggle taken status for a specific reminder. Returns updated list.
   Future<List<Medication>> takeMedication(
-      String medicationId, String reminderId);
+    String medicationId,
+    String reminderId,
+  );
 
   /// Xóa một thuốc và toàn bộ nhắc liên quan (server).
   Future<void> deleteMedication(String medicationId);

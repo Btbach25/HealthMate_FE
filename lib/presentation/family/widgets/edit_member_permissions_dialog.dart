@@ -59,11 +59,14 @@ class _EditMemberPermissionsDialogState
     super.initState();
     _allowedByGroup = widget.globalMetrics.toSet();
     _supportedMetrics = MetricHelper.availableMetrics
-        .where((m) =>
-            _allowedByGroup.contains(m.type) &&
-            MetricSelectionHelper.isMetricSupportedByBackend(m.type))
+        .where(
+          (m) =>
+              _allowedByGroup.contains(m.type) &&
+              MetricSelectionHelper.isMetricSupportedByBackend(m.type),
+        )
         .toList();
-    _allowMedicationReminderShare = widget.member.medicationReminderShareAllowed;
+    _allowMedicationReminderShare =
+        widget.member.medicationReminderShareAllowed;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPrefill());
   }
 
@@ -101,16 +104,15 @@ class _EditMemberPermissionsDialogState
     if (_isLoading) return;
     setState(() => _isLoading = true);
     context.read<FamilyBloc>().add(
-          UpdateMemberPermissions(
-            groupId: widget.groupId,
-            memberId: widget.member.userId,
-            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
-            allowMedicationReminderShare:
-                widget.groupMedicationReminderShareAllowed
-                    ? _allowMedicationReminderShare
-                    : false,
-          ),
-        );
+      UpdateMemberPermissions(
+        groupId: widget.groupId,
+        memberId: widget.member.userId,
+        sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+        allowMedicationReminderShare: widget.groupMedicationReminderShareAllowed
+            ? _allowMedicationReminderShare
+            : false,
+      ),
+    );
   }
 
   @override
@@ -149,146 +151,157 @@ class _EditMemberPermissionsDialogState
                       child: Center(child: CircularProgressIndicator()),
                     )
                   : SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSize.p24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
+                      padding: const EdgeInsets.all(AppSize.p24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Giới hạn chỉ số tôi chia cho ${widget.member.name}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textBlack,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Giới hạn chỉ số tôi chia cho ${widget.member.name}',
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textBlack,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Thành viên: ${widget.member.name}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.textGrey.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Thành viên: ${widget.member.name}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textGrey.withValues(alpha: 0.8),
+                              IconButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () => Navigator.pop(context),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: AppColors.textGrey,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          onPressed: _isLoading ? null : () => Navigator.pop(context),
-                          icon: const Icon(Icons.close, color: AppColors.textGrey),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSize.spacing12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: const Text(
-                        'Bạn đang thu hẹp chỉ số chia sẻ riêng với thành viên này, trong phạm vi chỉ số bạn đã chia sẻ với nhóm.',
-                        style: AppTextStyles.caption,
-                      ),
-                    ),
-                    const SizedBox(height: AppSize.spacing16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: _supportedMetrics.map((metric) {
-                        final isSelected = _selectedMetrics.contains(metric.type);
-                        return MetricCheckbox(
-                          metric: metric,
-                          isSelected: isSelected,
-                          width: 180,
-                          showCheckbox: false,
-                          showCheckIcon: true,
-                          onChanged: (selected) {
-                            setState(() {
-                              if (selected) {
-                                _selectedMetrics.add(metric.type);
-                              } else {
-                                _selectedMetrics.remove(metric.type);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: AppSize.spacing12),
-                    InkWell(
-                      onTap: widget.groupMedicationReminderShareAllowed
-                          ? () => setState(() {
-                                _allowMedicationReminderShare =
-                                    !_allowMedicationReminderShare;
-                              })
-                          : null,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        width: 180,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _allowMedicationReminderShare
-                              ? AppColors.primaryContainer
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _allowMedicationReminderShare
-                                ? AppColors.primary
-                                : AppColors.cardBorder,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.medication_outlined,
-                              size: 18,
-                              color: _allowMedicationReminderShare
-                                  ? AppColors.primary
-                                  : AppColors.textGrey,
+                          const SizedBox(height: AppSize.spacing12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.cardBorder),
                             ),
-                            const SizedBox(width: 8),
-                            const Expanded(child: Text('Nhắc thuốc')),
-                            Icon(
-                              _allowMedicationReminderShare
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              size: 18,
-                              color: _allowMedicationReminderShare
-                                  ? AppColors.primary
-                                  : AppColors.textLight,
+                            child: const Text(
+                              'Bạn đang thu hẹp chỉ số chia sẻ riêng với thành viên này, trong phạm vi chỉ số bạn đã chia sẻ với nhóm.',
+                              style: AppTextStyles.caption,
+                            ),
+                          ),
+                          const SizedBox(height: AppSize.spacing16),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: _supportedMetrics.map((metric) {
+                              final isSelected = _selectedMetrics.contains(
+                                metric.type,
+                              );
+                              return MetricCheckbox(
+                                metric: metric,
+                                isSelected: isSelected,
+                                width: 180,
+                                showCheckbox: false,
+                                showCheckIcon: true,
+                                onChanged: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedMetrics.add(metric.type);
+                                    } else {
+                                      _selectedMetrics.remove(metric.type);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSize.spacing12),
+                          InkWell(
+                            onTap: widget.groupMedicationReminderShareAllowed
+                                ? () => setState(() {
+                                    _allowMedicationReminderShare =
+                                        !_allowMedicationReminderShare;
+                                  })
+                                : null,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 180,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _allowMedicationReminderShare
+                                    ? AppColors.primaryContainer
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _allowMedicationReminderShare
+                                      ? AppColors.primary
+                                      : AppColors.cardBorder,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.medication_outlined,
+                                    size: 18,
+                                    color: _allowMedicationReminderShare
+                                        ? AppColors.primary
+                                        : AppColors.textGrey,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Expanded(child: Text('Nhắc thuốc')),
+                                  Icon(
+                                    _allowMedicationReminderShare
+                                        ? Icons.check_circle
+                                        : Icons.radio_button_unchecked,
+                                    size: 18,
+                                    color: _allowMedicationReminderShare
+                                        ? AppColors.primary
+                                        : AppColors.textLight,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (!widget.groupMedicationReminderShareAllowed) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'Nhóm chưa bật quyền chia sẻ nhắc thuốc.',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textGrey,
+                              ),
                             ),
                           ],
-                        ),
+                          const SizedBox(height: AppSize.spacing24),
+                          LoadingButton(
+                            text: 'Lưu quyền',
+                            onPressed: _handleSave,
+                            isLoading: _isLoading,
+                          ),
+                        ],
                       ),
                     ),
-                    if (!widget.groupMedicationReminderShareAllowed) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Nhóm chưa bật quyền chia sẻ nhắc thuốc.',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.textGrey,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSize.spacing24),
-                    LoadingButton(
-                      text: 'Lưu quyền',
-                      onPressed: _handleSave,
-                      isLoading: _isLoading,
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),

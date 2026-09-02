@@ -63,10 +63,12 @@ class ApiMedicationService implements MedicationService {
       'prescribed_by': medication.prescribedBy,
       'is_active': medication.isActive,
       'reminders': medication.reminders
-          .map((r) => {
-                'time': r.time,
-                'is_enabled': r.isEnabled,
-              })
+          .map(
+            (r) => {
+              'time': r.time,
+              'is_enabled': r.isEnabled,
+            },
+          )
           .toList(),
     };
   }
@@ -199,7 +201,8 @@ class ApiMedicationService implements MedicationService {
       rethrow;
     } catch (e) {
       throw UnknownException(
-        message: 'Lỗi khi bật thông báo nhắc trên điện thoại. Vui lòng thử lại.',
+        message:
+            'Lỗi khi bật thông báo nhắc trên điện thoại. Vui lòng thử lại.',
         originalError: e,
       );
     }

@@ -1,5 +1,4 @@
 import 'package:fe/data/models/health/stress_prediction.dart';
-import 'package:fe/data/services/local_storage_service.dart';
 import 'package:fe/data/services/stress_service.dart';
 
 /// [StressService] giả lập cho chế độ DEMO — suy luận mức căng thẳng ngay trên
@@ -7,7 +6,7 @@ import 'package:fe/data/services/stress_service.dart';
 ///
 /// Quy ước nhãn giống backend: `label == 2` nghĩa là đang căng thẳng.
 class MockStressService extends StressService {
-  MockStressService(LocalStorageService localStorage) : super(localStorage);
+  MockStressService(super.localStorage);
 
   @override
   Future<StressPrediction?> predict({
@@ -21,8 +20,11 @@ class MockStressService extends StressService {
     // Nhịp tim cao + biến thiên nhịp tim (RMSSD) thấp => nhiều khả năng stress.
     final hrFactor = ((hrMean - 68) / 40).clamp(0.0, 1.0).toDouble();
     final rmssdFactor = ((45 - rmssd) / 40).clamp(0.0, 1.0).toDouble();
-    final probStress =
-        double.parse(((hrFactor * 0.6 + rmssdFactor * 0.4)).clamp(0.05, 0.95).toStringAsFixed(2));
+    final probStress = double.parse(
+      ((hrFactor * 0.6 + rmssdFactor * 0.4))
+          .clamp(0.05, 0.95)
+          .toStringAsFixed(2),
+    );
 
     final isStress = probStress >= 0.5;
     return StressPrediction(

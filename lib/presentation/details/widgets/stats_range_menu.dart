@@ -29,10 +29,14 @@ class StatsRangeMenu extends StatelessWidget {
   /// thay vì làm vỡ giao diện, phòng khi BE thêm range mới.
   static String rangeLabel(String range) {
     switch (range) {
-      case '24h': return '24 giờ';
-      case '7d':  return '7 ngày';
-      case '30d': return '30 ngày';
-      default:    return range;
+      case '24h':
+        return '24 giờ';
+      case '7d':
+        return '7 ngày';
+      case '30d':
+        return '30 ngày';
+      default:
+        return range;
     }
   }
 
@@ -42,8 +46,7 @@ class StatsRangeMenu extends StatelessWidget {
       initialValue: selectedRange,
       onSelected: onSelected,
       offset: const Offset(0, 38),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 3,
       itemBuilder: (_) => ranges.map((r) {
         final active = r == selectedRange;
@@ -56,21 +59,19 @@ class StatsRangeMenu extends StatelessWidget {
               SizedBox(
                 width: 20,
                 child: active
-                    ? const Icon(Icons.check,
+                    ? const Icon(
+                        Icons.check,
                         size: 16,
-                        color: AppColors.primary)
+                        color: AppColors.primary,
+                      )
                     : null,
               ),
               const SizedBox(width: 6),
               Text(
                 rangeLabel(r),
                 style: TextStyle(
-                  fontWeight: active
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: active
-                      ? AppColors.primary
-                      : AppColors.textBlack,
+                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  color: active ? AppColors.primary : AppColors.textBlack,
                 ),
               ),
             ],
@@ -78,8 +79,7 @@ class StatsRangeMenu extends StatelessWidget {
         );
       }).toList(),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: AppColors.primaryContainer,
           borderRadius: BorderRadius.circular(20),

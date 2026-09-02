@@ -1,0 +1,67 @@
+# Publish bản demo (mock data) lên GitHub Pages sau mỗi lần đẩy lên master.
+#
+# Bản này chạy hoàn toàn bằng dữ liệu giả trong lib/data/mock_data/ nên KHÔNG
+# gọi backend, không cần secret, và an toàn để public.
+#
+# Bật một lần trước khi dùng: Settings → Pages → Source = "GitHub Actions".
+name: Deploy demo lên GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Không deploy chồng lên nhau; lần đẩy mới huỷ lần đang chạy dở.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build web demo
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          cache: true
+
+      # `.env` là asset khai báo trong pubspec.yaml nên bắt buộc phải tồn tại.
+      # Chế độ demo không đọc giá trị nào trong đó, dựng từ template là đủ.
+      - name: Tạo .env từ template
+        run: cp .env.example .env
+
+      - run: flutter pub get
+
+      # GitHub Pages phục vụ project site ở /<tên-repo>/ nên base-href phải khớp,
+      # nếu không mọi asset sẽ 404.
+      - name: Build web demo
+        run: |
+          flutter build web --release \
+            --dart-define=DEMO_MODE=true \
+            --base-href "/${GITHUB_REPOSITORY#*/}/"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

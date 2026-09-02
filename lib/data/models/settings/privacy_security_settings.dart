@@ -67,12 +67,11 @@ class PrivacySecuritySettings extends Equatable {
 
   @override
   List<Object> get props => [
-        dataSharing,
-        anonymousAnalytics,
-        locationTracking,
-        biometricAuth,
-        autoLock,
-        lockTimeout,
-      ];
+    dataSharing,
+    anonymousAnalytics,
+    locationTracking,
+    biometricAuth,
+    autoLock,
+    lockTimeout,
+  ];
 }
-

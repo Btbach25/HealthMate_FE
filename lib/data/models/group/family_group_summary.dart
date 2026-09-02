@@ -49,5 +49,3 @@ class FamilyGroupSummary extends Equatable {
   @override
   List<Object?> get props => [groupsJoined, pendingInvitations, groups];
 }
-
-

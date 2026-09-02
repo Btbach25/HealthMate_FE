@@ -21,4 +21,3 @@ class GroupDetailsPage extends StatelessWidget {
     );
   }
 }
-

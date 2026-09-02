@@ -107,8 +107,9 @@ class ApiUserService implements UserService {
       if (search != null && search.isNotEmpty) query.add('search=$search');
       if (limit != null) query.add('limit=$limit');
       if (offset != null) query.add('offset=$offset');
-      final path =
-          query.isEmpty ? ApiEndpoints.users : '${ApiEndpoints.users}?${query.join('&')}';
+      final path = query.isEmpty
+          ? ApiEndpoints.users
+          : '${ApiEndpoints.users}?${query.join('&')}';
       final list = await _apiClient.get<List<dynamic>>(
         path,
         parser: (d) => d is List ? d : [],

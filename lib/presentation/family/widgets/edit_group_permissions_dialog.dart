@@ -5,6 +5,7 @@ import 'package:fe/core/theme/app_text_styles.dart';
 import 'package:fe/core/utils/family_bloc_listener_helper.dart';
 import 'package:fe/core/utils/metric_helper.dart';
 import 'package:fe/core/utils/metric_selection_helper.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/core/widgets/loading_button.dart';
 import 'package:fe/core/widgets/metric_checkbox.dart';
 import 'package:fe/data/enums/metric_type.dart';
@@ -36,8 +37,8 @@ class EditGroupPermissionsDialog extends StatefulWidget {
       _EditGroupPermissionsDialogState();
 }
 
-class _EditGroupPermissionsDialogState
-    extends State<EditGroupPermissionsDialog> with InlineMessageMixin {
+class _EditGroupPermissionsDialogState extends State<EditGroupPermissionsDialog>
+    with InlineMessageMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final Set<MetricType> _selectedMetrics = {};
@@ -45,7 +46,7 @@ class _EditGroupPermissionsDialogState
   bool _allowMedicationReminderShare = false;
   bool _isLoading = false;
   bool _didEditName = false;
-  
+
   static const int _maxGroupNameLength = 50;
 
   @override
@@ -88,11 +89,16 @@ class _EditGroupPermissionsDialogState
     final originalName = _normalizeName(widget.group.name);
     final newName = _normalizeName(_nameController.text);
     final nameChanged = _didEditName && newName != originalName;
-    final selectedBackendMetricTypes = MetricSelectionHelper
-        .filterMetricTypesForBackend(MetricSelectionHelper.toApiFormat(_selectedMetrics));
-    final originalBackendMetricTypes = MetricSelectionHelper
-        .filterMetricTypesForBackend(widget.group.sharedMetrics.map((m) => m.value).toList());
-    final metricsChanged = selectedBackendMetricTypes.toSet() !=
+    final selectedBackendMetricTypes =
+        MetricSelectionHelper.filterMetricTypesForBackend(
+          MetricSelectionHelper.toApiFormat(_selectedMetrics),
+        );
+    final originalBackendMetricTypes =
+        MetricSelectionHelper.filterMetricTypesForBackend(
+          widget.group.sharedMetrics.map((m) => m.value).toList(),
+        );
+    final metricsChanged =
+        selectedBackendMetricTypes.toSet() !=
         originalBackendMetricTypes.toSet();
     final medicationChanged =
         _allowMedicationReminderShare != widget.group.medicationSharingAllowed;
@@ -119,15 +125,17 @@ class _EditGroupPermissionsDialogState
                 onPressed: () {
                   Navigator.pop(dialogContext);
                   context.read<FamilyBloc>().add(
-                        UpdateGroup(
-                          groupId: widget.group.id,
-                          name: nameChanged ? newName : null,
-                          sharedMetrics:
-                              metricsChanged ? selectedBackendMetricTypes : null,
-                          enableMedicationReminderShare:
-                              medicationChanged ? _allowMedicationReminderShare : null,
-                        ),
-                      );
+                    UpdateGroup(
+                      groupId: widget.group.id,
+                      name: nameChanged ? newName : null,
+                      sharedMetrics: metricsChanged
+                          ? selectedBackendMetricTypes
+                          : null,
+                      enableMedicationReminderShare: medicationChanged
+                          ? _allowMedicationReminderShare
+                          : null,
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -188,8 +196,13 @@ class _EditGroupPermissionsDialogState
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.textGrey),
-                          onPressed: _isLoading ? null : () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppColors.textGrey,
+                          ),
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.pop(context),
                         ),
                       ],
                     ),
@@ -248,10 +261,11 @@ class _EditGroupPermissionsDialogState
                         return Wrap(
                           spacing: AppSize.spacing12,
                           runSpacing: AppSize.spacing12,
-                          children: _supportedMetrics
-                              .map((metric) {
-                                final isSelected =
-                                    _selectedMetrics.contains(metric.type);
+                          children:
+                              _supportedMetrics.map((metric) {
+                                final isSelected = _selectedMetrics.contains(
+                                  metric.type,
+                                );
                                 return SizedBox(
                                   width: itemWidth,
                                   child: MetricCheckbox(
@@ -270,22 +284,20 @@ class _EditGroupPermissionsDialogState
                                     },
                                   ),
                                 );
-                              })
-                              .toList()
-                            ..add(
-                              SizedBox(
-                                width: itemWidth,
-                                child: _MedicationPermissionTile(
-                                  selected: _allowMedicationReminderShare,
-                                  onTap: () {
-                                    setState(() {
-                                      _allowMedicationReminderShare =
-                                          !_allowMedicationReminderShare;
-                                    });
-                                  },
+                              }).toList()..add(
+                                SizedBox(
+                                  width: itemWidth,
+                                  child: _MedicationPermissionTile(
+                                    selected: _allowMedicationReminderShare,
+                                    onTap: () {
+                                      setState(() {
+                                        _allowMedicationReminderShare =
+                                            !_allowMedicationReminderShare;
+                                      });
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
                         );
                       },
                     ),
@@ -324,7 +336,7 @@ class _MedicationPermissionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Clickable(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSize.p16),
@@ -377,4 +389,3 @@ class _MedicationPermissionTile extends StatelessWidget {
     );
   }
 }
-

@@ -77,12 +77,14 @@ class ProfileTextField extends StatelessWidget {
           color: enabled ? AppColors.textGrey : AppColors.textSecondary,
           fontWeight: enabled ? FontWeight.w500 : FontWeight.w600,
         ),
-        prefixIcon: icon != null 
+        prefixIcon: icon != null
             ? Icon(icon, color: AppColors.primary.withValues(alpha: 0.7))
             : null,
         suffixText: suffixText,
         filled: true,
-        fillColor: enabled ? AppColors.inputBackground : AppColors.inputBackground,
+        fillColor: enabled
+            ? AppColors.inputBackground
+            : AppColors.inputBackground,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSize.r12),
           borderSide: BorderSide(color: AppColors.inputBorder),
@@ -111,4 +113,3 @@ class ProfileTextField extends StatelessWidget {
     );
   }
 }
-

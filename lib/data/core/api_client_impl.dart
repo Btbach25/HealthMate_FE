@@ -25,8 +25,8 @@ class ApiClientImpl extends ApiClient {
     required LocalStorageService localStorageService,
     String? baseUrlOverride,
     this.onRefreshToken,
-  })  : _localStorageService = localStorageService,
-        _baseUrlOverride = baseUrlOverride;
+  }) : _localStorageService = localStorageService,
+       _baseUrlOverride = baseUrlOverride;
 
   @override
   String get baseUrl {

@@ -61,10 +61,14 @@ class LoginView extends StatelessWidget {
         if (state.status == FormStatus.success && state.needsVerification) {
           ToastUtils.showCustomToast(
             context,
-            state.successMessage.isNotEmpty ? state.successMessage : 'Đã gửi OTP, vui lòng kiểm tra email',
+            state.successMessage.isNotEmpty
+                ? state.successMessage
+                : 'Đã gửi OTP, vui lòng kiểm tra email',
             ToastType.success,
           );
-          final emailToVerify = state.verificationEmail.isNotEmpty ? state.verificationEmail : state.email;
+          final emailToVerify = state.verificationEmail.isNotEmpty
+              ? state.verificationEmail
+              : state.email;
           context.go('/otp', extra: {'email': emailToVerify, 'flow': 'login'});
         }
       },

@@ -47,7 +47,7 @@ enum RelationshipType {
   /// Creates RelationshipType from a string value
   static RelationshipType? fromValue(String? value) {
     if (value == null) return null;
-    
+
     switch (value) {
       case 'Bố':
         return RelationshipType.father;
@@ -80,7 +80,6 @@ enum RelationshipType {
   static List<RelationshipType> get all => RelationshipType.values;
 
   /// Returns all relationship types as display labels
-  static List<String> get allLabels => 
+  static List<String> get allLabels =>
       RelationshipType.values.map((r) => r.displayLabel).toList();
 }
-

@@ -13,7 +13,7 @@ class HomeRepository {
   final HomeService _homeService;
 
   HomeRepository({required HomeService homeService})
-      : _homeService = homeService;
+    : _homeService = homeService;
 
   Future<HomeData> getHomeData() async {
     try {
