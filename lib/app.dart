@@ -4,14 +4,17 @@ import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/di/app_dependencies.dart';
 import 'package:fe/core/routing/app_router.dart';
 import 'package:fe/core/theme/app_colors.dart';
+import 'package:fe/core/theme/app_scroll_behavior.dart';
 import 'package:fe/core/theme/app_theme.dart';
+import 'package:fe/data/repositories/auth_repository.dart' show AuthStatus;
 import 'package:fe/data/services/fcm_service.dart';
 import 'package:fe/data/services/health_ws_service.dart';
 import 'package:fe/data/services/user_service.dart';
+// AuthState và FamilyEvent là `part of` bloc tương ứng — import thẳng file
+// part sẽ lỗi `import_of_non_library`. Riêng enum AuthStatus lại nằm ở
+// auth_repository.dart nên phải import riêng.
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
-import 'package:fe/presentation/auth/bloc/auth_state.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
-import 'package:fe/presentation/family/bloc/family_event.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,7 +48,8 @@ class HealthMateApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (_) => AuthBloc(authRepository: dependencies.authRepository),
+            create: (_) =>
+                AuthBloc(authRepository: dependencies.authRepository),
           ),
           BlocProvider(
             create: (_) =>
@@ -95,6 +99,9 @@ class _AppViewState extends State<_AppView> {
         title: 'HealthMate',
         debugShowCheckedModeBanner: false,
         builder: _buildPhoneWidthShell,
+        // Không có dòng này thì trên web mọi vùng cuộn đều không kéo được
+        // bằng chuột — xem [AppScrollBehavior].
+        scrollBehavior: const AppScrollBehavior(),
         theme: AppTheme.light,
         routerConfig: _router,
       ),
@@ -129,20 +136,49 @@ class _AppViewState extends State<_AppView> {
   /// Chỉ bọc `SizedBox` là không đủ: `MediaQuery` vẫn báo kích thước màn hình
   /// thật nên `Row`/`Scaffold` bên trong vẫn giãn hết chiều ngang → phải
   /// override luôn `MediaQueryData.size`.
+  ///
+  /// Khi cửa sổ rộng hơn cột nội dung (tức là đang chạy trên desktop), cột được
+  /// bọc thêm một "khung app": nền trang xám, cột nổi lên với bo góc và đổ
+  /// bóng. Nếu không, cột hẹp nằm giữa nền trắng trơn trông như layout bị vỡ
+  /// chứ không phải một lựa chọn thiết kế.
   Widget _buildPhoneWidthShell(BuildContext context, Widget? child) {
     final mediaQuery = MediaQuery.of(context);
     final width = min(mediaQuery.size.width, AppSize.shellMaxWidth);
+    final content = child ?? const SizedBox.shrink();
+
+    // Còn chỗ trống hai bên → đang ở desktop/tablet ngang.
+    final isFramed = mediaQuery.size.width > width + AppSize.p32;
+
+    final column = MediaQuery(
+      data: mediaQuery.copyWith(size: Size(width, mediaQuery.size.height)),
+      child: SizedBox(width: width, child: content),
+    );
+
+    if (!isFramed) {
+      return ColoredBox(color: AppColors.background, child: column);
+    }
 
     return ColoredBox(
-      color: AppColors.background,
+      color: AppColors.pageBackdrop,
       child: Center(
-        child: MediaQuery(
-          data: mediaQuery.copyWith(
-            size: Size(width, mediaQuery.size.height),
-          ),
-          child: SizedBox(
-            width: width,
-            child: child ?? const SizedBox.shrink(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSize.p24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppSize.r24),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(AppSize.r24),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 32,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: column,
+            ),
           ),
         ),
       ),

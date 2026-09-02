@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/home/bloc/device_health_cubit.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +27,9 @@ import 'package:go_router/go_router.dart';
 ///    Nếu tab cần một Bloc sống theo tab, bọc `ShellRoute` + `BlocProvider`
 ///    bên trong branch — xem nhánh Thuốc làm mẫu.
 /// 2. File này → thêm một `Expanded(child: _NavItem(...))` vào
-///    [_CustomBottomNavBar] **cùng vị trí đó**, với `isSelected:
-///    currentIndex == <chỉ số mới>`, `onTap: () => onTap(<chỉ số mới>)`, và
-///    cập nhật lại chỉ số của mọi tab nằm sau nó.
+///    [_CustomBottomNavBar] **cùng vị trí đó**, truyền
+///    `isSelected: currentIndex == i` và `onTap: () => onTap(i)` với `i` là
+///    chỉ số của tab mới, rồi cập nhật lại chỉ số của mọi tab nằm sau nó.
 ///
 /// Lưu ý khi thêm:
 /// * Icon lấy từ `AppIcons` (`lib/core/theme/app_icons.dart`), không hardcode.
@@ -165,8 +166,11 @@ class _ShellAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ? NetworkImage(user.picture!)
                     : null,
                 child: user.picture == null
-                    ? const Icon(AppIcons.userAvatar,
-                        color: AppColors.primary, size: 18)
+                    ? const Icon(
+                        AppIcons.userAvatar,
+                        color: AppColors.primary,
+                        size: 18,
+                      )
                     : null,
               ),
             );
@@ -201,7 +205,10 @@ class _CustomBottomNavBar extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 8.0,
+              ),
               child: Row(
                 // Expanded cho từng tab để chia đều bề rộng: vùng chạm phủ kín ô
                 // của tab, không co giãn theo độ dài nhãn.
@@ -262,6 +269,10 @@ class _CustomBottomNavBar extends StatelessWidget {
 /// Không tự biết mình là tab thứ mấy — [_CustomBottomNavBar] truyền sẵn
 /// `isSelected` và `onTap`.
 class _NavItem extends StatelessWidget {
+  /// Bo góc của vùng hover/ripple một tab. Đặt nhỏ hơn nửa chiều cao ô để vệt
+  /// hover ra hình viên thuốc chứ không thành hình tròn méo.
+  static const double _navItemRadius = 18;
+
   final IconData icon;
   final String label;
   final bool isSelected;
@@ -278,42 +289,55 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color color = isSelected ? AppColors.primary : AppColors.textGrey;
 
-    // GestureDetector ngoài cùng + HitTestBehavior.opaque + Container trong
-    // suốt: để CẢ ô Expanded bắt được tap, kể cả khoảng trống quanh "bong bóng"
-    // — chứ không chỉ đúng vùng icon/chữ.
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: Colors.transparent, 
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Center(
-          // "Bong bóng" chỉ ôm sát icon + nhãn, hẹp hơn vùng chạm ở trên.
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.tagImportantBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              // BẮT BUỘC min: Column này nằm trong thanh nav cao cố định
-              // (navBarHeight), để max là tràn layout.
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: color, size: 28),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    fontSize: 12,
+    // InkWell (không phải GestureDetector) để trên web có hover + con trỏ bàn
+    // tay; `borderRadius` phải khớp bo góc ở đây, nếu không vệt hover sẽ là
+    // hình chữ nhật vuông góc đè lên thanh nav bo tròn.
+    //
+    // InkWell phủ CẢ ô Expanded để vùng chạm không co lại chỉ còn "bong bóng".
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(_navItemRadius),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_navItemRadius),
+        hoverColor: AppColors.primary.withValues(alpha: 0.06),
+        splashColor: AppColors.primary.withValues(alpha: 0.12),
+        highlightColor: AppColors.primary.withValues(alpha: 0.08),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Center(
+            // "Bong bóng" chỉ ôm sát icon + nhãn, hẹp hơn vùng chạm ở trên.
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.tagImportantBg
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                // BẮT BUỘC min: Column này nằm trong thanh nav cao cố định
+                // (navBarHeight), để max là tràn layout.
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: 28),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -372,7 +396,10 @@ class _HCConnectionBadgeState extends State<_HCConnectionBadge>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final connected = context.read<DeviceHealthCubit>().state.isHealthConnectConnected;
+      final connected = context
+          .read<DeviceHealthCubit>()
+          .state
+          .isHealthConnectConnected;
       if (connected == false) _enterError();
     });
   }
@@ -404,12 +431,21 @@ class _HCConnectionBadgeState extends State<_HCConnectionBadge>
     _busy = true;
     // Mở rộng banner nếu đang thu nhỏ
     if (_expandCtrl.value < 1) await _expandCtrl.forward();
-    if (!mounted) { _busy = false; return; }
+    if (!mounted) {
+      _busy = false;
+      return;
+    }
     setState(() => _mode = _BadgeMode.success);
     await Future.delayed(const Duration(milliseconds: 2500));
-    if (!mounted) { _busy = false; return; }
+    if (!mounted) {
+      _busy = false;
+      return;
+    }
     await _expandCtrl.reverse();
-    if (!mounted) { _busy = false; return; }
+    if (!mounted) {
+      _busy = false;
+      return;
+    }
     setState(() => _mode = _BadgeMode.hidden);
     _busy = false;
   }
@@ -421,10 +457,14 @@ class _HCConnectionBadgeState extends State<_HCConnectionBadge>
   @override
   Widget build(BuildContext context) {
     return BlocListener<DeviceHealthCubit, DeviceHealthState>(
-      listenWhen: (p, c) => p.isHealthConnectConnected != c.isHealthConnectConnected,
+      listenWhen: (p, c) =>
+          p.isHealthConnectConnected != c.isHealthConnectConnected,
       listener: (_, state) {
-        if (state.isHealthConnectConnected == false) { _enterError(); }
-        else if (state.isHealthConnectConnected == true) { _enterSuccess(); }
+        if (state.isHealthConnectConnected == false) {
+          _enterError();
+        } else if (state.isHealthConnectConnected == true) {
+          _enterSuccess();
+        }
       },
       child: AnimatedBuilder(
         animation: _pulseCtrl,
@@ -434,13 +474,21 @@ class _HCConnectionBadgeState extends State<_HCConnectionBadge>
           final isSuccess = _mode == _BadgeMode.success;
           final pulse = 0.65 + 0.35 * _pulseCtrl.value;
 
-          final dotColor   = isSuccess ? const Color(0xFF43A047) : const Color(0xFFE53935);
-          final bgColor    = isSuccess ? const Color(0xFFF1F8E9) : const Color(0xFFFFF0F0);
-          final rimColor   = isSuccess ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2);
-          final textColor  = isSuccess ? const Color(0xFF2E7D32) : const Color(0xFFB71C1C);
-          final label      = isSuccess ? 'Đã kết nối HC' : 'Chưa kết nối HC';
+          final dotColor = isSuccess
+              ? const Color(0xFF43A047)
+              : const Color(0xFFE53935);
+          final bgColor = isSuccess
+              ? const Color(0xFFF1F8E9)
+              : const Color(0xFFFFF0F0);
+          final rimColor = isSuccess
+              ? const Color(0xFFA5D6A7)
+              : const Color(0xFFFFCDD2);
+          final textColor = isSuccess
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFB71C1C);
+          final label = isSuccess ? 'Đã kết nối HC' : 'Chưa kết nối HC';
 
-          return GestureDetector(
+          return Clickable(
             onTap: isSuccess ? null : () => _openDialog(ctx),
             child: Container(
               height: 28,
@@ -561,7 +609,8 @@ class _HealthConnectDialog extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),

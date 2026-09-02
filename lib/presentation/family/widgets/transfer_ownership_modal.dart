@@ -1,6 +1,7 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/utils/string_helper.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/data/models/group/family_member.dart';
 import 'package:fe/presentation/family/bloc/family_bloc.dart';
 import 'package:flutter/material.dart';
@@ -46,11 +47,11 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
 
     final bloc = context.read<FamilyBloc>();
     bloc.add(
-          TransferOwnership(
-            groupId: widget.groupId,
-            newOwnerId: _selectedMemberId!,
-          ),
-        );
+      TransferOwnership(
+        groupId: widget.groupId,
+        newOwnerId: _selectedMemberId!,
+      ),
+    );
   }
 
   @override
@@ -64,7 +65,11 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
           // Đóng modal chuyển quyền (route trên root navigator)
           rootNav.pop();
           // Mở dialog xác nhận rời nhóm bằng root context ổn định
-          _showLeaveConfirmationAfterTransfer(rootNav.context, bloc, widget.groupId);
+          _showLeaveConfirmationAfterTransfer(
+            rootNav.context,
+            bloc,
+            widget.groupId,
+          );
         }
         if (state.status == FamilyStatus.error) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +154,7 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                 final isSelected = _selectedMemberId == member.id;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
+                  child: Clickable(
                     onTap: () {
                       setState(() {
                         _selectedMemberId = member.id;
@@ -207,7 +212,9 @@ class _TransferOwnershipModalState extends State<TransferOwnershipModal> {
                                     member.relationship!,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.textGrey.withValues(alpha: 0.8),
+                                      color: AppColors.textGrey.withValues(
+                                        alpha: 0.8,
+                                      ),
                                     ),
                                   ),
                               ],
