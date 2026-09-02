@@ -8,7 +8,7 @@ import 'package:fe/data/models/user/user.dart';
 /// Không phải response của một endpoint duy nhất: `HomeService` ghép từ
 /// profile user, tiến độ uống thuốc và thông báo nhóm.
 class HomeData extends Equatable {
-  final User user; 
+  final User user;
   final MedicationProgress? medicationProgress;
   final List<FamilyNotification> notifications;
 
@@ -40,8 +40,8 @@ class HomeData extends Equatable {
 
   @override
   List<Object?> get props => [
-        user,
-        medicationProgress,
-        notifications,
-      ];
+    user,
+    medicationProgress,
+    notifications,
+  ];
 }

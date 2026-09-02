@@ -42,10 +42,18 @@ class ResetPasswordView extends StatelessWidget {
       listener: (context, state) {
         if (!context.mounted) return;
         if (state.status == FormStatus.failure) {
-          ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
+          ToastUtils.showCustomToast(
+            context,
+            state.errorMessage,
+            ToastType.error,
+          );
         }
         if (state.status == FormStatus.success) {
-          ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
+          ToastUtils.showCustomToast(
+            context,
+            state.successMessage,
+            ToastType.success,
+          );
           // Dùng go() chứ không pop(): đổi mật khẩu xong phải đăng nhập lại,
           // và stack phía sau (OTP, quên mật khẩu) không còn ý nghĩa.
           context.go('/login');
@@ -64,7 +72,11 @@ class ResetPasswordForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Tạo mật khẩu mới', style: AppStyles.h1, textAlign: TextAlign.center),
+        const Text(
+          'Tạo mật khẩu mới',
+          style: AppStyles.h1,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p8),
         const Text(
           'Mật khẩu mới của bạn phải khác với mật khẩu đã sử dụng trước đây.',
@@ -104,12 +116,16 @@ class _SubmitButton extends StatelessWidget {
           // khẩu và độ dài rồi hiện toast lỗi, để người dùng biết vì sao sai.
           onPressed: state.status == FormStatus.inProgress
               ? null
-              : () => context.read<AuthFormBloc>().add(ResetPasswordSubmitted()),
+              : () =>
+                    context.read<AuthFormBloc>().add(ResetPasswordSubmitted()),
           child: state.status == FormStatus.inProgress
               ? const SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text('Lưu mật khẩu', style: AppStyles.button),
         );

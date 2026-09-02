@@ -33,22 +33,25 @@ class ApiOcrService {
   ApiOcrService({
     LocalStorageService? localStorage,
     http.Client? client,
-  })  : _localStorage = localStorage ?? LocalStorageService(),
-        _client = client ?? http.Client();
+  }) : _localStorage = localStorage ?? LocalStorageService(),
+       _client = client ?? http.Client();
 
   final LocalStorageService _localStorage;
   final http.Client _client;
 
   Future<OcrApiResult?> tryParsePrescription(XFile file) async {
     try {
-      final uri =
-          Uri.parse('${AppConfig.apiBaseUrl}${ApiEndpoints.ocrPrescriptionParse}');
+      final uri = Uri.parse(
+        '${AppConfig.apiBaseUrl}${ApiEndpoints.ocrPrescriptionParse}',
+      );
       final req = http.MultipartRequest('POST', uri);
       final token = await _localStorage.getAccessToken();
       if (token != null && token.isNotEmpty) {
         req.headers['Authorization'] = 'Bearer $token';
       }
-      debugPrint('[OCR_API] POST $uri token=${token != null && token.isNotEmpty}');
+      debugPrint(
+        '[OCR_API] POST $uri token=${token != null && token.isNotEmpty}',
+      );
       req.files.add(await _buildMultipartFile(file));
 
       final streamed = await _client.send(req);
@@ -122,25 +125,38 @@ class ApiOcrService {
       final out = <ParsedPrescriptionLine>[];
       for (final item in c) {
         if (item is! Map<String, dynamic>) continue;
-        final name = (item['name'] ?? item['drug_name'] ?? '').toString().trim();
+        final name = (item['name'] ?? item['drug_name'] ?? '')
+            .toString()
+            .trim();
         if (name.isEmpty) continue;
-        final dosage = (item['dosage'] ?? item['dose'] ?? 'Theo đơn').toString();
-        final instructions = (item['instructions'] ??
-                item['usage'] ??
-                item['direction'] ??
-                'Ngày uống: 1 lần')
+        final dosage = (item['dosage'] ?? item['dose'] ?? 'Theo đơn')
             .toString();
+        final instructions =
+            (item['instructions'] ??
+                    item['usage'] ??
+                    item['direction'] ??
+                    'Ngày uống: 1 lần')
+                .toString();
         final timesPerDay =
-            (item['times_per_day'] as int?) ?? (item['timesPerDay'] as int?) ?? 1;
-        final specificTimesDyn = item['specific_times'] ?? item['times'] ?? const [];
+            (item['times_per_day'] as int?) ??
+            (item['timesPerDay'] as int?) ??
+            1;
+        final specificTimesDyn =
+            item['specific_times'] ?? item['times'] ?? const [];
         final specificTimes = specificTimesDyn is List
-            ? specificTimesDyn.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
+            ? specificTimesDyn
+                  .map((e) => e.toString())
+                  .where((e) => e.isNotEmpty)
+                  .toList()
             : const <String>[];
         // Map allergy_hints from OCR-service (generic drug-class hints, not user-specific).
         // Field is new and optional — falls back to empty list for backward compat.
         final allergyHintsDyn = item['allergy_hints'];
         final allergyHints = allergyHintsDyn is List
-            ? allergyHintsDyn.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
+            ? allergyHintsDyn
+                  .map((e) => e.toString())
+                  .where((e) => e.isNotEmpty)
+                  .toList()
             : const <String>[];
         out.add(
           ParsedPrescriptionLine(
@@ -148,8 +164,9 @@ class ApiOcrService {
             dosage: dosage,
             instructions: instructions,
             timesPerDay: timesPerDay,
-            suggestedTimes:
-                specificTimes.isEmpty ? _fallbackTimes(timesPerDay) : specificTimes,
+            suggestedTimes: specificTimes.isEmpty
+                ? _fallbackTimes(timesPerDay)
+                : specificTimes,
             likelyOral: true,
             allergyHints: allergyHints,
           ),
@@ -163,7 +180,10 @@ class ApiOcrService {
   List<String> _extractWarnings(Map<String, dynamic> jsonBody) {
     final warnings = jsonBody['warnings'];
     if (warnings is! List) return const [];
-    return warnings.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    return warnings
+        .map((e) => e.toString().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
   List<String> _fallbackTimes(int timesPerDay) {

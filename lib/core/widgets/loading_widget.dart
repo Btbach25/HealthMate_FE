@@ -19,9 +19,11 @@ import 'package:flutter/material.dart';
 /// ```
 class LoadingWidget extends StatelessWidget {
   final String? message;
+
   /// Dòng phụ dưới [message] (vd. "Vui lòng đợi…").
   final String? subtitle;
   final bool isFullScreen;
+
   /// Bọc indicator trong vòng tròn có shadow (màn chi tiết / Thuốc).
   final bool progressInElevatedCircle;
 
@@ -96,5 +98,3 @@ class LoadingWidget extends StatelessWidget {
     return Center(child: content);
   }
 }
-
-

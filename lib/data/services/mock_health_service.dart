@@ -13,16 +13,15 @@ import 'package:fe/data/services/local_storage_service.dart';
 class MockHealthService extends HealthService {
   final LocalStorageService _storage;
 
-  MockHealthService(LocalStorageService localStorage)
-      : _storage = localStorage,
-        super(localStorage);
+  MockHealthService(this._storage) : super(_storage);
 
   @override
   Future<HealthOverview> getHealthOverview() async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     final user = await _storage.getUser();
-    final userId =
-        (user != null && user.isNotEmpty) ? user.id : MockUsers.demoUserId;
+    final userId = (user != null && user.isNotEmpty)
+        ? user.id
+        : MockUsers.demoUserId;
     return MockHealthData.overviewFor(userId);
   }
 }

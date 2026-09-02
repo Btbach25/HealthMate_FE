@@ -14,7 +14,7 @@ class MedicationRepository {
   final MedicationService _service;
 
   MedicationRepository({required MedicationService service})
-      : _service = service;
+    : _service = service;
 
   Future<List<Medication>> getMedications() async {
     try {
@@ -43,7 +43,9 @@ class MedicationRepository {
   }
 
   Future<List<Medication>> takeMedication(
-      String medicationId, String reminderId) async {
+    String medicationId,
+    String reminderId,
+  ) async {
     try {
       return await _service.takeMedication(medicationId, reminderId);
     } on ApiException {
@@ -134,7 +136,8 @@ class MedicationRepository {
       rethrow;
     } catch (e) {
       throw UnknownException(
-        message: 'Lỗi khi bật thông báo nhắc trên điện thoại. Vui lòng thử lại.',
+        message:
+            'Lỗi khi bật thông báo nhắc trên điện thoại. Vui lòng thử lại.',
         originalError: e,
       );
     }

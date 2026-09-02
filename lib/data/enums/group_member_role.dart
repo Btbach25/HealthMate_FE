@@ -1,6 +1,7 @@
 enum GroupMemberRole {
   member,
   owner,
+
   /// Backward-compat: some mocks/old BE used "admin".
   admin;
 

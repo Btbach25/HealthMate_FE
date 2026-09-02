@@ -8,8 +8,10 @@ import 'package:flutter/foundation.dart';
 class ReadinessService {
   final AuthHttpHelper _http;
 
-  ReadinessService(LocalStorageService localStorage, {Future<String?> Function()? onRefresh})
-      : _http = AuthHttpHelper(localStorage, onRefresh);
+  ReadinessService(
+    LocalStorageService localStorage, {
+    Future<String?> Function()? onRefresh,
+  }) : _http = AuthHttpHelper(localStorage, onRefresh);
 
   String get _baseUrl => AppConfig.apiBaseUrl;
 

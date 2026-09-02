@@ -84,16 +84,22 @@ class MockUserService implements UserService {
   }
 
   @override
-  Future<List<User>> listUsers({String? search, int? limit, int? offset}) async {
+  Future<List<User>> listUsers({
+    String? search,
+    int? limit,
+    int? offset,
+  }) async {
     await _delay(300);
 
     final keyword = (search ?? '').trim().toLowerCase();
     var result = MockUsers.all;
     if (keyword.isNotEmpty) {
       result = result
-          .where((u) =>
-              u.name.toLowerCase().contains(keyword) ||
-              u.email.toLowerCase().contains(keyword))
+          .where(
+            (u) =>
+                u.name.toLowerCase().contains(keyword) ||
+                u.email.toLowerCase().contains(keyword),
+          )
           .toList();
     }
 

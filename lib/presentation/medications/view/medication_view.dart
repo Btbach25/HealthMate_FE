@@ -84,21 +84,21 @@ class MedicationView extends StatelessWidget {
                     message: state.errorMessage ?? 'Đã có lỗi xảy ra',
                     wrapInCard: true,
                     icon: Icons.cloud_off_rounded,
-                    onRetry: () => context
-                        .read<MedicationBloc>()
-                        .add(const FetchMedications()),
+                    onRetry: () => context.read<MedicationBloc>().add(
+                      const FetchMedications(),
+                    ),
                   ),
                 ),
               );
             }
 
             final schedule = buildMedicationDaySchedule(state.medications);
-            final allItems =
-                schedule.values.expand((list) => list).toList();
+            final allItems = schedule.values.expand((list) => list).toList();
             final total = allItems.length;
             final taken = allItems.where((i) => i.taken).length;
-            final missed =
-                allItems.where((i) => i.isOverdue && !i.taken).length;
+            final missed = allItems
+                .where((i) => i.isOverdue && !i.taken)
+                .length;
 
             return RefreshIndicator(
               color: AppColors.primary,
@@ -147,7 +147,8 @@ class MedicationView extends StatelessWidget {
                           // Tránh rơi về 1 cột trên đa số điện thoại.
                           statsPerRow = 2;
                         }
-                        final statTileWidth = (constraints.maxWidth -
+                        final statTileWidth =
+                            (constraints.maxWidth -
                                 (statSpacing * (statsPerRow - 1))) /
                             statsPerRow;
                         final actionAlignment = constraints.maxWidth < 520
@@ -156,141 +157,150 @@ class MedicationView extends StatelessWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                        const MedicationPurposeBanner(),
-                        const SizedBox(height: 12),
-                        HeroActionBanner(
-                          title: 'Thuốc & lịch uống',
-                          subtitle:
-                              'Theo dõi nhắc nhở, đánh dấu đã uống và quét đơn nhanh chóng.',
-                          action: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: actionAlignment,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: state.medications.isEmpty
-                                    ? null
-                                    : () => _showManageMedicationsDialog(context),
-                                icon: Icon(
-                                  Icons.edit_rounded,
-                                  size: isCompactPhone ? 18 : 20,
-                                ),
-                                label: const Text(_manageButtonLabel),
-                                style: _outlinedHeroActionStyle(isCompactPhone),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: state.medications.isEmpty
-                                    ? null
-                                    : () => _showShareMedicationDialog(context, state.medications),
-                                icon: Icon(
-                                  Icons.group_add_outlined,
-                                  size: isCompactPhone ? 18 : 20,
-                                ),
-                                label: const Text(_shareButtonLabel),
-                                style: _outlinedHeroActionStyle(isCompactPhone),
-                              ),
-                              FilledButton.icon(
-                                onPressed: () =>
-                                    _showAddMedicationDialog(context),
-                                icon: Icon(
-                                  Icons.add_rounded,
-                                  size: isCompactPhone ? 20 : 22,
-                                ),
-                                label: const Text(_addButtonLabel),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: AppColors.surface,
-                                  elevation: 0,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isCompactPhone ? 12 : 16,
-                                    vertical: 12,
+                            const MedicationPurposeBanner(),
+                            const SizedBox(height: 12),
+                            HeroActionBanner(
+                              title: 'Thuốc & lịch uống',
+                              subtitle:
+                                  'Theo dõi nhắc nhở, đánh dấu đã uống và quét đơn nhanh chóng.',
+                              action: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                alignment: actionAlignment,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: state.medications.isEmpty
+                                        ? null
+                                        : () => _showManageMedicationsDialog(
+                                            context,
+                                          ),
+                                    icon: Icon(
+                                      Icons.edit_rounded,
+                                      size: isCompactPhone ? 18 : 20,
+                                    ),
+                                    label: const Text(_manageButtonLabel),
+                                    style: _outlinedHeroActionStyle(
+                                      isCompactPhone,
+                                    ),
                                   ),
-                                  visualDensity: isCompactPhone
-                                      ? const VisualDensity(
-                                          horizontal: -2,
-                                          vertical: 0,
-                                        )
-                                      : VisualDensity.standard,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  OutlinedButton.icon(
+                                    onPressed: state.medications.isEmpty
+                                        ? null
+                                        : () => _showShareMedicationDialog(
+                                            context,
+                                            state.medications,
+                                          ),
+                                    icon: Icon(
+                                      Icons.group_add_outlined,
+                                      size: isCompactPhone ? 18 : 20,
+                                    ),
+                                    label: const Text(_shareButtonLabel),
+                                    style: _outlinedHeroActionStyle(
+                                      isCompactPhone,
+                                    ),
                                   ),
-                                ),
+                                  FilledButton.icon(
+                                    onPressed: () =>
+                                        _showAddMedicationDialog(context),
+                                    icon: Icon(
+                                      Icons.add_rounded,
+                                      size: isCompactPhone ? 20 : 22,
+                                    ),
+                                    label: const Text(_addButtonLabel),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.surface,
+                                      elevation: 0,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isCompactPhone ? 12 : 16,
+                                        vertical: 12,
+                                      ),
+                                      visualDensity: isCompactPhone
+                                          ? const VisualDensity(
+                                              horizontal: -2,
+                                              vertical: 0,
+                                            )
+                                          : VisualDensity.standard,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Wrap(
-                          spacing: statSpacing,
-                          runSpacing: statSpacing,
-                          children: [
-                            _buildStatTile(
-                              width: statTileWidth,
-                              icon: Icons.event_note_rounded,
-                              iconBg: AppColors.inputBackground,
-                              iconColor: AppColors.textSecondary,
-                              value: total,
-                              label: 'Lượt uống',
-                              valueColor: AppColors.textBlack,
                             ),
-                            _buildStatTile(
-                              width: statTileWidth,
-                              icon: Icons.task_alt_rounded,
-                              iconBg: AppColors.primaryContainer,
-                              iconColor: AppColors.primary,
-                              value: taken,
-                              label: 'Đã uống',
-                              valueColor: AppColors.primary,
+                            const SizedBox(height: 20),
+                            Wrap(
+                              spacing: statSpacing,
+                              runSpacing: statSpacing,
+                              children: [
+                                _buildStatTile(
+                                  width: statTileWidth,
+                                  icon: Icons.event_note_rounded,
+                                  iconBg: AppColors.inputBackground,
+                                  iconColor: AppColors.textSecondary,
+                                  value: total,
+                                  label: 'Lượt uống',
+                                  valueColor: AppColors.textBlack,
+                                ),
+                                _buildStatTile(
+                                  width: statTileWidth,
+                                  icon: Icons.task_alt_rounded,
+                                  iconBg: AppColors.primaryContainer,
+                                  iconColor: AppColors.primary,
+                                  value: taken,
+                                  label: 'Đã uống',
+                                  valueColor: AppColors.primary,
+                                ),
+                                _buildStatTile(
+                                  width: statTileWidth,
+                                  icon: Icons.schedule_rounded,
+                                  iconBg: missed > 0
+                                      ? AppColors.errorLight
+                                      : AppColors.inputBackground,
+                                  iconColor: missed > 0
+                                      ? AppColors.error
+                                      : AppColors.textGrey,
+                                  value: missed,
+                                  label: 'Cần chú ý',
+                                  valueColor: missed > 0
+                                      ? AppColors.error
+                                      : AppColors.textBlack,
+                                ),
+                              ],
                             ),
-                            _buildStatTile(
-                              width: statTileWidth,
-                              icon: Icons.schedule_rounded,
-                              iconBg: missed > 0
-                                  ? AppColors.errorLight
-                                  : AppColors.inputBackground,
-                              iconColor: missed > 0
-                                  ? AppColors.error
-                                  : AppColors.textGrey,
-                              value: missed,
-                              label: 'Cần chú ý',
-                              valueColor: missed > 0
-                                  ? AppColors.error
-                                  : AppColors.textBlack,
+                            const SizedBox(height: 16),
+                            FeatureHighlightCard(
+                              leadingIcon: Icons.document_scanner_rounded,
+                              title: 'Quét đơn thuốc',
+                              subtitle:
+                                  'Chụp hoặc chọn ảnh — gợi ý tên & liều tự động',
+                              showTrailingChevron: true,
+                              onTap: () async {
+                                await showPrescriptionScanDialog(context);
+                                if (!context.mounted) return;
+                                context.read<MedicationBloc>().add(
+                                  const FetchMedications(),
+                                );
+                              },
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        FeatureHighlightCard(
-                          leadingIcon: Icons.document_scanner_rounded,
-                          title: 'Quét đơn thuốc',
-                          subtitle:
-                              'Chụp hoặc chọn ảnh — gợi ý tên & liều tự động',
-                          showTrailingChevron: true,
-                          onTap: () async {
-                            await showPrescriptionScanDialog(context);
-                            if (!context.mounted) return;
-                            context
-                                .read<MedicationBloc>()
-                                .add(const FetchMedications());
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        MedicationScheduleCard(
-                          schedule: schedule,
-                          completedCount: taken,
-                          totalCount: total,
-                          onAddMedication: () =>
-                              _showAddMedicationDialog(context),
-                          onTake: (medId, remId) =>
-                              context.read<MedicationBloc>().add(
+                            const SizedBox(height: 20),
+                            MedicationScheduleCard(
+                              schedule: schedule,
+                              completedCount: taken,
+                              totalCount: total,
+                              onAddMedication: () =>
+                                  _showAddMedicationDialog(context),
+                              onTake: (medId, remId) =>
+                                  context.read<MedicationBloc>().add(
                                     TakeMedication(
                                       medicationId: medId,
                                       reminderId: remId,
                                     ),
                                   ),
-                        ),
-                      ],
-                    );
+                            ),
+                          ],
+                        );
                       },
                     ),
                   ),

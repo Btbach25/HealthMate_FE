@@ -25,8 +25,7 @@ import 'package:intl/intl.dart';
 const _genderUiToApi = {'Nam': 'male', 'Nữ': 'female', 'Khác': 'other'};
 const _genderApiToUi = {'male': 'Nam', 'female': 'Nữ', 'other': 'Khác'};
 
-String? _genderApiFromUi(String? ui) =>
-    ui == null ? null : _genderUiToApi[ui];
+String? _genderApiFromUi(String? ui) => ui == null ? null : _genderUiToApi[ui];
 
 String? _genderUiFromApi(String? api) =>
     api == null ? null : _genderApiToUi[api];
@@ -81,7 +80,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   late TextEditingController _weightController;
   late TextEditingController _heightController;
   late TextEditingController _customAllergyController;
-  
+
   String? _selectedGender;
   DateTime? _selectedBirthday;
   String? _selectedBloodGroup;
@@ -159,7 +158,8 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           _selectedGender = _genderUiFromApi(profile.gender);
           _selectedBloodGroup = profile.bloodGroup;
           if (profile.birthday != null && profile.birthday!.isNotEmpty) {
-            _selectedBirthday = DateTime.tryParse(profile.birthday!) ??
+            _selectedBirthday =
+                DateTime.tryParse(profile.birthday!) ??
                 DateTime.tryParse('${profile.birthday}T00:00:00');
           } else {
             _selectedBirthday = null;
@@ -250,7 +250,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     final birthdayMonth = _birthdayMonthPart?.toString() ?? '';
     final birthdayYear = _birthdayYearPart?.toString() ?? '';
     final hasBirthdayPart =
-        birthdayDay.isNotEmpty || birthdayMonth.isNotEmpty || birthdayYear.isNotEmpty;
+        birthdayDay.isNotEmpty ||
+        birthdayMonth.isNotEmpty ||
+        birthdayYear.isNotEmpty;
     final birthdayInput = hasBirthdayPart
         ? '${birthdayDay.padLeft(2, '0')}/${birthdayMonth.padLeft(2, '0')}/${birthdayYear.padLeft(4, '0')}'
         : '';
@@ -366,7 +368,8 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
   }
 
   Future<void> _pickBirthday() async {
-    final initial = (_selectedBirthday != null &&
+    final initial =
+        (_selectedBirthday != null &&
             !_selectedBirthday!.isAfter(DateTime.now()))
         ? _selectedBirthday!
         : DateTime(DateTime.now().year - 25, 1, 1);
@@ -406,9 +409,11 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
         _showAllergySuggestions = false;
       } else {
         _filteredAllergies = _commonAllergies
-            .where((allergy) => 
-                allergy.toLowerCase().contains(query.toLowerCase()) &&
-                !_allergies.contains(allergy))
+            .where(
+              (allergy) =>
+                  allergy.toLowerCase().contains(query.toLowerCase()) &&
+                  !_allergies.contains(allergy),
+            )
             .toList();
         _showAllergySuggestions = _filteredAllergies.isNotEmpty;
       }
@@ -478,11 +483,10 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
     final user = context.watch<AuthBloc>().state.user;
     final userName = user.isNotEmpty ? user.name : 'Người dùng';
     final userEmail = user.isNotEmpty ? user.email : '';
-    final avatarUrl =
-        user.isNotEmpty && (user.picture ?? '').trim().isNotEmpty
-            ? user.picture!.trim()
-            : null;
-    
+    final avatarUrl = user.isNotEmpty && (user.picture ?? '').trim().isNotEmpty
+        ? user.picture!.trim()
+        : null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSize.p16),
       child: Form(
@@ -505,8 +509,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: AppColors.primaryContainer,
-                    backgroundImage:
-                        avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                    backgroundImage: avatarUrl != null
+                        ? NetworkImage(avatarUrl)
+                        : null,
                     child: avatarUrl == null
                         ? Text(
                             StringHelper.getInitials(userName),
@@ -560,7 +565,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 ],
               ),
             ),
-            
+
             // Basic Information Card
             SettingsCard(
               title: 'Thông tin cơ bản',
@@ -607,7 +612,8 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 ),
                 const SizedBox(height: AppSize.spacing16),
                 Semantics(
-                  label: 'Ngày sinh${_selectedBirthday != null ? ': ${_birthdayFormat.format(_selectedBirthday!)}' : ', chưa chọn'}',
+                  label:
+                      'Ngày sinh${_selectedBirthday != null ? ': ${_birthdayFormat.format(_selectedBirthday!)}' : ', chưa chọn'}',
                   button: _isEditing,
                   child: InkWell(
                     onTap: _isEditing ? _pickBirthday : null,
@@ -617,7 +623,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         labelText: 'Ngày sinh',
                         prefixIcon: Icon(
                           Icons.cake_outlined,
-                          color: _isEditing ? AppColors.primary : AppColors.textGrey,
+                          color: _isEditing
+                              ? AppColors.primary
+                              : AppColors.textGrey,
                         ),
                         suffixIcon: _isEditing
                             ? Row(
@@ -668,7 +676,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                       child: Text(
                         _selectedBirthday != null
                             ? _birthdayFormat.format(_selectedBirthday!)
-                            : (_isEditing ? 'Nhấn để chọn ngày sinh' : 'Chưa cập nhật'),
+                            : (_isEditing
+                                  ? 'Nhấn để chọn ngày sinh'
+                                  : 'Chưa cập nhật'),
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: _selectedBirthday != null
                               ? AppColors.textBlack
@@ -713,9 +723,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: AppSize.spacing16),
-            
+
             // Health Information Card
             SettingsCard(
               icon: Icons.favorite_outline,
@@ -729,7 +739,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         label: 'Cân nặng',
                         icon: Icons.monitor_weight_outlined,
                         enabled: true,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         suffixText: 'kg',
                         hintText: 'Nhập cân nặng',
                         onChanged: (_) {
@@ -759,7 +771,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         label: 'Chiều cao',
                         icon: Icons.straighten_outlined,
                         enabled: true,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         suffixText: 'cm',
                         hintText: 'Nhập chiều cao',
                         onChanged: (_) {
@@ -788,7 +802,16 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 SettingsDropdown(
                   label: 'Nhóm máu',
                   value: _selectedBloodGroup,
-                  items: const ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+                  items: const [
+                    'A+',
+                    'A-',
+                    'B+',
+                    'B-',
+                    'AB+',
+                    'AB-',
+                    'O+',
+                    'O-',
+                  ],
                   enabled: _isEditing,
                   icon: Icons.water_drop_outlined,
                   onChanged: (value) {
@@ -799,9 +822,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: AppSize.spacing16),
-            
+
             // Allergies Card
             SettingsCard(
               icon: Icons.warning_amber_outlined,
@@ -822,9 +845,15 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         ),
                         backgroundColor: AppColors.errorLight,
                         deleteIcon: _isEditing
-                            ? const Icon(Icons.close, size: 18, color: AppColors.error)
+                            ? const Icon(
+                                Icons.close,
+                                size: 18,
+                                color: AppColors.error,
+                              )
                             : null,
-                        onDeleted: _isEditing ? () => _removeAllergy(allergy) : null,
+                        onDeleted: _isEditing
+                            ? () => _removeAllergy(allergy)
+                            : null,
                         labelStyle: const TextStyle(color: AppColors.error),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         shape: RoundedRectangleBorder(
@@ -871,7 +900,11 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                           const SizedBox(width: 8),
                           IconButton(
                             onPressed: _addCustomAllergy,
-                            icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+                            icon: const Icon(
+                              Icons.add_circle,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.primaryContainer,
                               padding: const EdgeInsets.all(12),
@@ -881,7 +914,8 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         ],
                       ),
                       // Suggestions dropdown
-                      if (_showAllergySuggestions && _filteredAllergies.isNotEmpty) ...[
+                      if (_showAllergySuggestions &&
+                          _filteredAllergies.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
                           constraints: const BoxConstraints(maxHeight: 200),
@@ -895,7 +929,11 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                             shrinkWrap: true,
                             padding: const EdgeInsets.all(8),
                             itemCount: _filteredAllergies.length,
-                            separatorBuilder: (context, index) => const Divider(height: 1, thickness: 0.8, color: AppColors.cardBorder),
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              thickness: 0.8,
+                              color: AppColors.cardBorder,
+                            ),
                             itemBuilder: (context, index) {
                               final allergy = _filteredAllergies[index];
                               return ListTile(
@@ -927,7 +965,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                             style: AppTextStyles.labelMedium,
                           ),
                           const Spacer(),
-                          if (_commonAllergies.any((a) => !_allergies.contains(a)))
+                          if (_commonAllergies.any(
+                            (a) => !_allergies.contains(a),
+                          ))
                             TextButton.icon(
                               onPressed: () {
                                 final toAdd = _commonAllergies
@@ -937,7 +977,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                                   _addMultipleAllergies(toAdd);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Đã thêm ${toAdd.length} dị ứng'),
+                                      content: Text(
+                                        'Đã thêm ${toAdd.length} dị ứng',
+                                      ),
                                       backgroundColor: AppColors.primary,
                                       duration: const Duration(seconds: 2),
                                     ),
@@ -959,28 +1001,31 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         children: _commonAllergies
                             .where((allergy) => !_allergies.contains(allergy))
                             .map((allergy) {
-                          return FilterChip(
-                            label: Text(
-                              allergy,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            selected: false,
-                            onSelected: (_) => _addCommonAllergy(allergy),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          );
-                        }).toList(),
+                              return FilterChip(
+                                label: Text(
+                                  allergy,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                selected: false,
+                                onSelected: (_) => _addCommonAllergy(allergy),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              );
+                            })
+                            .toList(),
                       ),
                     ],
                   ),
                 ],
               ],
             ),
-            
+
             const SizedBox(height: AppSize.spacing16),
-            
+
             // Action Buttons
             if (_isEditing)
               Row(
@@ -1001,7 +1046,10 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                         ),
                         child: const Text(
                           'Hủy',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -1035,8 +1083,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Row(
@@ -1059,9 +1108,10 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                   ),
                 ],
               ),
-            
+
             SizedBox(
-              height: MediaQuery.of(context).padding.bottom +
+              height:
+                  MediaQuery.of(context).padding.bottom +
                   AppSize.bottomTabSafeInset,
             ),
           ],
@@ -1069,6 +1119,4 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
       ),
     );
   }
-
 }
-

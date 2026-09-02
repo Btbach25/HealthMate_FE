@@ -1,5 +1,7 @@
 import 'dart:async';
 
+// Enum AuthStatus nằm ở auth_repository chứ không phải trong AuthBloc.
+import 'package:fe/data/repositories/auth_repository.dart' show AuthStatus;
 import 'package:fe/data/repositories/medication_repository.dart';
 import 'package:fe/presentation/auth/bloc/auth_bloc.dart';
 import 'package:fe/presentation/auth/present.dart';

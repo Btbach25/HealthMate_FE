@@ -46,7 +46,8 @@ mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
     _messageTimer?.cancel();
     setState(() {
       _inlineMessage = message;
-      _inlineMessageColor = backgroundColor ?? Colors.black.withValues(alpha: 0.85);
+      _inlineMessageColor =
+          backgroundColor ?? Colors.black.withValues(alpha: 0.85);
     });
     _messageTimer = Timer(messageDuration, () {
       if (mounted) {
@@ -104,4 +105,3 @@ mixin InlineMessageMixin<T extends StatefulWidget> on State<T> {
     super.dispose();
   }
 }
-

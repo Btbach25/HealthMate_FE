@@ -44,19 +44,19 @@ class MockFamilyService implements FamilyService {
   int _counter = 0;
 
   MockFamilyService({LocalStorageService? localStorage})
-      : _localStorage = localStorage,
-        _groups = List<FamilyGroup>.from(MockFamilyData.groups),
-        _membersByGroup = {
-          for (final entry in MockFamilyData.membersByGroup.entries)
-            entry.key: List<FamilyMember>.from(entry.value),
-        },
-        _incoming = List<IncomingInvitation>.from(
-          MockFamilyData.incomingInvitations,
-        ),
-        _outgoing = [
-          ...MockFamilyData.outgoingInvitations,
-          ...MockFamilyData.pendingApprovals,
-        ];
+    : _localStorage = localStorage,
+      _groups = List<FamilyGroup>.from(MockFamilyData.groups),
+      _membersByGroup = {
+        for (final entry in MockFamilyData.membersByGroup.entries)
+          entry.key: List<FamilyMember>.from(entry.value),
+      },
+      _incoming = List<IncomingInvitation>.from(
+        MockFamilyData.incomingInvitations,
+      ),
+      _outgoing = [
+        ...MockFamilyData.outgoingInvitations,
+        ...MockFamilyData.pendingApprovals,
+      ];
 
   // ---------- Helpers ----------
 
@@ -190,8 +190,9 @@ class MockFamilyService implements FamilyService {
 
     _groups[index] = _groups[index].copyWith(
       name: name,
-      sharedMetrics:
-          sharedMetrics == null ? null : _toMetricTypes(sharedMetrics),
+      sharedMetrics: sharedMetrics == null
+          ? null
+          : _toMetricTypes(sharedMetrics),
       medicationSharingAllowed: enableMedicationReminderShare,
       updatedAt: DateTime.now(),
       lastActivity: DateTime.now(),
@@ -257,8 +258,9 @@ class MockFamilyService implements FamilyService {
     required String memberId,
   }) async {
     await _delay();
-    _membersByGroup[groupId]
-        ?.removeWhere((m) => m.id == memberId || m.userId == memberId);
+    _membersByGroup[groupId]?.removeWhere(
+      (m) => m.id == memberId || m.userId == memberId,
+    );
   }
 
   @override
@@ -276,8 +278,9 @@ class MockFamilyService implements FamilyService {
 
     final members = _membersByGroup[groupId];
     if (members == null) return;
-    final index =
-        members.indexWhere((m) => m.id == memberId || m.userId == memberId);
+    final index = members.indexWhere(
+      (m) => m.id == memberId || m.userId == memberId,
+    );
     if (index < 0) return;
 
     members[index] = members[index].copyWith(
@@ -476,9 +479,11 @@ class MockFamilyService implements FamilyService {
   }) async {
     await _delay(300);
     return _outgoing
-        .where((i) =>
-            i.groupId == groupId &&
-            i.status == GroupMemberStatus.pendingOwnerApproval)
+        .where(
+          (i) =>
+              i.groupId == groupId &&
+              i.status == GroupMemberStatus.pendingOwnerApproval,
+        )
         .toList();
   }
 
@@ -500,7 +505,10 @@ class MockFamilyService implements FamilyService {
     if (invitee == null) return;
 
     final now = DateTime.now();
-    final members = _membersByGroup.putIfAbsent(groupId, () => <FamilyMember>[]);
+    final members = _membersByGroup.putIfAbsent(
+      groupId,
+      () => <FamilyMember>[],
+    );
     if (members.any((m) => m.userId == invitee.id)) return;
 
     members.add(

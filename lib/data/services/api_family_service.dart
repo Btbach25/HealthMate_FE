@@ -85,7 +85,9 @@ class ApiFamilyService implements FamilyService {
     }
   }
 
-  List<String> _extractGlobalMetricTypesFromPermissions(dynamic rawPermissions) {
+  List<String> _extractGlobalMetricTypesFromPermissions(
+    dynamic rawPermissions,
+  ) {
     if (rawPermissions is Map<String, dynamic>) {
       final global = rawPermissions['global'];
       if (global is List) {
@@ -175,13 +177,15 @@ class ApiFamilyService implements FamilyService {
               ApiEndpoints.groupPermissions(group.id),
               parser: (data) => data,
             );
-            final globalMetricTypes =
-                _extractGlobalMetricTypesFromPermissions(permissionsRaw);
+            final globalMetricTypes = _extractGlobalMetricTypesFromPermissions(
+              permissionsRaw,
+            );
             final parsed = _toMetricTypes(globalMetricTypes);
             return group.copyWith(
               sharedMetrics: parsed.isNotEmpty ? parsed : group.sharedMetrics,
-              medicationSharingAllowed:
-                  _isMedicationSharingAllowed(globalMetricTypes),
+              medicationSharingAllowed: _isMedicationSharingAllowed(
+                globalMetricTypes,
+              ),
             );
           } catch (_) {
             // Some roles/groups may not allow reading permissions.
@@ -341,7 +345,8 @@ class ApiFamilyService implements FamilyService {
     final tidied = groupId.trim();
     if (tidied.isEmpty || !_uuidRegex.hasMatch(tidied)) {
       throw UnknownException(
-        message: 'Mã nhóm không hợp lệ. Hãy mở lại nhóm từ danh sách hoặc đăng nhập lại.',
+        message:
+            'Mã nhóm không hợp lệ. Hãy mở lại nhóm từ danh sách hoặc đăng nhập lại.',
         originalError: null,
       );
     }
@@ -377,10 +382,10 @@ class ApiFamilyService implements FamilyService {
     final effectiveEmail = trimmedEmail.isNotEmpty
         ? trimmedEmail
         : (trimmedUserId != null &&
-                trimmedUserId.isNotEmpty &&
-                trimmedUserId.contains('@'))
-            ? trimmedUserId
-            : '';
+              trimmedUserId.isNotEmpty &&
+              trimmedUserId.contains('@'))
+        ? trimmedUserId
+        : '';
     if (effectiveEmail.isEmpty) {
       throw UnknownException(
         message:
@@ -464,11 +469,13 @@ class ApiFamilyService implements FamilyService {
         ApiEndpoints.groupPermissions(groupId),
         parser: (data) => data,
       );
-      final myGlobalMetricTypes =
-          _extractGlobalMetricTypesFromPermissions(myPermissionsRaw);
+      final myGlobalMetricTypes = _extractGlobalMetricTypesFromPermissions(
+        myPermissionsRaw,
+      );
       final myGlobalMetricsParsed = _toMetricTypes(myGlobalMetricTypes);
-      final myMedicationShareAllowed =
-          _isMedicationSharingAllowed(myGlobalMetricTypes);
+      final myMedicationShareAllowed = _isMedicationSharingAllowed(
+        myGlobalMetricTypes,
+      );
 
       // Single call: for each member, which of their metrics can the current user see.
       // Replaces N individual GET /permissions?target_user_id=X calls (Bug 3 N+1 fix)
@@ -485,7 +492,10 @@ class ApiFamilyService implements FamilyService {
         final metrics = item['metrics'];
         if (memberId.isEmpty) continue;
         visibleMetricsMap[memberId] = metrics is List
-            ? metrics.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList()
+            ? metrics
+                  .map((e) => e?.toString() ?? '')
+                  .where((e) => e.isNotEmpty)
+                  .toList()
             : const [];
       }
 
@@ -633,10 +643,12 @@ class ApiFamilyService implements FamilyService {
         );
         for (final inv in invitationsRaw) {
           if (inv is! Map<String, dynamic>) continue;
-          result.add(GroupApiMapper.sentInvitationToOutgoing(
-            json: inv,
-            group: group,
-          ));
+          result.add(
+            GroupApiMapper.sentInvitationToOutgoing(
+              json: inv,
+              group: group,
+            ),
+          );
         }
       }
       return result;
@@ -754,10 +766,12 @@ class ApiFamilyService implements FamilyService {
       );
       return list
           .whereType<Map<String, dynamic>>()
-          .map((inv) => GroupApiMapper.sentInvitationToOutgoing(
-                json: inv,
-                group: stubGroup,
-              ))
+          .map(
+            (inv) => GroupApiMapper.sentInvitationToOutgoing(
+              json: inv,
+              group: stubGroup,
+            ),
+          )
           .toList();
     } on ApiException {
       rethrow;
@@ -876,8 +890,7 @@ class ApiFamilyService implements FamilyService {
           if (uid != memberId) continue;
           final metrics = _parseMetricList(entry['metrics']);
           final hasAccessControl = metrics.contains('access_control');
-          final filtered =
-              metrics.where((m) => m != 'access_control').toList();
+          final filtered = metrics.where((m) => m != 'access_control').toList();
           if (hasAccessControl && filtered.isEmpty) {
             return const [explicitNoMetricsForMember];
           }
@@ -911,5 +924,4 @@ class ApiFamilyService implements FamilyService {
       return const [];
     }
   }
-
 }

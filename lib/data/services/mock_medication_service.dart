@@ -15,11 +15,11 @@ class MockMedicationService implements MedicationService {
   final Map<String, List<MedicationShare>> _sharesByMedicationId;
 
   MockMedicationService()
-      : _medications = List<Medication>.from(MockMedicationsData.medications),
-        _sharesByMedicationId = {
-          for (final entry in MockMedicationsData.sharesByMedicationId.entries)
-            entry.key: List<MedicationShare>.from(entry.value),
-        };
+    : _medications = List<Medication>.from(MockMedicationsData.medications),
+      _sharesByMedicationId = {
+        for (final entry in MockMedicationsData.sharesByMedicationId.entries)
+          entry.key: List<MedicationShare>.from(entry.value),
+      };
 
   int _shareCounter = 0;
 
@@ -108,8 +108,10 @@ class MockMedicationService implements MedicationService {
     int notifyOffsetMinutes = 0,
   }) async {
     await _delay(250);
-    final shares =
-        _sharesByMedicationId.putIfAbsent(medicationId, () => <MedicationShare>[]);
+    final shares = _sharesByMedicationId.putIfAbsent(
+      medicationId,
+      () => <MedicationShare>[],
+    );
     _shareCounter++;
     shares.add(
       MedicationShare(

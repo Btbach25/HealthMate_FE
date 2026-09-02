@@ -20,7 +20,7 @@ class FamilyRepository {
   final FamilyService _familyService;
 
   FamilyRepository({required FamilyService familyService})
-      : _familyService = familyService;
+    : _familyService = familyService;
 
   Future<FamilyGroupSummary> getFamilyGroups() async {
     try {
@@ -39,25 +39,23 @@ class FamilyRepository {
     required String name,
     required List<String> sharedMetrics,
     bool enableMedicationReminderShare = false,
-  }) =>
-      _familyService.createGroup(
-        name: name,
-        sharedMetrics: sharedMetrics,
-        enableMedicationReminderShare: enableMedicationReminderShare,
-      );
+  }) => _familyService.createGroup(
+    name: name,
+    sharedMetrics: sharedMetrics,
+    enableMedicationReminderShare: enableMedicationReminderShare,
+  );
 
   Future<void> updateGroup({
     required String groupId,
     String? name,
     List<String>? sharedMetrics,
     bool? enableMedicationReminderShare,
-  }) =>
-      _familyService.updateGroup(
-        groupId: groupId,
-        name: name,
-        sharedMetrics: sharedMetrics,
-        enableMedicationReminderShare: enableMedicationReminderShare,
-      );
+  }) => _familyService.updateGroup(
+    groupId: groupId,
+    name: name,
+    sharedMetrics: sharedMetrics,
+    enableMedicationReminderShare: enableMedicationReminderShare,
+  );
 
   Future<void> deleteGroup({required String groupId}) =>
       _familyService.deleteGroup(groupId: groupId);
@@ -73,43 +71,39 @@ class FamilyRepository {
     int? age,
     required List<String> sharedMetrics,
     String? userId,
-  }) =>
-      _familyService.inviteMember(
-        groupId: groupId,
-        email: email,
-        name: name,
-        relationship: relationship,
-        age: age,
-        sharedMetrics: sharedMetrics,
-        userId: userId,
-      );
+  }) => _familyService.inviteMember(
+    groupId: groupId,
+    email: email,
+    name: name,
+    relationship: relationship,
+    age: age,
+    sharedMetrics: sharedMetrics,
+    userId: userId,
+  );
 
   Future<GroupDetails> getGroupDetails({
     required String groupId,
     FamilyGroup? cachedGroup,
-  }) =>
-      _familyService.getGroupDetails(
-        groupId: groupId,
-        cachedGroup: cachedGroup,
-      );
+  }) => _familyService.getGroupDetails(
+    groupId: groupId,
+    cachedGroup: cachedGroup,
+  );
 
   Future<void> transferOwnership({
     required String groupId,
     required String newOwnerId,
-  }) =>
-      _familyService.transferOwnership(
-        groupId: groupId,
-        newOwnerId: newOwnerId,
-      );
+  }) => _familyService.transferOwnership(
+    groupId: groupId,
+    newOwnerId: newOwnerId,
+  );
 
   Future<void> acceptInvitation({
     required String groupId,
     required List<String> sharedMetrics,
-  }) =>
-      _familyService.acceptInvitation(
-        groupId: groupId,
-        sharedMetrics: sharedMetrics,
-      );
+  }) => _familyService.acceptInvitation(
+    groupId: groupId,
+    sharedMetrics: sharedMetrics,
+  );
 
   Future<void> declineInvitation({required String groupId}) =>
       _familyService.declineInvitation(groupId: groupId);
@@ -122,60 +116,52 @@ class FamilyRepository {
 
   Future<List<FamilyMember>> getGroupMembersForInvitee({
     required String groupId,
-  }) =>
-      _familyService.getGroupMembersForInvitee(groupId: groupId);
+  }) => _familyService.getGroupMembersForInvitee(groupId: groupId);
 
   Future<void> removeMember({
     required String groupId,
     required String memberId,
-  }) =>
-      _familyService.removeMember(groupId: groupId, memberId: memberId);
+  }) => _familyService.removeMember(groupId: groupId, memberId: memberId);
 
   Future<void> updateMemberPermissions({
     required String groupId,
     required String memberId,
     required List<String> sharedMetrics,
     bool? allowMedicationReminderShare,
-  }) =>
-      _familyService.updateMemberPermissions(
-        groupId: groupId,
-        memberId: memberId,
-        sharedMetrics: sharedMetrics,
-        allowMedicationReminderShare: allowMedicationReminderShare,
-      );
+  }) => _familyService.updateMemberPermissions(
+    groupId: groupId,
+    memberId: memberId,
+    sharedMetrics: sharedMetrics,
+    allowMedicationReminderShare: allowMedicationReminderShare,
+  );
 
   Future<List<OutgoingInvitation>> getPendingApprovals({
     required String groupId,
-  }) =>
-      _familyService.getPendingApprovals(groupId: groupId);
+  }) => _familyService.getPendingApprovals(groupId: groupId);
 
   Future<void> approveJoinRequest({
     required String groupId,
     required String memberId,
-  }) =>
-      _familyService.approveJoinRequest(groupId: groupId, memberId: memberId);
+  }) => _familyService.approveJoinRequest(groupId: groupId, memberId: memberId);
 
   Future<void> rejectJoinRequest({
     required String groupId,
     required String memberId,
-  }) =>
-      _familyService.rejectJoinRequest(groupId: groupId, memberId: memberId);
+  }) => _familyService.rejectJoinRequest(groupId: groupId, memberId: memberId);
 
   Future<void> updateMySharing({
     required String groupId,
     required List<String> sharedMetrics,
-  }) =>
-      _familyService.updateMySharing(
-        groupId: groupId,
-        sharedMetrics: sharedMetrics,
-      );
+  }) => _familyService.updateMySharing(
+    groupId: groupId,
+    sharedMetrics: sharedMetrics,
+  );
 
   Future<List<String>> getMySpecificMetricsForMember({
     required String groupId,
     required String memberId,
-  }) =>
-      _familyService.getMySpecificMetricsForMember(
-        groupId: groupId,
-        memberId: memberId,
-      );
+  }) => _familyService.getMySpecificMetricsForMember(
+    groupId: groupId,
+    memberId: memberId,
+  );
 }

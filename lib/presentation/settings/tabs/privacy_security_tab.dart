@@ -52,11 +52,14 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
   Future<void> _updateSetting(
     PrivacySecuritySettings Function(PrivacySecuritySettings) update,
   ) async {
-    await SettingsManagementHelper.updateSettingWithErrorHandling<PrivacySecuritySettings>(
+    await SettingsManagementHelper.updateSettingWithErrorHandling<
+      PrivacySecuritySettings
+    >(
       context: context,
       currentSettings: _settings,
       update: update,
-      saveFunction: (settings) => _settingsService.savePrivacySecuritySettings(settings),
+      saveFunction: (settings) =>
+          _settingsService.savePrivacySecuritySettings(settings),
       onUpdate: (settings) {
         setState(() {
           _settings = settings;
@@ -101,7 +104,11 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   (settings) => settings.copyWith(dataSharing: value),
                 ),
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsSwitchRow(
                 title: 'Phân tích ẩn danh',
                 description: 'Gửi dữ liệu ẩn danh để cải thiện ứng dụng',
@@ -110,7 +117,11 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   (settings) => settings.copyWith(anonymousAnalytics: value),
                 ),
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsSwitchRow(
                 title: 'Theo dõi vị trí',
                 description: 'Cho phép ứng dụng truy cập vị trí',
@@ -121,9 +132,9 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: AppSize.spacing24),
-          
+
           // Security Settings Card
           SettingsCard(
             icon: Icons.lock_outlined,
@@ -141,7 +152,11 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                   _showComingSoonSnack();
                 },
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsSwitchRow(
                 title: 'Tự động khóa',
                 description: 'Khóa ứng dụng khi không sử dụng',
@@ -151,7 +166,11 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
                 ),
               ),
               if (_settings.autoLock) ...[
-                const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+                const Divider(
+                  height: 24,
+                  thickness: 0.8,
+                  color: AppColors.cardBorder,
+                ),
                 SettingsDropdown(
                   label: 'Thời gian tự động khóa',
                   value: _settings.lockTimeout,
@@ -167,16 +186,14 @@ class _PrivacySecurityTabState extends State<PrivacySecurityTab> {
               ],
             ],
           ),
-          
+
           SizedBox(
-            height: MediaQuery.of(context).padding.bottom +
+            height:
+                MediaQuery.of(context).padding.bottom +
                 AppSize.bottomTabSafeInset,
           ),
         ],
       ),
     );
   }
-
-
 }
-

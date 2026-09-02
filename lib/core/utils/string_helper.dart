@@ -19,7 +19,9 @@ class StringHelper {
       final last = parts[parts.length - 1][0];
       return '$first$last'.toUpperCase();
     }
-    return trimmedName.substring(0, trimmedName.length > 2 ? 2 : trimmedName.length).toUpperCase();
+    return trimmedName
+        .substring(0, trimmedName.length > 2 ? 2 : trimmedName.length)
+        .toUpperCase();
   }
 
   /// Mốc thời gian tương đối bằng tiếng Việt: "3 ngày trước", "2 giờ trước",
@@ -45,4 +47,3 @@ class StringHelper {
     }
   }
 }
-

@@ -38,7 +38,7 @@ class AppIcons {
   static const IconData info = Icons.info_outline;
   static const IconData important = Icons.star_border;
   static const IconData urgent = Icons.warning_amber_rounded;
-  
+
   static const IconData userAvatar = Icons.person_outline;
 
   // Màn Chỉ số / Xem chi tiết

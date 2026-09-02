@@ -1,5 +1,4 @@
 import 'package:fe/data/services/fcm_service.dart';
-import 'package:fe/data/services/local_storage_service.dart';
 import 'package:flutter/foundation.dart';
 
 /// [FcmService] giả lập cho chế độ DEMO: **mọi method đều no-op**.
@@ -7,7 +6,7 @@ import 'package:flutter/foundation.dart';
 /// Không chạm Firebase, không xin quyền thông báo, không gửi token lên backend.
 /// Nhờ vậy chạy demo trên máy chưa cấu hình `google-services.json` vẫn được.
 class MockFcmService extends FcmService {
-  MockFcmService(LocalStorageService localStorage) : super(localStorage);
+  MockFcmService(super.localStorage);
 
   @override
   Future<void> init() async {

@@ -27,17 +27,24 @@ class _ConfirmPasswordInputState extends State<ConfirmPasswordInput> {
     return BlocBuilder<AuthFormBloc, AuthFormState>(
       // Chỉ rebuild khi chính giá trị confirmPassword đổi: tránh TextField bị
       // dựng lại (mất con trỏ) mỗi lần một field khác của form thay đổi.
-      buildWhen: (previous, current) => previous.confirmPassword != current.confirmPassword,
+      buildWhen: (previous, current) =>
+          previous.confirmPassword != current.confirmPassword,
       builder: (context, state) {
         return TextField(
-          onChanged: (confirmPassword) => context.read<AuthFormBloc>().add(ConfirmPasswordChanged(confirmPassword)),
+          onChanged: (confirmPassword) => context.read<AuthFormBloc>().add(
+            ConfirmPasswordChanged(confirmPassword),
+          ),
           obscureText: _obscured,
           decoration: InputDecoration(
             hintText: 'Nhập lại mật khẩu',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               tooltip: _obscured ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
-              icon: Icon(_obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              icon: Icon(
+                _obscured
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
               onPressed: () => setState(() => _obscured = !_obscured),
             ),
           ),

@@ -47,7 +47,9 @@ class HeroActionBanner extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.12),
+            ),
             boxShadow: AppColors.cardShadowList,
           ),
           child: useVerticalLayout
@@ -96,8 +98,10 @@ class _BannerText extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           subtitle,
-          style: AppTextStyles.bodySmall
-              .copyWith(color: AppColors.textSecondary, height: 1.45),
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            height: 1.45,
+          ),
         ),
       ],
     );

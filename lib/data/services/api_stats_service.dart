@@ -96,8 +96,9 @@ class ApiStatsService implements StatsService {
     List<String>? filterMetricTypes,
   }) async {
     final rawTypes = filterMetricTypes ?? _metricTypes;
-    final typesToFetch =
-        rawTypes.map(MetricSelectionHelper.toBackendMetricName).toList();
+    final typesToFetch = rawTypes
+        .map(MetricSelectionHelper.toBackendMetricName)
+        .toList();
     final results = await Future.wait(
       typesToFetch.map((m) => _fetchPoints(userId, m, range)),
     );
@@ -180,7 +181,9 @@ class ApiStatsService implements StatsService {
 
     final double displayValue;
     if (metricType == 'steps_count') {
-      final uniqueDays = timestamps.map((t) => DateTime(t.year, t.month, t.day)).toSet();
+      final uniqueDays = timestamps
+          .map((t) => DateTime(t.year, t.month, t.day))
+          .toSet();
       final total = values.reduce((a, b) => a + b);
       displayValue = uniqueDays.isEmpty ? 0 : total / uniqueDays.length;
     } else {

@@ -242,7 +242,7 @@ abstract class ApiClient {
           );
 
       if (parser != null) {
-        return handleResponse(response, parser);
+        return await handleResponse(response, parser);
       }
 
       return response as T;
@@ -279,7 +279,7 @@ abstract class ApiClient {
           );
 
       if (parser != null) {
-        return handleResponse(response, parser);
+        return await handleResponse(response, parser);
       }
 
       return response as T;
@@ -316,7 +316,7 @@ abstract class ApiClient {
           );
 
       if (parser != null) {
-        return handleResponse(response, parser);
+        return await handleResponse(response, parser);
       }
 
       return response as T;
@@ -350,7 +350,7 @@ abstract class ApiClient {
           );
 
       if (parser != null) {
-        return handleResponse(response, parser);
+        return await handleResponse(response, parser);
       }
 
       return response as T;

@@ -27,7 +27,9 @@ Future<bool> initializeFirebase() async {
     }
     return true;
   } catch (e) {
-    debugPrint('[Firebase] initializeApp thất bại, chạy tiếp không Firebase: $e');
+    debugPrint(
+      '[Firebase] initializeApp thất bại, chạy tiếp không Firebase: $e',
+    );
     return false;
   }
 }

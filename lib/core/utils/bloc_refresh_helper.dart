@@ -37,15 +37,15 @@ class BlocRefreshHelper<B extends StateStreamable<S>, S> {
 
   /// `true` nếu status hiện tại nằm trong [refreshTriggerStates].
   bool shouldRefresh(S currentState) {
-    final status = statusExtractor?.call(currentState) ?? 
-                   (currentState as dynamic).status;
+    final status =
+        statusExtractor?.call(currentState) ?? (currentState as dynamic).status;
     return refreshTriggerStates.contains(status);
   }
 
   /// `true` nếu bloc còn ở [initialState] (chưa từng tải dữ liệu).
   bool isInitialState(S currentState) {
-    final status = statusExtractor?.call(currentState) ?? 
-                   (currentState as dynamic).status;
+    final status =
+        statusExtractor?.call(currentState) ?? (currentState as dynamic).status;
     return status == initialState;
   }
 
@@ -72,4 +72,3 @@ class BlocRefreshHelper<B extends StateStreamable<S>, S> {
     return true;
   }
 }
-

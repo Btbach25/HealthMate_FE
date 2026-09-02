@@ -66,8 +66,7 @@ class FamilyMemberMetricsDialog extends StatefulWidget {
       _FamilyMemberMetricsDialogState();
 }
 
-class _FamilyMemberMetricsDialogState
-    extends State<FamilyMemberMetricsDialog> {
+class _FamilyMemberMetricsDialogState extends State<FamilyMemberMetricsDialog> {
   static const _allMetricsLabel = 'Tất cả chỉ số';
 
   late final List<String> _metricItems;
@@ -87,14 +86,16 @@ class _FamilyMemberMetricsDialogState
   @override
   void initState() {
     super.initState();
-    final sharedLabels = widget.member.sharedMetrics
-        .map((t) => MetricHelper.getMetricOption(t).label)
-        .toSet()
-        .toList()
-      ..sort();
+    final sharedLabels =
+        widget.member.sharedMetrics
+            .map((t) => MetricHelper.getMetricOption(t).label)
+            .toSet()
+            .toList()
+          ..sort();
     _metricItems = [_allMetricsLabel, ...sharedLabels];
-    _sharedMetricValuesForWs =
-        widget.member.sharedMetrics.map((t) => t.value).toList();
+    _sharedMetricValuesForWs = widget.member.sharedMetrics
+        .map((t) => t.value)
+        .toList();
     _watchedBackendMetrics = MetricSelectionHelper.filterMetricTypesForBackend(
       _sharedMetricValuesForWs,
     )..sort();
@@ -158,12 +159,15 @@ class _FamilyMemberMetricsDialogState
   }
 
   Future<List<MetricChart>> _loadCharts() {
-    final allSharedTypes =
-        widget.member.sharedMetrics.map((t) => t.value).toList();
+    final allSharedTypes = widget.member.sharedMetrics
+        .map((t) => t.value)
+        .toList();
     List<String>? filterTypes;
     if (_selectedMetric != _allMetricsLabel) {
       filterTypes = widget.member.sharedMetrics
-          .where((t) => MetricHelper.getMetricOption(t).label == _selectedMetric)
+          .where(
+            (t) => MetricHelper.getMetricOption(t).label == _selectedMetric,
+          )
           .map((t) => t.value)
           .toList();
     } else {
@@ -290,7 +294,11 @@ class _FamilyMemberMetricsDialogState
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 0.8, color: AppColors.cardBorder),
+            const Divider(
+              height: 1,
+              thickness: 0.8,
+              color: AppColors.cardBorder,
+            ),
 
             // ── Scrollable body ───────────────────────────────────────
             Flexible(
@@ -390,8 +398,9 @@ class _FamilyMemberMetricsDialogState
                             if (ev == null) {
                               return _LiveChip(label: label, value: null);
                             }
-                            final timeStr = DateFormat('HH:mm dd/MM')
-                                .format(ev.timestamp.toLocal());
+                            final timeStr = DateFormat(
+                              'HH:mm dd/MM',
+                            ).format(ev.timestamp.toLocal());
                             return _LiveChip(
                               label: label,
                               value: _formatLiveValue(ev.value),
@@ -469,8 +478,7 @@ class _FamilyMemberMetricsDialogState
                                 itemCount: charts.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 16),
-                                itemBuilder: (context, index) =>
-                                    StatsChartCard(
+                                itemBuilder: (context, index) => StatsChartCard(
                                   chart: charts[index],
                                   selectedRange: _rangeParam(_selectedRange),
                                 ),
@@ -634,8 +642,7 @@ class _NoScrollbarBehavior extends ScrollBehavior {
     BuildContext context,
     Widget child,
     ScrollableDetails details,
-  ) =>
-      child;
+  ) => child;
 }
 
 class _EmptyState extends StatelessWidget {

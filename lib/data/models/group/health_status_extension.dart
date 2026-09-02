@@ -41,4 +41,3 @@ extension HealthStatusExtension on HealthStatus {
     }
   }
 }
-

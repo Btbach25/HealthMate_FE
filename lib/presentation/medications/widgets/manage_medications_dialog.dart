@@ -33,19 +33,26 @@ class ManageMedicationsDialog extends StatelessWidget {
                 color: AppColors.errorLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error, size: 20),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
-            const Text('Xóa thuốc?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const Text(
+              'Xóa thuốc?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         content: Text(
           'Xóa “${med.name}” và toàn bộ nhắc giờ liên quan? '
           'Thao tác này không thể hoàn tác.',
           style: AppTextStyles.bodySmall.copyWith(
-              height: 1.5, color: AppColors.textSecondary),
+            height: 1.5,
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           Row(
@@ -58,7 +65,8 @@ class ManageMedicationsDialog extends StatelessWidget {
                     side: const BorderSide(color: AppColors.cardBorder),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text('Hủy'),
                 ),
@@ -72,10 +80,13 @@ class ManageMedicationsDialog extends StatelessWidget {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: const Text('Xóa',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Xóa',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -170,10 +181,10 @@ class ManageMedicationsDialog extends StatelessWidget {
                         : ListView.separated(
                             itemCount: meds.length,
                             separatorBuilder: (_, __) => const Divider(
-                                height: 1,
-                                thickness: 0.8,
-                                color: AppColors.cardBorder,
-                              ),
+                              height: 1,
+                              thickness: 0.8,
+                              color: AppColors.cardBorder,
+                            ),
                             itemBuilder: (context, index) {
                               final med = meds[index];
                               final deleting =
@@ -240,4 +251,3 @@ class ManageMedicationsDialog extends StatelessWidget {
     );
   }
 }
-

@@ -26,22 +26,30 @@ class ErrorMessageParser {
     'email.*already': 'Email này đã được mời vào nhóm.',
     'email.*exist': 'Email này đã tồn tại trong hệ thống.',
     'network': 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.',
-    'socketexception': 'Không kết nối được đến máy chủ. Vui lòng kiểm tra mạng và thử lại.',
-    'failed host lookup': 'Không tìm thấy máy chủ API. Hãy kiểm tra lại IP/port backend và mạng Wi‑Fi.',
-    'connection refused': 'Máy chủ từ chối kết nối. Hãy kiểm tra backend đã chạy và mở cổng 8080.',
-    'connection reset by peer': 'Kết nối bị máy chủ đóng. Vui lòng thử lại sau ít phút.',
+    'socketexception':
+        'Không kết nối được đến máy chủ. Vui lòng kiểm tra mạng và thử lại.',
+    'failed host lookup':
+        'Không tìm thấy máy chủ API. Hãy kiểm tra lại IP/port backend và mạng Wi‑Fi.',
+    'connection refused':
+        'Máy chủ từ chối kết nối. Hãy kiểm tra backend đã chạy và mở cổng 8080.',
+    'connection reset by peer':
+        'Kết nối bị máy chủ đóng. Vui lòng thử lại sau ít phút.',
     'connection': 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.',
     'timeout': 'Yêu cầu quá thời gian chờ. Vui lòng thử lại.',
-    r'oauth2\.0': 'Đăng nhập Google chưa được cấu hình cho bản APK này. Vui lòng dùng Email/Mật khẩu hoặc cập nhật SHA-1 trên Firebase.',
-    'not registered to use oauth2': 'Đăng nhập Google chưa được cấu hình cho bản APK này. Vui lòng dùng Email/Mật khẩu hoặc cập nhật SHA-1 trên Firebase.',
-    'developer_error': 'Đăng nhập Google chưa được cấu hình đúng. Vui lòng dùng Email/Mật khẩu tạm thời.',
+    r'oauth2\.0':
+        'Đăng nhập Google chưa được cấu hình cho bản APK này. Vui lòng dùng Email/Mật khẩu hoặc cập nhật SHA-1 trên Firebase.',
+    'not registered to use oauth2':
+        'Đăng nhập Google chưa được cấu hình cho bản APK này. Vui lòng dùng Email/Mật khẩu hoặc cập nhật SHA-1 trên Firebase.',
+    'developer_error':
+        'Đăng nhập Google chưa được cấu hình đúng. Vui lòng dùng Email/Mật khẩu tạm thời.',
     'permission': 'Bạn không có quyền thực hiện thao tác này.',
     'unauthorized': 'Bạn không có quyền thực hiện thao tác này.',
     'forbidden': 'Bạn không có quyền thực hiện thao tác này.',
     'validation': 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.',
     'server error': 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau.',
     'bad request': 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại.',
-    'invalid metric': 'Loại chỉ số này chưa được hỗ trợ. Hãy chọn chỉ số khác hoặc thử lại sau.',
+    'invalid metric':
+        'Loại chỉ số này chưa được hỗ trợ. Hãy chọn chỉ số khác hoặc thử lại sau.',
   };
 
   /// Đổi chuỗi lỗi thô thành câu tiếng Việt hiển thị được.
@@ -91,4 +99,3 @@ class ErrorMessageParser {
     _errorMappings[pattern] = message;
   }
 }
-
