@@ -169,6 +169,8 @@ Lý do: code `dart:js_interop` không compile được trên mobile và ngược
 |---|---|
 | Một số view > 800 dòng | `family_group_management_view.dart`, `prescription_scan_dialog.dart`, `profile_settings_tab.dart` — nên tách dần thành widget con |
 | `get_it` có trong pubspec nhưng chưa dùng | Hiện DI làm thủ công qua `AppDependencies`; hoặc dùng get_it, hoặc gỡ dependency |
+| **Backend đang tắt, tên miền đã gỡ** | Chỉ chế độ demo chạy được. Dựng lại phải kèm HTTPS — xem README, mục "Kết nối lại backend" |
 | `HomeRepository` vẫn dùng `MockHomeService` ở chế độ live | Chờ endpoint `/home` từ backend |
+| Log chẩn đoán không bị loại khỏi bản release | `debugPrint` vẫn chạy ở release; `auth_service` đang in cả response body của login (chứa token). Vô hại lúc này vì bản deploy là demo, nhưng phải sửa TRƯỚC khi trỏ vào backend thật |
 | `fontFamily: 'Inter'` nhưng pubspec bundle font `Lato` | Font Inter không tồn tại → đang fallback về font hệ thống. Sửa thì giao diện sẽ đổi, cần chủ động quyết định |
 | Độ phủ test gần bằng 0 | Ưu tiên viết test cho `data/models` (fromJson) và các helper trong `core/utils` trước |
