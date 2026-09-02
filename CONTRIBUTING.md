@@ -124,21 +124,77 @@ Bước 7 không phải tuỳ chọn: chế độ demo là cách người mới 
 
 ## 7. Commit & Pull Request
 
-Commit theo [Conventional Commits](https://www.conventionalcommits.org/):
+Commit message viết **bằng tiếng Anh**, theo
+[Conventional Commits](https://www.conventionalcommits.org/). Comment trong code
+và tài liệu thì vẫn viết tiếng Việt — chỉ riêng commit là tiếng Anh, để lịch sử
+git đọc được với cả người ngoài dự án.
 
 ```
-feat(medications): thêm nhắc nhở theo giờ tuỳ chỉnh
-fix(family): sửa lỗi 401 khi chuyển quyền sở hữu nhóm
-refactor(core): gom cấu hình env vào AppConfig
-docs(readme): bổ sung hướng dẫn chạy chế độ demo
+feat(medications): add custom per-hour reminders
+fix(family): resolve 401 when transferring group ownership
+refactor(core): centralise env access in AppConfig
+docs(readme): document the demo mode workflow
 ```
+
+Phần thân commit nên trả lời **vì sao**, không chỉ *cái gì* — diff đã nói cái gì
+rồi. Ràng buộc không hiển nhiên, hợp đồng với backend, hay cạm bẫy đã vấp phải
+đều đáng viết ra.
 
 PR nên có: mô tả thay đổi, cách kiểm thử thủ công, ảnh chụp màn hình nếu đụng
-UI, và link tới issue liên quan.
+UI, và link tới issue liên quan. Mẫu PR đã được điền sẵn từ
+[`.github/pull_request_template.md`](.github/pull_request_template.md).
 
 ---
 
-## 8. Bảo mật
+## 8. Phân quyền và bảo vệ nhánh
+
+Repo để **public**, nên bất kỳ ai cũng đọc và clone được — điều đó không tránh
+khỏi khi còn public. Nhưng **không ai sửa được repo trực tiếp**: người ngoài chỉ
+fork rồi mở PR *đề nghị* thay đổi, quyền merge thuộc về maintainer.
+
+### Ai có quyền gì
+
+| Vai trò | Làm được | Cấp ở đâu |
+|---|---|---|
+| Người ngoài | Đọc, clone, fork, mở PR | mặc định của repo public |
+| Collaborator (Write) | Đẩy nhánh mới, merge PR đã duyệt | Settings → Collaborators and teams |
+| Admin | Đổi cài đặt repo, xoá nhánh chính | chỉ chủ repo |
+
+Thêm người mới thì cấp quyền **Write**, đừng cấp **Admin**.
+
+### Ruleset cần bật cho `master` và `dev`
+
+Settings → Rules → Rulesets → New branch ruleset:
+
+- **Require a pull request before merging** — chặn push thẳng, kể cả maintainer.
+- **Require status checks to pass** → chọn `Format · Analyze · Test`. PR nào CI
+  đỏ thì không merge được.
+- **Require review from Code Owners** — kích hoạt [`.github/CODEOWNERS`](.github/CODEOWNERS).
+  Không bật mục này thì CODEOWNERS chỉ gợi ý reviewer chứ không bắt buộc.
+- **Block force pushes** — chặn việc viết đè lịch sử đã đẩy lên, thứ khiến mọi
+  người khác phải `git reset --hard` để đồng bộ lại.
+- **Restrict deletions** — không xoá nhầm nhánh chính.
+
+### Actions từ người ngoài
+
+Settings → Actions → General:
+
+- *Fork pull request workflows from outside collaborators* →
+  **Require approval for all external contributors**. Nếu không, người lạ mở PR
+  là workflow tự chạy trên hạ tầng của repo.
+- *Workflow permissions* → **Read repository contents**. Không ảnh hưởng deploy
+  vì `deploy-demo.yml` tự khai riêng `pages: write` và `id-token: write`.
+
+### Bản quyền
+
+Repo hiện **không có file LICENSE**. Với repo public không license, mặc định là
+*all rights reserved*: người khác xem và fork trên GitHub được theo điều khoản
+của GitHub, nhưng không có quyền hợp pháp dùng lại mã nguồn. Muốn cho phép dùng
+lại thì mới thêm LICENSE (MIT hoặc Apache-2.0).
+
+---
+
+## 9. Bảo mật
 
 - **Không bao giờ commit `.env`**, `google-services.json` của môi trường thật,
   keystore, hay bất kỳ khoá riêng nào.
