@@ -30,7 +30,7 @@ class StressService {
     };
 
     debugPrint('[Stress] → POST $_baseUrl/metrics/stress/predict');
-    debugPrint('[Stress] → body: ${jsonEncode(body)}');
+    debugPrint('[Stress] → ${body.length} trường');
 
     try {
       final response = await _http.post(
@@ -39,7 +39,7 @@ class StressService {
       );
 
       debugPrint('[Stress] ← status: ${response.statusCode}');
-      debugPrint('[Stress] ← body: ${response.body}');
+      debugPrint('[Stress] ← ${response.body.length}B');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

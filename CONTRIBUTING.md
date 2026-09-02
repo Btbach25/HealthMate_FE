@@ -89,6 +89,25 @@ biến mới trong `.env.example`.
 **Log** — dùng `debugPrint('[Tên] …')` với prefix nhất quán (`[Auth]`, `[API]`,
 `[FCM]`, `[Settings]`…). `print()` bị chặn bởi analyzer.
 
+**TUYỆT ĐỐI không log dữ liệu nhạy cảm.** `debugPrint` *không* bị Flutter loại
+bỏ khi build release: mọi thứ nó in ra đều hiện trong Console của trình duyệt
+(F12 → Console) và trong logcat. `main.dart` có chặn toàn bộ log ở bản release,
+nhưng đó chỉ là lớp phòng thủ thứ hai — bản debug mà cả nhóm chạy hằng ngày thì
+không có lớp đó.
+
+```dart
+// ❌ Response của /auth/* chứa access_token và refresh_token
+debugPrint('[Auth] ← body=${response.body}');
+
+// ✅ Đủ để chẩn đoán mà không lộ gì
+debugPrint('[Auth] ← ${response.statusCode} (${response.body.length}B)');
+```
+
+Không log: token (access/refresh/FCM/idToken), response body, request body,
+mật khẩu, email, tên người dùng, và bất kỳ chỉ số sức khoẻ nào. Cần biết cái gì
+xảy ra thì log **hình dạng** chứ đừng log **nội dung**: status code, độ dài,
+số phần tử, tên trường.
+
 ---
 
 ## 5. Thêm một tính năng mới

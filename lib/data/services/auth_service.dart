@@ -73,8 +73,11 @@ class AuthApiService implements AuthService {
           )
           .timeout(const Duration(seconds: 30));
       sw.stop();
+      // KHÔNG log response body: phản hồi của /auth/* chứa access_token và
+      // refresh_token. `debugPrint` vẫn chạy ở bản release nên body sẽ hiện
+      // nguyên văn trong Console của trình duyệt.
       debugPrint(
-        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms, ${response.body.length}B)',
       );
 
       if (response.body.isEmpty) {
@@ -132,7 +135,9 @@ class AuthApiService implements AuthService {
       if (!kIsWeb) {
         debugPrint('[Auth] Google signIn() start');
         final googleUser = await _googleSignIn.signIn();
-        debugPrint('[Auth] Google signIn() done — user=${googleUser?.email}');
+        debugPrint(
+          '[Auth] Google signIn() done — ${googleUser != null ? 'có tài khoản' : 'người dùng huỷ'}',
+        );
         if (googleUser == null) return null;
         final googleAuth = await googleUser.authentication;
         idToken = googleAuth.idToken;
@@ -155,8 +160,11 @@ class AuthApiService implements AuthService {
           )
           .timeout(const Duration(seconds: 30));
       sw.stop();
+      // KHÔNG log response body: phản hồi của /auth/* chứa access_token và
+      // refresh_token. `debugPrint` vẫn chạy ở bản release nên body sẽ hiện
+      // nguyên văn trong Console của trình duyệt.
       debugPrint(
-        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms, ${response.body.length}B)',
       );
 
       if (response.body.isEmpty) {
@@ -220,8 +228,11 @@ class AuthApiService implements AuthService {
           )
           .timeout(const Duration(seconds: 30));
       sw.stop();
+      // KHÔNG log response body: phản hồi của /auth/* chứa access_token và
+      // refresh_token. `debugPrint` vẫn chạy ở bản release nên body sẽ hiện
+      // nguyên văn trong Console của trình duyệt.
       debugPrint(
-        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms, ${response.body.length}B)',
       );
 
       if (response.statusCode == 500) {

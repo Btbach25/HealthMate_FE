@@ -34,7 +34,7 @@ class ReadinessService {
     };
 
     debugPrint('[readiness] → POST $_baseUrl/metrics/readiness');
-    debugPrint('[readiness] → body: ${jsonEncode(reqBody)}');
+    debugPrint('[readiness] → ${reqBody.length} trường');
 
     try {
       final response = await _http.post(
@@ -43,7 +43,7 @@ class ReadinessService {
       );
 
       debugPrint('[readiness] ← status: ${response.statusCode}');
-      debugPrint('[readiness] ← body: ${response.body}');
+      debugPrint('[readiness] ← ${response.body.length}B');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

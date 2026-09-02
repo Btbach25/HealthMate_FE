@@ -23,7 +23,7 @@ class FcmDebugService {
         return;
       }
 
-      debugPrint('[FCM] Device token: $token');
+      debugPrint('[FCM] Lấy được device token (${token.length} ký tự)');
     } catch (e) {
       debugPrint('[FCM] Failed to init/get token: $e');
     }

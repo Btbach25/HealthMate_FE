@@ -59,7 +59,7 @@ class ApiOcrService {
       if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
         final errBody = await streamed.stream.bytesToString();
         if (errBody.trim().isNotEmpty) {
-          debugPrint('[OCR_API] error_body=$errBody');
+          debugPrint('[OCR_API] lỗi, body ${errBody.length}B');
         }
         return null;
       }
