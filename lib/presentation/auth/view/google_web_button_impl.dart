@@ -84,7 +84,9 @@ class _GoogleWebButtonState extends State<GoogleWebButton> {
     if (!mounted || _viewId == null) return;
     if (AppConfig.googleClientId.isEmpty) {
       // Không retry: thiếu cấu hình thì có thử lại bao nhiêu lần cũng vô ích.
-      debugPrint('[GoogleSignIn] Thiếu GOOGLE_CLIENT_ID trong .env — bỏ qua nút Google.');
+      debugPrint(
+        '[GoogleSignIn] Thiếu GOOGLE_CLIENT_ID trong .env — bỏ qua nút Google.',
+      );
       return;
     }
     final el = web.document.getElementById('gsi-div-$_viewId');
@@ -96,9 +98,9 @@ class _GoogleWebButtonState extends State<GoogleWebButton> {
       _ensureGsiInitialized();
       _currentGoogleCallback = (String idToken) {
         if (mounted) {
-          context
-              .read<AuthFormBloc>()
-              .add(GoogleLoginSubmitted(idToken: idToken));
+          context.read<AuthFormBloc>().add(
+            GoogleLoginSubmitted(idToken: idToken),
+          );
         }
       };
 

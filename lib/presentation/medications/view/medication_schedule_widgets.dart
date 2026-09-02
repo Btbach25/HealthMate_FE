@@ -25,8 +25,10 @@ class MedicationScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('EEEE, d MMMM yyyy', 'vi_VN')
-        .format(DateTime.now());
+    final dateStr = DateFormat(
+      'EEEE, d MMMM yyyy',
+      'vi_VN',
+    ).format(DateTime.now());
     final allEmpty = schedule.values.every((list) => list.isEmpty);
     final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
     final allDone = totalCount > 0 && completedCount == totalCount;
@@ -300,17 +302,19 @@ class MedicationPeriodSection extends StatelessWidget {
               ),
             )
           else
-            ...items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: MedicationItemCard(
-                    name: item.name,
-                    dosage: item.dosage,
-                    time: item.time,
-                    taken: item.taken,
-                    isOverdue: item.isOverdue,
-                    onTap: () => onTake(item.medicationId, item.reminderId),
-                  ),
-                )),
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: MedicationItemCard(
+                  name: item.name,
+                  dosage: item.dosage,
+                  time: item.time,
+                  taken: item.taken,
+                  isOverdue: item.isOverdue,
+                  onTap: () => onTake(item.medicationId, item.reminderId),
+                ),
+              ),
+            ),
         ],
       ),
     );

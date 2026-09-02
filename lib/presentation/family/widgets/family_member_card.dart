@@ -18,19 +18,26 @@ import 'package:intl/intl.dart';
 /// người xem là chủ nhóm, còn lại là "Theo dõi".
 class FamilyMemberCard extends StatelessWidget {
   final FamilyMember member;
+
   /// True khi **người đang xem** là chủ nhóm (không phải chủ sở hữu của thẻ này).
   final bool isOwner;
+
   /// True khi **thành viên trên thẻ này** là chủ nhóm → hiện huy hiệu "Chủ nhóm".
   final bool isGroupOwner;
   final String groupId;
+
   /// True khi đây là thẻ của chính bạn (chủ nhóm) → ẩn nút xóa, dùng "Rời nhóm" thay.
   final bool isCurrentUser;
+
   /// Bấm "Xem chỉ số" — nếu null thì nút bị disable.
   final VoidCallback? onViewMetrics;
+
   /// Bấm "Theo dõi" — nếu null thì nút ẩn hoàn toàn.
   final VoidCallback? onFollow;
+
   /// Bấm "Chỉnh quyền" cho thành viên (chỉ chủ nhóm).
   final VoidCallback? onEditPermissions;
+
   /// Bấm "Chia sẻ chỉ số" trên thẻ của chính người dùng.
   final VoidCallback? onShareMyMetrics;
 
@@ -56,7 +63,9 @@ class FamilyMemberCard extends StatelessWidget {
     final statusBgColor = member.healthStatus.backgroundColor;
     final showEditPermissions = onEditPermissions != null && !isCurrentUser;
     final secondaryLabel = showEditPermissions ? 'Giới hạn' : 'Theo dõi';
-    final secondaryIcon = showEditPermissions ? Icons.tune_rounded : Icons.favorite_outline;
+    final secondaryIcon = showEditPermissions
+        ? Icons.tune_rounded
+        : Icons.favorite_outline;
 
     return Container(
       padding: const EdgeInsets.all(AppSize.p20),
@@ -130,7 +139,10 @@ class FamilyMemberCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusBgColor,
                   borderRadius: BorderRadius.circular(8),
@@ -146,7 +158,10 @@ class FamilyMemberCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.inputBackground,
                   borderRadius: BorderRadius.circular(8),
@@ -211,11 +226,14 @@ class FamilyMemberCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (!isCurrentUser && (showEditPermissions || onFollow != null)) ...[
+              if (!isCurrentUser &&
+                  (showEditPermissions || onFollow != null)) ...[
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: showEditPermissions ? onEditPermissions : onFollow,
+                    onPressed: showEditPermissions
+                        ? onEditPermissions
+                        : onFollow,
                     icon: Icon(secondaryIcon, size: 18),
                     label: Text(secondaryLabel),
                     style: OutlinedButton.styleFrom(
@@ -263,8 +281,8 @@ class FamilyMemberCard extends StatelessWidget {
       confirmText: 'Xóa',
       onConfirm: () {
         context.read<FamilyBloc>().add(
-              RemoveMember(groupId: groupId, memberId: member.id),
-            );
+          RemoveMember(groupId: groupId, memberId: member.id),
+        );
       },
     );
   }

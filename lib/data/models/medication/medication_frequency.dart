@@ -37,25 +37,25 @@ class MedicationFrequency {
     return MedicationFrequency(
       type: type,
       timesPerDay: json['times_per_day'] as int? ?? 1,
-      specificTimes:
-          List<String>.from(json['specific_times'] as List? ?? ['08:00']),
+      specificTimes: List<String>.from(
+        json['specific_times'] as List? ?? ['08:00'],
+      ),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'times_per_day': timesPerDay,
-        'specific_times': specificTimes,
-      };
+    'type': type.name,
+    'times_per_day': timesPerDay,
+    'specific_times': specificTimes,
+  };
 
   MedicationFrequency copyWith({
     MedicationFrequencyType? type,
     int? timesPerDay,
     List<String>? specificTimes,
-  }) =>
-      MedicationFrequency(
-        type: type ?? this.type,
-        timesPerDay: timesPerDay ?? this.timesPerDay,
-        specificTimes: specificTimes ?? this.specificTimes,
-      );
+  }) => MedicationFrequency(
+    type: type ?? this.type,
+    timesPerDay: timesPerDay ?? this.timesPerDay,
+    specificTimes: specificTimes ?? this.specificTimes,
+  );
 }

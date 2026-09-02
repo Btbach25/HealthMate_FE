@@ -9,7 +9,10 @@ void main() {
   group('validateEmail', () {
     test('trả null khi email hợp lệ', () {
       expect(FormValidationHelper.validateEmail('a@b.co'), isNull);
-      expect(FormValidationHelper.validateEmail('nguyen.van.a@gmail.com'), isNull);
+      expect(
+        FormValidationHelper.validateEmail('nguyen.van.a@gmail.com'),
+        isNull,
+      );
     });
 
     test('bỏ khoảng trắng thừa trước khi kiểm tra', () {
@@ -24,7 +27,10 @@ void main() {
     test('báo lỗi khi sai định dạng', () {
       expect(FormValidationHelper.validateEmail('abc'), 'Email không hợp lệ');
       expect(FormValidationHelper.validateEmail('a@b'), 'Email không hợp lệ');
-      expect(FormValidationHelper.validateEmail('a b@c.co'), 'Email không hợp lệ');
+      expect(
+        FormValidationHelper.validateEmail('a b@c.co'),
+        'Email không hợp lệ',
+      );
     });
   });
 
@@ -44,7 +50,11 @@ void main() {
   group('validateMinLength', () {
     test('đếm độ dài sau khi trim', () {
       expect(
-        FormValidationHelper.validateMinLength('  ab  ', 3, fieldName: 'Mật khẩu'),
+        FormValidationHelper.validateMinLength(
+          '  ab  ',
+          3,
+          fieldName: 'Mật khẩu',
+        ),
         'Mật khẩu phải có ít nhất 3 ký tự',
       );
       expect(FormValidationHelper.validateMinLength('abc', 3), isNull);
@@ -59,7 +69,11 @@ void main() {
 
     test('báo lỗi khi vượt quá giới hạn', () {
       expect(
-        FormValidationHelper.validateMaxLength('abcdef', 5, fieldName: 'Ghi chú'),
+        FormValidationHelper.validateMaxLength(
+          'abcdef',
+          5,
+          fieldName: 'Ghi chú',
+        ),
         'Ghi chú không được vượt quá 5 ký tự',
       );
     });
@@ -77,7 +91,10 @@ void main() {
     test('báo lỗi với ngày ở tương lai', () {
       final tomorrow = DateTime.now().add(const Duration(days: 1));
       expect(
-        FormValidationHelper.validateDateNotFuture(tomorrow, fieldName: 'Ngày sinh'),
+        FormValidationHelper.validateDateNotFuture(
+          tomorrow,
+          fieldName: 'Ngày sinh',
+        ),
         'Ngày sinh không thể lớn hơn ngày hiện tại',
       );
     });

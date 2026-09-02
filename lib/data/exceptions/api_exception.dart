@@ -97,4 +97,3 @@ class UnknownException extends ApiException {
     super.originalError,
   });
 }
-

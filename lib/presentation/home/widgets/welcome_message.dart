@@ -21,7 +21,15 @@ class WelcomeMessage extends StatelessWidget {
 
   String _todayLabel() {
     final now = DateTime.now();
-    const weekdays = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+    const weekdays = [
+      'Thứ Hai',
+      'Thứ Ba',
+      'Thứ Tư',
+      'Thứ Năm',
+      'Thứ Sáu',
+      'Thứ Bảy',
+      'Chủ Nhật',
+    ];
     return '${weekdays[now.weekday - 1]}, ${now.day}/${now.month}/${now.year}';
   }
 

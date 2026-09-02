@@ -187,7 +187,9 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
     CreateGroupName event,
     Emitter<FamilyState> emit,
   ) async {
-    emit(state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null));
+    emit(
+      state.copyWith(status: FamilyStatus.creatingGroup, errorMessage: null),
+    );
     try {
       // Chỉ POST /groups với tên. Truyền sharedMetrics rỗng để service bỏ qua
       // bước PUT permissions — bước 2 của luồng tạo nhóm sẽ gửi qua UpdateGroup.
@@ -196,20 +198,24 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         sharedMetrics: const [],
       );
       final updatedGroups = [newGroup, ...state.summary.groups];
-      emit(state.copyWith(
-        status: FamilyStatus.groupNameCreated,
-        summary: state.summary.copyWith(
-          groups: updatedGroups,
-          groupsJoined: updatedGroups.length,
+      emit(
+        state.copyWith(
+          status: FamilyStatus.groupNameCreated,
+          summary: state.summary.copyWith(
+            groups: updatedGroups,
+            groupsJoined: updatedGroups.length,
+          ),
+          createdGroupId: newGroup.id,
+          errorMessage: null,
         ),
-        createdGroupId: newGroup.id,
-        errorMessage: null,
-      ));
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -783,16 +789,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         groupId: event.groupId,
         sharedMetrics: event.sharedMetrics,
       );
-      emit(state.copyWith(
-        status: FamilyStatus.mySharingUpdated,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.mySharingUpdated,
+          errorMessage: null,
+        ),
+      );
       add(FetchGroupDetails(groupId: event.groupId));
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 
@@ -808,16 +818,20 @@ class FamilyBloc extends Bloc<FamilyEvent, FamilyState> {
         sharedMetrics: event.sharedMetrics,
         allowMedicationReminderShare: event.allowMedicationReminderShare,
       );
-      emit(state.copyWith(
-        status: FamilyStatus.memberPermissionsUpdated,
-        errorMessage: null,
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.memberPermissionsUpdated,
+          errorMessage: null,
+        ),
+      );
       add(FetchGroupDetails(groupId: event.groupId));
     } catch (e) {
-      emit(state.copyWith(
-        status: FamilyStatus.error,
-        errorMessage: UserFacingError.message(e),
-      ));
+      emit(
+        state.copyWith(
+          status: FamilyStatus.error,
+          errorMessage: UserFacingError.message(e),
+        ),
+      );
     }
   }
 }

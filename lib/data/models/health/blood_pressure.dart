@@ -5,7 +5,7 @@ class BloodPressure {
   final DateTime time;
   final String userId;
   final int? systolic;
-  final int? diastolic; 
+  final int? diastolic;
 
   BloodPressure({
     required this.time,

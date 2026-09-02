@@ -49,11 +49,11 @@ class _EditMySharingDialogState extends State<EditMySharingDialog> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
     context.read<FamilyBloc>().add(
-          UpdateMySharing(
-            groupId: widget.groupId,
-            sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
-          ),
-        );
+      UpdateMySharing(
+        groupId: widget.groupId,
+        sharedMetrics: MetricSelectionHelper.toApiFormat(_selectedMetrics),
+      ),
+    );
   }
 
   @override
@@ -105,8 +105,13 @@ class _EditMySharingDialogState extends State<EditMySharingDialog> {
                           ),
                         ),
                         IconButton(
-                          onPressed: _isLoading ? null : () => Navigator.pop(context),
-                          icon: const Icon(Icons.close, color: AppColors.textGrey),
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppColors.textGrey,
+                          ),
                         ),
                       ],
                     ),
@@ -129,7 +134,9 @@ class _EditMySharingDialogState extends State<EditMySharingDialog> {
                       spacing: 12,
                       runSpacing: 12,
                       children: _availableMetrics.map((metric) {
-                        final isSelected = _selectedMetrics.contains(metric.type);
+                        final isSelected = _selectedMetrics.contains(
+                          metric.type,
+                        );
                         return MetricCheckbox(
                           metric: metric,
                           isSelected: isSelected,

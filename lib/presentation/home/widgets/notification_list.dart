@@ -35,7 +35,11 @@ class NotificationList extends StatelessWidget {
                   color: AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.notifications_none_rounded, color: AppColors.primary, size: 16),
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.primary,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               const Text(
@@ -60,17 +64,28 @@ class NotificationList extends StatelessWidget {
                         color: AppColors.surfaceVariant,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.notifications_off_outlined, color: AppColors.textLight, size: 28),
+                      child: const Icon(
+                        Icons.notifications_off_outlined,
+                        color: AppColors.textLight,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     const Text(
                       'Không có thông báo mới',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textGrey),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textGrey,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const Text(
                       'Thông báo từ nhóm gia đình sẽ hiện ở đây',
-                      style: TextStyle(fontSize: 12, color: AppColors.textLight),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],

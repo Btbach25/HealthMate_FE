@@ -44,7 +44,9 @@ class SettingsSwitchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveIconColor = enabled ? AppColors.primary : AppColors.textGrey;
-    final effectiveIconBg = enabled ? AppColors.primaryContainer : AppColors.surfaceVariant;
+    final effectiveIconBg = enabled
+        ? AppColors.primaryContainer
+        : AppColors.surfaceVariant;
 
     return Semantics(
       label: '$title. $description',
@@ -96,7 +98,9 @@ class SettingsSwitchRow extends StatelessWidget {
               return Colors.grey[300];
             }),
             trackColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return AppColors.primary;
+              if (states.contains(WidgetState.selected)) {
+                return AppColors.primary;
+              }
               return Colors.grey[300];
             }),
           ),

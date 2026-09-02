@@ -35,20 +35,33 @@ abstract class FamilyService {
     String? relationship,
     int? age,
     required List<String> sharedMetrics,
+
     /// BE origin/main: mời bằng email. userId chỉ dùng cho mock nếu cần.
     String? userId,
   });
+
   /// BE: PUT /groups/:id/members/me body {"status":"accepted"} rồi PUT permissions.
   Future<void> acceptInvitation({
     required String groupId,
     required List<String> sharedMetrics,
   });
+
   /// BE: PUT /groups/:id/members/me body {"status":"rejected"}.
   Future<void> declineInvitation({required String groupId});
+
   /// [cachedGroup]: nếu có (đã có từ danh sách nhóm), chỉ gọi GET /groups/:id/members, bỏ qua GET /groups → mở chi tiết nhanh hơn.
-  Future<GroupDetails> getGroupDetails({required String groupId, FamilyGroup? cachedGroup});
-  Future<void> transferOwnership({required String groupId, required String newOwnerId});
-  Future<void> removeMember({required String groupId, required String memberId});
+  Future<GroupDetails> getGroupDetails({
+    required String groupId,
+    FamilyGroup? cachedGroup,
+  });
+  Future<void> transferOwnership({
+    required String groupId,
+    required String newOwnerId,
+  });
+  Future<void> removeMember({
+    required String groupId,
+    required String memberId,
+  });
   Future<void> updateMemberPermissions({
     required String groupId,
     required String memberId,
@@ -57,11 +70,16 @@ abstract class FamilyService {
   });
   Future<List<IncomingInvitation>> getIncomingInvitations();
   Future<List<OutgoingInvitation>> getOutgoingInvitations();
+
   /// Lấy danh sách thành viên cho người được mời (chưa accept). BE cho phép gọi GET /groups/:id/members.
-  Future<List<FamilyMember>> getGroupMembersForInvitee({required String groupId});
+  Future<List<FamilyMember>> getGroupMembersForInvitee({
+    required String groupId,
+  });
 
   /// Owner only: GET /groups/:id/pending-approvals
-  Future<List<OutgoingInvitation>> getPendingApprovals({required String groupId});
+  Future<List<OutgoingInvitation>> getPendingApprovals({
+    required String groupId,
+  });
 
   /// Owner only: POST /groups/:id/approve/:memberId
   Future<void> approveJoinRequest({
@@ -90,5 +108,3 @@ abstract class FamilyService {
     required String memberId,
   });
 }
-
-

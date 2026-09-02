@@ -41,7 +41,11 @@ class MedicationCard extends StatelessWidget {
                   color: AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(AppIcons.medication, color: AppColors.primary, size: 18),
+                child: const Icon(
+                  AppIcons.medication,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -55,9 +59,14 @@ class MedicationCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: done ? AppColors.successLight : AppColors.primaryContainer,
+                  color: done
+                      ? AppColors.successLight
+                      : AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -75,11 +84,39 @@ class MedicationCard extends StatelessWidget {
           IntrinsicHeight(
             child: Row(
               children: [
-                Expanded(child: _StatBox(label: 'Lượt uống', value: '${progress.total}', color: AppColors.primary)),
-                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
-                Expanded(child: _StatBox(label: 'Đã uống', value: '${progress.completed}', color: AppColors.success)),
-                const VerticalDivider(width: 16, thickness: 0.8, color: AppColors.cardBorder),
-                Expanded(child: _StatBox(label: 'Còn lại', value: '$remaining', color: remaining > 0 ? AppColors.warning : AppColors.textGrey)),
+                Expanded(
+                  child: _StatBox(
+                    label: 'Lượt uống',
+                    value: '${progress.total}',
+                    color: AppColors.primary,
+                  ),
+                ),
+                const VerticalDivider(
+                  width: 16,
+                  thickness: 0.8,
+                  color: AppColors.cardBorder,
+                ),
+                Expanded(
+                  child: _StatBox(
+                    label: 'Đã uống',
+                    value: '${progress.completed}',
+                    color: AppColors.success,
+                  ),
+                ),
+                const VerticalDivider(
+                  width: 16,
+                  thickness: 0.8,
+                  color: AppColors.cardBorder,
+                ),
+                Expanded(
+                  child: _StatBox(
+                    label: 'Còn lại',
+                    value: '$remaining',
+                    color: remaining > 0
+                        ? AppColors.warning
+                        : AppColors.textGrey,
+                  ),
+                ),
               ],
             ),
           ),
@@ -105,7 +142,11 @@ class _StatBox extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _StatBox({required this.label, required this.value, required this.color});
+  const _StatBox({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +156,11 @@ class _StatBox extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
         const SizedBox(height: 2),
         Text(

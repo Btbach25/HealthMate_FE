@@ -49,8 +49,11 @@ class CreateGroup extends FamilyEvent {
   });
 
   @override
-  List<Object?> get props =>
-      [name, sharedMetrics, enableMedicationReminderShare];
+  List<Object?> get props => [
+    name,
+    sharedMetrics,
+    enableMedicationReminderShare,
+  ];
 }
 
 /// Sửa cài đặt chung của nhóm (chỉ chủ nhóm). Cũng là bước 2 của luồng tạo nhóm.
@@ -69,8 +72,12 @@ class UpdateGroup extends FamilyEvent {
   });
 
   @override
-  List<Object?> get props =>
-      [groupId, name, sharedMetrics, enableMedicationReminderShare];
+  List<Object?> get props => [
+    groupId,
+    name,
+    sharedMetrics,
+    enableMedicationReminderShare,
+  ];
 }
 
 /// Xoá hẳn nhóm (chỉ chủ nhóm). Dùng khi chủ nhóm rời lúc chỉ còn một mình.
@@ -98,10 +105,14 @@ class LeaveGroup extends FamilyEvent {
 /// `memberCount` của nhóm đó trong summary để 2 màn hình không lệch nhau.
 class FetchGroupDetails extends FamilyEvent {
   final String groupId;
+
   /// True khi đây là lần gọi lại sau 401 (tránh retry vô hạn).
   final bool isRetryAfter401;
 
-  const FetchGroupDetails({required this.groupId, this.isRetryAfter401 = false});
+  const FetchGroupDetails({
+    required this.groupId,
+    this.isRetryAfter401 = false,
+  });
 
   @override
   List<Object?> get props => [groupId, isRetryAfter401];
@@ -112,11 +123,13 @@ class FetchGroupDetails extends FamilyEvent {
 class InviteMember extends FamilyEvent {
   final String groupId;
   final String email;
+
   /// Chỉ dùng mock; BE mời bằng email — tên lấy từ tài khoản khi người được mời tham gia.
   final String name;
   final String? relationship;
   final int? age;
   final List<String> sharedMetrics;
+
   /// Id người được mời (bắt buộc khi gọi máy chủ). Nếu null, lời mời có thể thất bại.
   final String? userId;
 
@@ -131,7 +144,15 @@ class InviteMember extends FamilyEvent {
   });
 
   @override
-  List<Object?> get props => [groupId, email, name, relationship, age, sharedMetrics, userId];
+  List<Object?> get props => [
+    groupId,
+    email,
+    name,
+    relationship,
+    age,
+    sharedMetrics,
+    userId,
+  ];
 }
 
 /// Chủ nhóm chuyển quyền sở hữu cho thành viên khác (PUT /groups/:id/owner).
@@ -183,6 +204,7 @@ class FetchInvitationPreview extends FamilyEvent {
 class AcceptInvitation extends FamilyEvent {
   final String groupId;
   final List<String> sharedMetrics;
+
   /// Số thành viên hiện tại trong nhóm (không tính người đang nhận lời mời).
   /// Dùng để cập nhật optimistic UI ngay sau khi chấp nhận.
   final int? currentMemberCount;
@@ -296,8 +318,10 @@ class UpdateMemberPermissions extends FamilyEvent {
   });
 
   @override
-  List<Object?> get props =>
-      [groupId, memberId, sharedMetrics, allowMedicationReminderShare];
+  List<Object?> get props => [
+    groupId,
+    memberId,
+    sharedMetrics,
+    allowMedicationReminderShare,
+  ];
 }
-
-

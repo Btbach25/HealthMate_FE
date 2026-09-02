@@ -19,6 +19,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// Bắn [InviteMember]; thành công thì đóng modal, không trả về giá trị.
 class AddMemberModal extends StatefulWidget {
   final String groupId;
+
   /// Bộ chỉ số nhóm đang cho phép. Hiện chỉ để tham chiếu/dự phòng — form không
   /// còn cho chủ nhóm chọn hộ chỉ số của người được mời nữa.
   final List<MetricType> groupAllowedMetrics;
@@ -66,15 +67,15 @@ class _AddMemberModalState extends State<AddMemberModal>
     });
 
     context.read<FamilyBloc>().add(
-          InviteMember(
-            groupId: widget.groupId,
-            email: email,
-            relationship: _selectedRelationship?.value,
-            age: null,
-            sharedMetrics: const [],
-            userId: null,
-          ),
-        );
+      InviteMember(
+        groupId: widget.groupId,
+        email: email,
+        relationship: _selectedRelationship?.value,
+        age: null,
+        sharedMetrics: const [],
+        userId: null,
+      ),
+    );
   }
 
   Widget _buildDialogContent(BuildContext context) {
@@ -105,7 +106,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                       'thành viên tự chọn chỉ số chia sẻ trong nhóm.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textGrey.withValues(alpha:0.8),
+                        color: AppColors.textGrey.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -157,7 +158,7 @@ class _AddMemberModalState extends State<AddMemberModal>
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<RelationshipType>(
-                  value: _selectedRelationship,
+                  initialValue: _selectedRelationship,
                   decoration: const InputDecoration(
                     hintText: 'Chọn mối quan hệ',
                   ),
@@ -192,11 +193,11 @@ class _AddMemberModalState extends State<AddMemberModal>
             const SizedBox(height: 12),
           ],
           const SizedBox(height: 8),
-            LoadingButton(
-              text: 'Gửi lời mời',
-              onPressed: _handleInvite,
-              isLoading: _isLoading,
-            ),
+          LoadingButton(
+            text: 'Gửi lời mời',
+            onPressed: _handleInvite,
+            isLoading: _isLoading,
+          ),
         ],
       ),
     );

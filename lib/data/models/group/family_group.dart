@@ -110,19 +110,16 @@ class FamilyGroup extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        memberCount,
-        userRole,
-        createdAt,
-        updatedAt,
-        lastActivity,
-        pendingInvitations,
-        sharedMetrics,
-        ownerId,
-        medicationSharingAllowed,
-      ];
+    id,
+    name,
+    memberCount,
+    userRole,
+    createdAt,
+    updatedAt,
+    lastActivity,
+    pendingInvitations,
+    sharedMetrics,
+    ownerId,
+    medicationSharingAllowed,
+  ];
 }
-
-
-

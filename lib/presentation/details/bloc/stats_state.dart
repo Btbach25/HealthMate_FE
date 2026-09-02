@@ -78,13 +78,13 @@ class StatsState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        statsData,
-        errorMessage,
-        chartStatus,
-        chartData,
-        chartErrorMessage,
-        selectedRange,
-        isFromDevice,
-      ];
+    status,
+    statsData,
+    errorMessage,
+    chartStatus,
+    chartData,
+    chartErrorMessage,
+    selectedRange,
+    isFromDevice,
+  ];
 }

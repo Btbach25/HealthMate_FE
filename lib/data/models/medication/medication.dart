@@ -31,36 +31,36 @@ class Medication {
   });
 
   factory Medication.fromJson(Map<String, dynamic> json) => Medication(
-        id: json['id'] as String,
-        userId: json['user_id'] as String,
-        name: json['name'] as String,
-        dosage: json['dosage'] as String,
-        frequency: MedicationFrequency.fromJson(
-            json['frequency'] as Map<String, dynamic>),
-        startDate: json['start_date'] as String,
-        endDate: json['end_date'] as String?,
-        instructions: json['instructions'] as String? ?? '',
-        prescribedBy: json['prescribed_by'] as String? ?? '',
-        isActive: json['is_active'] as bool? ?? true,
-        reminders: (json['reminders'] as List? ?? [])
-            .map((r) =>
-                MedicationReminder.fromJson(r as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id'] as String,
+    userId: json['user_id'] as String,
+    name: json['name'] as String,
+    dosage: json['dosage'] as String,
+    frequency: MedicationFrequency.fromJson(
+      json['frequency'] as Map<String, dynamic>,
+    ),
+    startDate: json['start_date'] as String,
+    endDate: json['end_date'] as String?,
+    instructions: json['instructions'] as String? ?? '',
+    prescribedBy: json['prescribed_by'] as String? ?? '',
+    isActive: json['is_active'] as bool? ?? true,
+    reminders: (json['reminders'] as List? ?? [])
+        .map((r) => MedicationReminder.fromJson(r as Map<String, dynamic>))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'user_id': userId,
-        'name': name,
-        'dosage': dosage,
-        'frequency': frequency.toJson(),
-        'start_date': startDate,
-        'end_date': endDate,
-        'instructions': instructions,
-        'prescribed_by': prescribedBy,
-        'is_active': isActive,
-        'reminders': reminders.map((r) => r.toJson()).toList(),
-      };
+    'id': id,
+    'user_id': userId,
+    'name': name,
+    'dosage': dosage,
+    'frequency': frequency.toJson(),
+    'start_date': startDate,
+    'end_date': endDate,
+    'instructions': instructions,
+    'prescribed_by': prescribedBy,
+    'is_active': isActive,
+    'reminders': reminders.map((r) => r.toJson()).toList(),
+  };
 
   Medication copyWith({
     String? id,
@@ -74,18 +74,17 @@ class Medication {
     String? prescribedBy,
     bool? isActive,
     List<MedicationReminder>? reminders,
-  }) =>
-      Medication(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        name: name ?? this.name,
-        dosage: dosage ?? this.dosage,
-        frequency: frequency ?? this.frequency,
-        startDate: startDate ?? this.startDate,
-        endDate: endDate ?? this.endDate,
-        instructions: instructions ?? this.instructions,
-        prescribedBy: prescribedBy ?? this.prescribedBy,
-        isActive: isActive ?? this.isActive,
-        reminders: reminders ?? this.reminders,
-      );
+  }) => Medication(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    name: name ?? this.name,
+    dosage: dosage ?? this.dosage,
+    frequency: frequency ?? this.frequency,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    instructions: instructions ?? this.instructions,
+    prescribedBy: prescribedBy ?? this.prescribedBy,
+    isActive: isActive ?? this.isActive,
+    reminders: reminders ?? this.reminders,
+  );
 }

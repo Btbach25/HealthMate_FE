@@ -24,9 +24,8 @@ class AuthRepository {
   AuthRepository({
     required AuthService authService,
     required LocalStorageService localStorageService,
-    }) : 
-      _authService = authService,
-      _localStorageService = localStorageService;
+  }) : _authService = authService,
+       _localStorageService = localStorageService;
 
   Stream<AuthStatus> get status async* {
     await Future<void>.delayed(const Duration(seconds: 1));
@@ -61,8 +60,16 @@ class AuthRepository {
     }
   }
 
-  Future<User?> register({required String name, required String email, required String password}) async {
-    return await _authService.register(name: name, email: email, password: password);
+  Future<User?> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    return await _authService.register(
+      name: name,
+      email: email,
+      password: password,
+    );
   }
 
   Future<void> sendPasswordResetEmail({required String email}) async {
@@ -79,7 +86,7 @@ class AuthRepository {
     }
     return success;
   }
-  
+
   Future<void> resendOtp({required String email}) async {
     await _authService.resendOtp(email: email);
   }

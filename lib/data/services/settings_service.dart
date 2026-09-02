@@ -23,7 +23,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString(_notificationSettingsKey);
-      
+
       if (settingsJson != null) {
         final json = jsonDecode(settingsJson) as Map<String, dynamic>;
         return NotificationSettings.fromJson(json);
@@ -52,7 +52,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString(_privacySecuritySettingsKey);
-      
+
       if (settingsJson != null) {
         final json = jsonDecode(settingsJson) as Map<String, dynamic>;
         return PrivacySecuritySettings.fromJson(json);
@@ -65,7 +65,9 @@ class SettingsService {
   }
 
   /// Ghi cài đặt quyền riêng tư & bảo mật. Ném lại lỗi nếu ghi thất bại.
-  Future<void> savePrivacySecuritySettings(PrivacySecuritySettings settings) async {
+  Future<void> savePrivacySecuritySettings(
+    PrivacySecuritySettings settings,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = jsonEncode(settings.toJson());
@@ -81,7 +83,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final settingsJson = prefs.getString(_generalSettingsKey);
-      
+
       if (settingsJson != null) {
         final json = jsonDecode(settingsJson) as Map<String, dynamic>;
         return GeneralSettings.fromJson(json);
@@ -89,7 +91,7 @@ class SettingsService {
     } catch (e) {
       debugPrint('[Settings] Lỗi đọc general settings: $e');
     }
-    
+
     return const GeneralSettings();
   }
 
@@ -105,4 +107,3 @@ class SettingsService {
     }
   }
 }
-

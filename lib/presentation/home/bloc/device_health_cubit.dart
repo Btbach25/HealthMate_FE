@@ -36,6 +36,7 @@ class DeviceHealthState extends Equatable {
   final double? bloodOxygen;
   final double? sleepHours;
   final String? error;
+
   /// Chỉ có nghĩa trên Android, nơi ứng dụng bắt buộc phải đi qua Health Connect.
   /// null = chưa kiểm tra, hoặc nền tảng không áp dụng (iOS/web).
   final bool? isHealthConnectConnected;
@@ -86,7 +87,8 @@ class DeviceHealthState extends Equatable {
     bloodOxygen: bloodOxygen ?? this.bloodOxygen,
     sleepHours: sleepHours ?? this.sleepHours,
     error: error,
-    isHealthConnectConnected: isHealthConnectConnected ?? this.isHealthConnectConnected,
+    isHealthConnectConnected:
+        isHealthConnectConnected ?? this.isHealthConnectConnected,
     stressPrediction: stressPrediction ?? this.stressPrediction,
     stressLoading: stressLoading ?? this.stressLoading,
     stressDataEstimated: stressDataEstimated ?? this.stressDataEstimated,
@@ -94,8 +96,22 @@ class DeviceHealthState extends Equatable {
   );
 
   @override
-  List<Object?> get props =>
-      [loading, lastUpdated, totalSteps, dataCount, readinessScore, readinessLoading, bloodOxygen, sleepHours, error, isHealthConnectConnected, stressPrediction, stressLoading, stressDataEstimated, stressApiError];
+  List<Object?> get props => [
+    loading,
+    lastUpdated,
+    totalSteps,
+    dataCount,
+    readinessScore,
+    readinessLoading,
+    bloodOxygen,
+    sleepHours,
+    error,
+    isHealthConnectConnected,
+    stressPrediction,
+    stressLoading,
+    stressDataEstimated,
+    stressApiError,
+  ];
 }
 
 /// Nguồn dữ liệu sức khoẻ đọc từ thiết bị (Health Connect trên Android, HealthKit
@@ -154,18 +170,33 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     if (_lastPoints.isEmpty) return null;
     final now = DateTime.now();
     final hr = _latestNumeric(_lastPoints, HealthDataType.HEART_RATE);
-    final sys = _latestNumeric(_lastPoints, HealthDataType.BLOOD_PRESSURE_SYSTOLIC);
-    final dia = _latestNumeric(_lastPoints, HealthDataType.BLOOD_PRESSURE_DIASTOLIC);
+    final sys = _latestNumeric(
+      _lastPoints,
+      HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
+    );
+    final dia = _latestNumeric(
+      _lastPoints,
+      HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
+    );
     final wt = _latestNumeric(_lastPoints, HealthDataType.WEIGHT);
     final temp = _latestNumeric(_lastPoints, HealthDataType.BODY_TEMPERATURE);
     final spo2 = _latestNumeric(_lastPoints, HealthDataType.BLOOD_OXYGEN);
     return HealthOverview(
-      heartRate: hr != null ? HeartRate(time: now, userId: '', value: hr) : null,
+      heartRate: hr != null
+          ? HeartRate(time: now, userId: '', value: hr)
+          : null,
       bloodPressure: (sys != null || dia != null)
-          ? BloodPressure(time: now, userId: '', systolic: sys?.toInt(), diastolic: dia?.toInt())
+          ? BloodPressure(
+              time: now,
+              userId: '',
+              systolic: sys?.toInt(),
+              diastolic: dia?.toInt(),
+            )
           : null,
       weight: wt != null ? Weight(time: now, userId: '', value: wt) : null,
-      temperature: temp != null ? Temperature(time: now, userId: '', value: temp) : null,
+      temperature: temp != null
+          ? Temperature(time: now, userId: '', value: temp)
+          : null,
       bloodOxygen: spo2,
     );
   }
@@ -183,15 +214,18 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   /// đó, nên đây là điểm "hồi sinh" cubit sau khi người dùng rời màn hình rồi quay lại.
   Future<void> poll() async {
     _stopped = false; // người dùng active trở lại → cho phép emit
-    final onAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    final onAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     emit(state.copyWith(loading: true, error: null));
     final result = await _service.fetchAll();
     if (result == null) {
-      emit(state.copyWith(
-        loading: false,
-        error: 'Không lấy được dữ liệu thiết bị',
-        isHealthConnectConnected: onAndroid ? false : null,
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          error: 'Không lấy được dữ liệu thiết bị',
+          isHealthConnectConnected: onAndroid ? false : null,
+        ),
+      );
       return;
     }
 
@@ -205,23 +239,28 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
         ? (result.dataPoints.isNotEmpty || result.totalSteps != null)
         : null;
 
-    emit(state.copyWith(
-      loading: false,
-      lastUpdated: result.fetchedAt,
-      totalSteps: result.totalSteps,
-      dataCount: result.dataPoints.length,
-      readinessLoading: true,
-      stressLoading: true,
-      error: null,
-      isHealthConnectConnected: hcConnected,
-    ));
+    emit(
+      state.copyWith(
+        loading: false,
+        lastUpdated: result.fetchedAt,
+        totalSteps: result.totalSteps,
+        dataCount: result.dataPoints.length,
+        readinessLoading: true,
+        stressLoading: true,
+        error: null,
+        isHealthConnectConnected: hcConnected,
+      ),
+    );
 
     // Cố ý không await: màn hình không được chờ WebSocket bắt tay xong mới hiện số liệu.
-    _wsService.connect().then((_) {
-      _wsService.sendLatestMetrics(_lastPoints);
-    }).catchError((e) {
-      debugPrint('[DeviceHealthCubit] WS connect error: $e');
-    });
+    _wsService
+        .connect()
+        .then((_) {
+          _wsService.sendLatestMetrics(_lastPoints);
+        })
+        .catchError((e) {
+          debugPrint('[DeviceHealthCubit] WS connect error: $e');
+        });
 
     _fetchReadiness(result);
     _fetchStress(result);
@@ -255,17 +294,21 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
       final result = await _service.fetchAll();
       if (result == null) return;
       _lastPoints = result.dataPoints;
-      emit(state.copyWith(
-        lastUpdated: result.fetchedAt,
-        totalSteps: result.totalSteps,
-        dataCount: result.dataPoints.length,
-      ));
+      emit(
+        state.copyWith(
+          lastUpdated: result.fetchedAt,
+          totalSteps: result.totalSteps,
+          dataCount: result.dataPoints.length,
+        ),
+      );
       _wsService.sendLatestMetrics(_lastPoints).catchError((e) {
         debugPrint('[DeviceHealthCubit] Fetch-timer sync error: $e');
       });
     });
 
-    debugPrint('[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:5s)');
+    debugPrint(
+      '[DeviceHealthCubit] Periodic sync started (WS:5s, HC-fetch:5s)',
+    );
   }
 
   /// Cập nhật ngay SpO2 trong state (sau khi nhập tay thành công).
@@ -320,11 +363,13 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     if (heartRate == null || _stopped) {
       if (!_stopped) {
-        emit(state.copyWith(
-          readinessLoading: false,
-          bloodOxygen: bloodOxygen,
-          sleepHours: sleepHours > 0 ? sleepHours : null,
-        ));
+        emit(
+          state.copyWith(
+            readinessLoading: false,
+            bloodOxygen: bloodOxygen,
+            sleepHours: sleepHours > 0 ? sleepHours : null,
+          ),
+        );
       }
       return;
     }
@@ -332,7 +377,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     final calories = _totalCalories(points);
     final steps = result.totalSteps?.toDouble();
 
-    debugPrint('[Readiness] Input → HR=$heartRate, SpO2=${bloodOxygen ?? 98.0}, sleep=${sleepHours.toStringAsFixed(2)}h, steps=$steps, cal=$calories');
+    debugPrint(
+      '[Readiness] Input → HR=$heartRate, SpO2=${bloodOxygen ?? 98.0}, sleep=${sleepHours.toStringAsFixed(2)}h, steps=$steps, cal=$calories',
+    );
 
     var score = await _readinessService.getScore(
       heartRate: heartRate,
@@ -357,15 +404,19 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
         steps: steps,
         bloodOxygen: bloodOxygen,
       );
-      debugPrint('[Readiness] Source=LOCAL score=$score (HR=$heartRate → hrScore=${((40 - ((heartRate - 75).abs() / 25 * 40)).clamp(0, 40)).toStringAsFixed(1)}, sleep=${(sleepHours / 8 * 30).clamp(0, 30).toStringAsFixed(1)}, steps=${steps != null ? (steps / 10000 * 20).clamp(0, 20).toStringAsFixed(1) : "10.0(default)"}, spo2=${bloodOxygen != null ? (bloodOxygen >= 95 ? "10.0" : (bloodOxygen / 95 * 10).clamp(0, 10).toStringAsFixed(1)) : "8.0(default)"})');
+      debugPrint(
+        '[Readiness] Source=LOCAL score=$score (HR=$heartRate → hrScore=${((40 - ((heartRate - 75).abs() / 25 * 40)).clamp(0, 40)).toStringAsFixed(1)}, sleep=${(sleepHours / 8 * 30).clamp(0, 30).toStringAsFixed(1)}, steps=${steps != null ? (steps / 10000 * 20).clamp(0, 20).toStringAsFixed(1) : "10.0(default)"}, spo2=${bloodOxygen != null ? (bloodOxygen >= 95 ? "10.0" : (bloodOxygen / 95 * 10).clamp(0, 10).toStringAsFixed(1)) : "8.0(default)"})',
+      );
     }
 
-    emit(state.copyWith(
-      readinessScore: score,
-      readinessLoading: false,
-      bloodOxygen: bloodOxygen,
-      sleepHours: sleepHours > 0 ? sleepHours : null,
-    ));
+    emit(
+      state.copyWith(
+        readinessScore: score,
+        readinessLoading: false,
+        bloodOxygen: bloodOxygen,
+        sleepHours: sleepHours > 0 ? sleepHours : null,
+      ),
+    );
   }
 
   Future<void> _fetchStress(DeviceHealthResult result) async {
@@ -379,25 +430,36 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     final hrMeanStd = _hrMeanStd(points);
     final hrMean = hrMeanStd.$1;
-    debugPrint('[Stress] HR points found: ${points.where((p) => p.type == HealthDataType.HEART_RATE).length}, hrMean=$hrMean');
+    debugPrint(
+      '[Stress] HR points found: ${points.where((p) => p.type == HealthDataType.HEART_RATE).length}, hrMean=$hrMean',
+    );
     if (hrMean == 0 || _stopped) {
       debugPrint('[Stress] Skip — no HR data');
       if (!_stopped) emit(state.copyWith(stressLoading: false));
       return;
     }
 
-    final rmssdRaw = _latestNumeric(points, HealthDataType.HEART_RATE_VARIABILITY_RMSSD);
-    debugPrint('[Stress] RMSSD raw=$rmssdRaw, HRV points: ${points.where((p) => p.type == HealthDataType.HEART_RATE_VARIABILITY_RMSSD).length}');
+    final rmssdRaw = _latestNumeric(
+      points,
+      HealthDataType.HEART_RATE_VARIABILITY_RMSSD,
+    );
+    debugPrint(
+      '[Stress] RMSSD raw=$rmssdRaw, HRV points: ${points.where((p) => p.type == HealthDataType.HEART_RATE_VARIABILITY_RMSSD).length}',
+    );
     // Chỉ thiết bị đeo cao cấp mới ghi HRV RMSSD. Khi thiếu, ước tính từ độ lệch chuẩn
     // nhịp tim: khác thang đo nhưng tương quan dương, đủ để mô hình xếp hạng. Kết quả
     // được đánh dấu qua stressDataEstimated để UI hạ mức tin cậy khi hiển thị.
     final hrStd = hrMeanStd.$2;
-    final rmssd = rmssdRaw ?? (hrStd > 0 ? (hrStd * 3.0).clamp(5.0, 80.0) : 25.0);
+    final rmssd =
+        rmssdRaw ?? (hrStd > 0 ? (hrStd * 3.0).clamp(5.0, 80.0) : 25.0);
     final isEstimated = rmssdRaw == null;
 
-    final skinTemp = _latestNumeric(points, HealthDataType.SKIN_TEMPERATURE) ?? 33.0;
+    final skinTemp =
+        _latestNumeric(points, HealthDataType.SKIN_TEMPERATURE) ?? 33.0;
 
-    debugPrint('[Stress] Input → hrMean=$hrMean, hrStd=$hrStd, rmssd=$rmssd${isEstimated ? "(estimated)" : ""}, temp=$skinTemp');
+    debugPrint(
+      '[Stress] Input → hrMean=$hrMean, hrStd=$hrStd, rmssd=$rmssd${isEstimated ? "(estimated)" : ""}, temp=$skinTemp',
+    );
 
     final prediction = await _stressService.predict(
       hrMean: hrMean,
@@ -408,12 +470,14 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
 
     if (_stopped) return;
 
-    emit(state.copyWith(
-      stressPrediction: prediction,
-      stressLoading: false,
-      stressDataEstimated: isEstimated,
-      stressApiError: prediction == null,
-    ));
+    emit(
+      state.copyWith(
+        stressPrediction: prediction,
+        stressLoading: false,
+        stressDataEstimated: isEstimated,
+        stressApiError: prediction == null,
+      ),
+    );
   }
 
   /// Trung bình và độ lệch chuẩn nhịp tim trong 60 giây gần nhất.
@@ -424,10 +488,15 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   (double, double) _hrMeanStd(List<HealthDataPoint> points) {
     final cutoff = DateTime.now().subtract(const Duration(seconds: 60));
     var hrPoints = points
-        .where((p) => p.type == HealthDataType.HEART_RATE && p.dateFrom.isAfter(cutoff))
+        .where(
+          (p) =>
+              p.type == HealthDataType.HEART_RATE && p.dateFrom.isAfter(cutoff),
+        )
         .toList();
     if (hrPoints.isEmpty) {
-      hrPoints = points.where((p) => p.type == HealthDataType.HEART_RATE).toList();
+      hrPoints = points
+          .where((p) => p.type == HealthDataType.HEART_RATE)
+          .toList();
     }
     if (hrPoints.isEmpty) return (0.0, 0.0);
 
@@ -441,7 +510,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     if (values.isEmpty) return (0.0, 0.0);
     final mean = values.reduce((a, b) => a + b) / values.length;
     if (values.length == 1) return (mean, 0.0);
-    final variance = values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) / values.length;
+    final variance =
+        values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
+        values.length;
     return (mean, math.sqrt(variance));
   }
 
@@ -498,9 +569,15 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     // Sleep: 7-9h → 30đ
     final sleepScore = (sleepHours / 8 * 30).clamp(0, 30).toDouble();
     // Steps: 10000 → 20đ
-    final stepsScore = steps != null ? (steps / 10000 * 20).clamp(0, 20).toDouble() : 10.0;
+    final stepsScore = steps != null
+        ? (steps / 10000 * 20).clamp(0, 20).toDouble()
+        : 10.0;
     // SpO2: ≥95 → 10đ
-    final spo2Score = bloodOxygen != null ? (bloodOxygen >= 95 ? 10.0 : (bloodOxygen / 95 * 10).clamp(0, 10).toDouble()) : 8.0;
+    final spo2Score = bloodOxygen != null
+        ? (bloodOxygen >= 95
+              ? 10.0
+              : (bloodOxygen / 95 * 10).clamp(0, 10).toDouble())
+        : 8.0;
     return hrScore + sleepScore + stepsScore + spo2Score;
   }
 
@@ -509,7 +586,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
   double? _totalCalories(List<HealthDataPoint> points) {
     double total = 0;
     bool found = false;
-    for (final p in points.where((p) => p.type == HealthDataType.ACTIVE_ENERGY_BURNED)) {
+    for (final p in points.where(
+      (p) => p.type == HealthDataType.ACTIVE_ENERGY_BURNED,
+    )) {
       final v = p.value;
       if (v is NumericHealthValue) {
         total += v.numericValue.toDouble();

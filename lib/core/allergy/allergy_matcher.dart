@@ -124,8 +124,7 @@ class AllergyMatcher {
 
       // Tầng 2 — một bên chứa bên kia (đã chặn chuỗi quá ngắn)
       if (normAllergy.length >= _minContainsLen &&
-          (normItem.contains(normAllergy) ||
-              normAllergy.contains(normItem))) {
+          (normItem.contains(normAllergy) || normAllergy.contains(normItem))) {
         return AllergyMatch(
           itemName: itemName,
           severity: ocrUncertain

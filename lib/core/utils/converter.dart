@@ -102,10 +102,16 @@ DateTime cvToDateRequired(dynamic value) {
         (throw FormatException('Invalid date format: $value'));
   }
   if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
-  throw ArgumentError('Unsupported type for date conversion: ${value.runtimeType}');
+  throw ArgumentError(
+    'Unsupported type for date conversion: ${value.runtimeType}',
+  );
 }
 
-List<T> cvToList<T>(dynamic value, T Function(dynamic) converter, {List<T> defaultValue = const []}) {
+List<T> cvToList<T>(
+  dynamic value,
+  T Function(dynamic) converter, {
+  List<T> defaultValue = const [],
+}) {
   if (value == null) return defaultValue;
   if (value is List) {
     try {
@@ -129,7 +135,10 @@ List<T>? cvToListOrNull<T>(dynamic value, T Function(dynamic) converter) {
   return null;
 }
 
-Map<String, dynamic> cvStringToJson(String? value, {Map<String, dynamic> defaultValue = const {}}) {
+Map<String, dynamic> cvStringToJson(
+  String? value, {
+  Map<String, dynamic> defaultValue = const {},
+}) {
   if (value == null || value.isEmpty) return defaultValue;
   try {
     final decoded = jsonDecode(value);
@@ -155,7 +164,10 @@ Map<String, dynamic>? cvStringToJsonOrNull(String? value) {
   }
 }
 
-String cvJsonToString(Map<String, dynamic>? json, {String defaultValue = '{}'}) {
+String cvJsonToString(
+  Map<String, dynamic>? json, {
+  String defaultValue = '{}',
+}) {
   if (json == null) return defaultValue;
   try {
     return jsonEncode(json);

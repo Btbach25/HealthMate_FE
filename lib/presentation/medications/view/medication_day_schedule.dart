@@ -51,39 +51,39 @@ class MedicationPeriodBandStyle {
 /// Map dùng cho header từng section lịch.
 const kMedicationPeriodBandStyles =
     <MedicationSchedulePeriod, MedicationPeriodBandStyle>{
-  MedicationSchedulePeriod.morning: MedicationPeriodBandStyle(
-    label: 'Sáng',
-    icon: Icons.wb_twilight_rounded,
-    color: AppColors.medicationScheduleMorning,
-    softBg: AppColors.medicationScheduleMorningSoft,
-    timeRange: '6:00 – 11:59',
-  ),
-  MedicationSchedulePeriod.noon: MedicationPeriodBandStyle(
-    label: 'Trưa',
-    icon: Icons.wb_sunny_rounded,
-    color: AppColors.primary,
-    softBg: AppColors.primaryContainer,
-    timeRange: '12:00 – 16:59',
-  ),
-  MedicationSchedulePeriod.evening: MedicationPeriodBandStyle(
-    label: 'Chiều',
-    icon: Icons.filter_drama_rounded,
-    color: AppColors.medicationScheduleEvening,
-    softBg: AppColors.infoLight,
-    timeRange: '17:00 – 20:59',
-  ),
-  MedicationSchedulePeriod.night: MedicationPeriodBandStyle(
-    label: 'Tối',
-    icon: Icons.nights_stay_rounded,
-    color: AppColors.medicationScheduleNight,
-    softBg: AppColors.medicationScheduleNightSoft,
-    timeRange: '21:00 – 5:59',
-  ),
-};
+      MedicationSchedulePeriod.morning: MedicationPeriodBandStyle(
+        label: 'Sáng',
+        icon: Icons.wb_twilight_rounded,
+        color: AppColors.medicationScheduleMorning,
+        softBg: AppColors.medicationScheduleMorningSoft,
+        timeRange: '6:00 – 11:59',
+      ),
+      MedicationSchedulePeriod.noon: MedicationPeriodBandStyle(
+        label: 'Trưa',
+        icon: Icons.wb_sunny_rounded,
+        color: AppColors.primary,
+        softBg: AppColors.primaryContainer,
+        timeRange: '12:00 – 16:59',
+      ),
+      MedicationSchedulePeriod.evening: MedicationPeriodBandStyle(
+        label: 'Chiều',
+        icon: Icons.filter_drama_rounded,
+        color: AppColors.medicationScheduleEvening,
+        softBg: AppColors.infoLight,
+        timeRange: '17:00 – 20:59',
+      ),
+      MedicationSchedulePeriod.night: MedicationPeriodBandStyle(
+        label: 'Tối',
+        icon: Icons.nights_stay_rounded,
+        color: AppColors.medicationScheduleNight,
+        softBg: AppColors.medicationScheduleNightSoft,
+        timeRange: '21:00 – 5:59',
+      ),
+    };
 
 /// Gom reminder theo khung giờ và sắp xếp trong từng khung.
 Map<MedicationSchedulePeriod, List<MedicationScheduleItem>>
-    buildMedicationDaySchedule(List<Medication> medications) {
+buildMedicationDaySchedule(List<Medication> medications) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final currentTime =
@@ -112,8 +112,7 @@ Map<MedicationSchedulePeriod, List<MedicationScheduleItem>>
       if (!reminder.isEnabled) continue;
 
       final isTaken = reminder.isTakenToday;
-      final isOverdue =
-          !isTaken && reminder.time.compareTo(currentTime) < 0;
+      final isOverdue = !isTaken && reminder.time.compareTo(currentTime) < 0;
 
       final hour = int.tryParse(reminder.time.split(':').first) ?? 0;
       final MedicationSchedulePeriod period;

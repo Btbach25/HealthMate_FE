@@ -45,20 +45,25 @@ class StatsChartCard extends StatelessWidget {
     final Map<String, List<double>> grouped = {};
     final dateKey = DateFormat('yyyy-MM-dd');
     for (final point in chart.points) {
-      grouped.putIfAbsent(dateKey.format(point.time), () => []).add(point.value);
+      grouped
+          .putIfAbsent(dateKey.format(point.time), () => [])
+          .add(point.value);
     }
     return (grouped.entries.map((e) {
       final avg = e.value.reduce((a, b) => a + b) / e.value.length;
       return (time: DateTime.parse(e.key), value: avg);
-    }).toList()
-      ..sort((a, b) => a.time.compareTo(b.time)));
+    }).toList()..sort((a, b) => a.time.compareTo(b.time)));
   }
 
   @override
   Widget build(BuildContext context) {
     final values = chart.points.map((p) => p.value).toList();
-    final minVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a < b ? a : b);
-    final maxVal = values.isEmpty ? 0.0 : values.reduce((a, b) => a > b ? a : b);
+    final minVal = values.isEmpty
+        ? 0.0
+        : values.reduce((a, b) => a < b ? a : b);
+    final maxVal = values.isEmpty
+        ? 0.0
+        : values.reduce((a, b) => a > b ? a : b);
     final latestVal = chart.points.isEmpty ? 0.0 : chart.points.last.value;
 
     final is24h = selectedRange == '24h';
@@ -90,7 +95,10 @@ class StatsChartCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.inputBackground,
                   borderRadius: BorderRadius.circular(20),
@@ -136,7 +144,11 @@ class StatsChartCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryItem(String label, double value, {bool highlight = false}) {
+  Widget _buildSummaryItem(
+    String label,
+    double value, {
+    bool highlight = false,
+  }) {
     return Expanded(
       child: Column(
         children: [
@@ -216,7 +228,9 @@ class StatsChartCard extends StatelessWidget {
       borderData: FlBorderData(show: false),
       titlesData: FlTitlesData(
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
         leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
@@ -232,7 +246,10 @@ class StatsChartCard extends StatelessWidget {
                 space: 4,
                 child: Text(
                   axisFormat.format(data[index].time),
-                  style: const TextStyle(color: AppColors.textGrey, fontSize: 10),
+                  style: const TextStyle(
+                    color: AppColors.textGrey,
+                    fontSize: 10,
+                  ),
                 ),
               );
             },

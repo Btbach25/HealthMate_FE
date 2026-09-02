@@ -42,29 +42,30 @@ class MedicationState extends Equatable {
     bool clearFeedback = false,
     String? deletingMedicationId,
     bool clearDeletingMedicationId = false,
-  }) =>
-      MedicationState(
-        status: status ?? this.status,
-        medications: medications ?? this.medications,
-        errorMessage:
-            clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
-        feedbackMessage:
-            clearFeedback ? null : (feedbackMessage ?? this.feedbackMessage),
-        feedbackIsError: clearFeedback
-            ? false
-            : (feedbackIsError ?? this.feedbackIsError),
-        deletingMedicationId: clearDeletingMedicationId
-            ? null
-            : (deletingMedicationId ?? this.deletingMedicationId),
-      );
+  }) => MedicationState(
+    status: status ?? this.status,
+    medications: medications ?? this.medications,
+    errorMessage: clearErrorMessage
+        ? null
+        : (errorMessage ?? this.errorMessage),
+    feedbackMessage: clearFeedback
+        ? null
+        : (feedbackMessage ?? this.feedbackMessage),
+    feedbackIsError: clearFeedback
+        ? false
+        : (feedbackIsError ?? this.feedbackIsError),
+    deletingMedicationId: clearDeletingMedicationId
+        ? null
+        : (deletingMedicationId ?? this.deletingMedicationId),
+  );
 
   @override
   List<Object?> get props => [
-        status,
-        medications,
-        errorMessage,
-        feedbackMessage,
-        feedbackIsError,
-        deletingMedicationId,
-      ];
+    status,
+    medications,
+    errorMessage,
+    feedbackMessage,
+    feedbackIsError,
+    deletingMedicationId,
+  ];
 }

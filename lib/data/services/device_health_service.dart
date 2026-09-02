@@ -123,7 +123,9 @@ class DeviceHealthService {
   Future<bool?> checkHCConnection() async {
     if (kIsWeb) return null;
     if (defaultTargetPlatform != TargetPlatform.android &&
-        defaultTargetPlatform != TargetPlatform.iOS) { return null; }
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return null;
+    }
     try {
       if (!_configured) {
         await _health.configure();

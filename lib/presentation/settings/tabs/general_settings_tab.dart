@@ -67,11 +67,14 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
   Future<void> _updateSetting(
     GeneralSettings Function(GeneralSettings) update,
   ) async {
-    await SettingsManagementHelper.updateSettingWithErrorHandling<GeneralSettings>(
+    await SettingsManagementHelper.updateSettingWithErrorHandling<
+      GeneralSettings
+    >(
       context: context,
       currentSettings: _settings,
       update: update,
-      saveFunction: (settings) => _settingsService.saveGeneralSettings(settings),
+      saveFunction: (settings) =>
+          _settingsService.saveGeneralSettings(settings),
       onUpdate: (settings) {
         setState(() {
           _settings = settings;
@@ -134,7 +137,11 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                   _showComingSoonSnack();
                 },
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsDropdown(
                 label: 'Ngôn ngữ',
                 value: _settings.language,
@@ -148,7 +155,11 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                   }
                 },
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsDropdown(
                 label: 'Định dạng ngày',
                 value: _settings.dateFormat,
@@ -161,7 +172,11 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
                   }
                 },
               ),
-              const Divider(height: 24, thickness: 0.8, color: AppColors.cardBorder),
+              const Divider(
+                height: 24,
+                thickness: 0.8,
+                color: AppColors.cardBorder,
+              ),
               SettingsDropdown(
                 label: 'Định dạng giờ',
                 value: _settings.timeFormat,
@@ -214,7 +229,8 @@ class _GeneralSettingsTabState extends State<GeneralSettingsTab> {
           ),
 
           SizedBox(
-            height: MediaQuery.of(context).padding.bottom +
+            height:
+                MediaQuery.of(context).padding.bottom +
                 AppSize.bottomTabSafeInset,
           ),
         ],
