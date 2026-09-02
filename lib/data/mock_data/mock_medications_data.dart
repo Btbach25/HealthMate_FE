@@ -39,159 +39,159 @@ class MockMedicationsData {
 
   /// Danh sách thuốc của tài khoản demo.
   static List<Medication> get medications => [
-        // 1 lần/ngày — đã uống sáng nay.
-        Medication(
-          id: med1Id,
-          userId: MockUsers.demoUserId,
-          name: 'Losartan',
-          dosage: '50mg',
-          frequency: const MedicationFrequency(
-            type: MedicationFrequencyType.daily,
-            timesPerDay: 1,
-            specificTimes: ['07:30'],
-          ),
-          startDate: dateString(-120),
-          instructions: 'Uống sau ăn sáng, không dùng chung với nước bưởi',
-          prescribedBy: 'BS. Trần Quang Huy',
-          reminders: [
-            MedicationReminder(
-              id: '$med1Id-r1',
-              medicationId: med1Id,
-              time: '07:30',
-              lastTaken: todayAt(7, 34),
-            ),
-          ],
+    // 1 lần/ngày — đã uống sáng nay.
+    Medication(
+      id: med1Id,
+      userId: MockUsers.demoUserId,
+      name: 'Losartan',
+      dosage: '50mg',
+      frequency: const MedicationFrequency(
+        type: MedicationFrequencyType.daily,
+        timesPerDay: 1,
+        specificTimes: ['07:30'],
+      ),
+      startDate: dateString(-120),
+      instructions: 'Uống sau ăn sáng, không dùng chung với nước bưởi',
+      prescribedBy: 'BS. Trần Quang Huy',
+      reminders: [
+        MedicationReminder(
+          id: '$med1Id-r1',
+          medicationId: med1Id,
+          time: '07:30',
+          lastTaken: todayAt(7, 34),
         ),
+      ],
+    ),
 
-        // 2 lần/ngày — sáng đã uống, tối chưa.
-        Medication(
-          id: med2Id,
-          userId: MockUsers.demoUserId,
-          name: 'Metformin',
-          dosage: '500mg',
-          frequency: const MedicationFrequency(
-            type: MedicationFrequencyType.daily,
-            timesPerDay: 2,
-            specificTimes: ['08:00', '19:30'],
-          ),
-          startDate: dateString(-60),
-          instructions: 'Uống ngay sau bữa ăn để tránh cồn ruột',
-          prescribedBy: 'BS. Trần Quang Huy',
-          reminders: [
-            MedicationReminder(
-              id: '$med2Id-r1',
-              medicationId: med2Id,
-              time: '08:00',
-              lastTaken: todayAt(8, 6),
-            ),
-            const MedicationReminder(
-              id: '$med2Id-r2',
-              medicationId: med2Id,
-              time: '19:30',
-              missedCount: 2,
-            ),
-          ],
+    // 2 lần/ngày — sáng đã uống, tối chưa.
+    Medication(
+      id: med2Id,
+      userId: MockUsers.demoUserId,
+      name: 'Metformin',
+      dosage: '500mg',
+      frequency: const MedicationFrequency(
+        type: MedicationFrequencyType.daily,
+        timesPerDay: 2,
+        specificTimes: ['08:00', '19:30'],
+      ),
+      startDate: dateString(-60),
+      instructions: 'Uống ngay sau bữa ăn để tránh cồn ruột',
+      prescribedBy: 'BS. Trần Quang Huy',
+      reminders: [
+        MedicationReminder(
+          id: '$med2Id-r1',
+          medicationId: med2Id,
+          time: '08:00',
+          lastTaken: todayAt(8, 6),
         ),
+        const MedicationReminder(
+          id: '$med2Id-r2',
+          medicationId: med2Id,
+          time: '19:30',
+          missedCount: 2,
+        ),
+      ],
+    ),
 
-        // 1 lần/ngày buổi trưa — chưa uống hôm nay.
-        Medication(
-          id: med3Id,
-          userId: MockUsers.demoUserId,
-          name: 'Vitamin D3',
-          dosage: '1000 IU',
-          frequency: const MedicationFrequency(
-            type: MedicationFrequencyType.daily,
-            timesPerDay: 1,
-            specificTimes: ['12:00'],
-          ),
-          startDate: dateString(-90),
-          instructions: 'Uống cùng bữa có chất béo để hấp thu tốt hơn',
-          reminders: const [
-            MedicationReminder(
-              id: '$med3Id-r1',
-              medicationId: med3Id,
-              time: '12:00',
-              missedCount: 1,
-            ),
-          ],
+    // 1 lần/ngày buổi trưa — chưa uống hôm nay.
+    Medication(
+      id: med3Id,
+      userId: MockUsers.demoUserId,
+      name: 'Vitamin D3',
+      dosage: '1000 IU',
+      frequency: const MedicationFrequency(
+        type: MedicationFrequencyType.daily,
+        timesPerDay: 1,
+        specificTimes: ['12:00'],
+      ),
+      startDate: dateString(-90),
+      instructions: 'Uống cùng bữa có chất béo để hấp thu tốt hơn',
+      reminders: const [
+        MedicationReminder(
+          id: '$med3Id-r1',
+          medicationId: med3Id,
+          time: '12:00',
+          missedCount: 1,
         ),
+      ],
+    ),
 
-        // 2 lần/ngày — sáng đã uống, tối chưa.
-        Medication(
-          id: med4Id,
-          userId: MockUsers.demoUserId,
-          name: 'Omega-3',
-          dosage: '1000mg',
-          frequency: const MedicationFrequency(
-            type: MedicationFrequencyType.daily,
-            timesPerDay: 2,
-            specificTimes: ['08:00', '20:00'],
-          ),
-          startDate: dateString(-30),
-          instructions: 'Uống sau ăn',
-          reminders: [
-            MedicationReminder(
-              id: '$med4Id-r1',
-              medicationId: med4Id,
-              time: '08:00',
-              lastTaken: todayAt(8, 10),
-            ),
-            const MedicationReminder(
-              id: '$med4Id-r2',
-              medicationId: med4Id,
-              time: '20:00',
-            ),
-          ],
+    // 2 lần/ngày — sáng đã uống, tối chưa.
+    Medication(
+      id: med4Id,
+      userId: MockUsers.demoUserId,
+      name: 'Omega-3',
+      dosage: '1000mg',
+      frequency: const MedicationFrequency(
+        type: MedicationFrequencyType.daily,
+        timesPerDay: 2,
+        specificTimes: ['08:00', '20:00'],
+      ),
+      startDate: dateString(-30),
+      instructions: 'Uống sau ăn',
+      reminders: [
+        MedicationReminder(
+          id: '$med4Id-r1',
+          medicationId: med4Id,
+          time: '08:00',
+          lastTaken: todayAt(8, 10),
         ),
+        const MedicationReminder(
+          id: '$med4Id-r2',
+          medicationId: med4Id,
+          time: '20:00',
+        ),
+      ],
+    ),
 
-        // Khi cần thiết — không nhắc định kỳ, có ngày kết thúc.
-        Medication(
-          id: med5Id,
-          userId: MockUsers.demoUserId,
-          name: 'Paracetamol',
-          dosage: '500mg',
-          frequency: const MedicationFrequency(
-            type: MedicationFrequencyType.asNeeded,
-            timesPerDay: 1,
-            specificTimes: ['21:00'],
-          ),
-          startDate: dateString(-7),
-          endDate: dateString(14),
-          instructions: 'Chỉ uống khi sốt trên 38.5°C, cách nhau ít nhất 6 giờ',
-          prescribedBy: 'BS. Lê Thị Ngọc',
-          reminders: const [
-            MedicationReminder(
-              id: '$med5Id-r1',
-              medicationId: med5Id,
-              time: '21:00',
-              isEnabled: false,
-            ),
-          ],
+    // Khi cần thiết — không nhắc định kỳ, có ngày kết thúc.
+    Medication(
+      id: med5Id,
+      userId: MockUsers.demoUserId,
+      name: 'Paracetamol',
+      dosage: '500mg',
+      frequency: const MedicationFrequency(
+        type: MedicationFrequencyType.asNeeded,
+        timesPerDay: 1,
+        specificTimes: ['21:00'],
+      ),
+      startDate: dateString(-7),
+      endDate: dateString(14),
+      instructions: 'Chỉ uống khi sốt trên 38.5°C, cách nhau ít nhất 6 giờ',
+      prescribedBy: 'BS. Lê Thị Ngọc',
+      reminders: const [
+        MedicationReminder(
+          id: '$med5Id-r1',
+          medicationId: med5Id,
+          time: '21:00',
+          isEnabled: false,
         ),
-      ];
+      ],
+    ),
+  ];
 
   /// Các bản ghi chia sẻ thuốc ban đầu (thuốc → danh sách người được chia sẻ).
   ///
   /// Chia sẻ mặc định: Losartan và Metformin được báo cho vợ (Trần Thị Hoa)
   /// trong nhóm "Gia đình nhà mình".
   static Map<String, List<MedicationShare>> get sharesByMedicationId => {
-        med1Id: [
-          const MedicationShare(
-            id: 'demo-share-001',
-            medicationId: med1Id,
-            groupId: MockFamilyData.group1Id,
-            sharedWithUserId: MockUsers.hoaId,
-            notifyOffsetMinutes: 0,
-          ),
-        ],
-        med2Id: [
-          const MedicationShare(
-            id: 'demo-share-002',
-            medicationId: med2Id,
-            groupId: MockFamilyData.group1Id,
-            sharedWithUserId: MockUsers.hoaId,
-            notifyOffsetMinutes: 15,
-          ),
-        ],
-      };
+    med1Id: [
+      const MedicationShare(
+        id: 'demo-share-001',
+        medicationId: med1Id,
+        groupId: MockFamilyData.group1Id,
+        sharedWithUserId: MockUsers.hoaId,
+        notifyOffsetMinutes: 0,
+      ),
+    ],
+    med2Id: [
+      const MedicationShare(
+        id: 'demo-share-002',
+        medicationId: med2Id,
+        groupId: MockFamilyData.group1Id,
+        sharedWithUserId: MockUsers.hoaId,
+        notifyOffsetMinutes: 15,
+      ),
+    ],
+  };
 }
