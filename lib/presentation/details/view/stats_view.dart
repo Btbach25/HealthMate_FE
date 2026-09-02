@@ -53,10 +53,9 @@ class _StatsViewState extends State<StatsView>
   /// tức trong khi dữ liệu vẫn đang tải.
   Future<void> _refresh(BuildContext context) async {
     context.read<StatsBloc>().add(FetchStatsData());
-    await context
-        .read<StatsBloc>()
-        .stream
-        .firstWhere((s) => s.status != StatsStatus.loading);
+    await context.read<StatsBloc>().stream.firstWhere(
+      (s) => s.status != StatsStatus.loading,
+    );
   }
 
   @override
@@ -79,7 +78,10 @@ class _StatsViewState extends State<StatsView>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                    CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.5,
+                    ),
                     SizedBox(height: 16),
                     Text(
                       'Đang tải chỉ số sức khỏe...',
@@ -100,8 +102,11 @@ class _StatsViewState extends State<StatsView>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.cloud_off_outlined,
-                          size: 48, color: AppColors.textGrey),
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        size: 48,
+                        color: AppColors.textGrey,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         state.errorMessage ?? 'Không thể tải dữ liệu',
@@ -141,8 +146,11 @@ class _StatsViewState extends State<StatsView>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.monitor_heart_outlined,
-                                size: 48, color: AppColors.textGrey),
+                            Icon(
+                              Icons.monitor_heart_outlined,
+                              size: 48,
+                              color: AppColors.textGrey,
+                            ),
                             SizedBox(height: 12),
                             Text(
                               'Chưa có số liệu để hiển thị.\nKéo xuống để tải lại.',
@@ -183,7 +191,12 @@ class _StatsViewState extends State<StatsView>
                               collapseMode: CollapseMode.pin,
                               background: Container(
                                 color: AppColors.surface,
-                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  14,
+                                  16,
+                                  0,
+                                ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,

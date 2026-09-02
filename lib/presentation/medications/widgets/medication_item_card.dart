@@ -32,8 +32,8 @@ class MedicationItemCard extends StatelessWidget {
     final Color accent = taken
         ? AppColors.primary
         : isOverdue
-            ? AppColors.error
-            : AppColors.textGrey;
+        ? AppColors.error
+        : AppColors.textGrey;
 
     return Material(
       color: Colors.transparent,
@@ -48,8 +48,8 @@ class MedicationItemCard extends StatelessWidget {
               color: taken
                   ? AppColors.primary.withValues(alpha: 0.35)
                   : isOverdue
-                      ? AppColors.error.withValues(alpha: 0.35)
-                      : AppColors.cardBorder,
+                  ? AppColors.error.withValues(alpha: 0.35)
+                  : AppColors.cardBorder,
               width: 1,
             ),
             boxShadow: taken
@@ -147,14 +147,14 @@ class MedicationItemCard extends StatelessWidget {
                               taken
                                   ? 'Đã uống'
                                   : isOverdue
-                                      ? 'Quá giờ'
-                                      : 'Chờ uống',
+                                  ? 'Quá giờ'
+                                  : 'Chờ uống',
                               style: AppTextStyles.caption.copyWith(
                                 color: taken
                                     ? AppColors.primary
                                     : isOverdue
-                                        ? AppColors.error
-                                        : AppColors.textGrey,
+                                    ? AppColors.error
+                                    : AppColors.textGrey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

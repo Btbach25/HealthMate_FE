@@ -30,23 +30,24 @@ class AuthHttpHelper {
 
   /// GET kèm `Authorization: Bearer <token>`.
   Future<http.Response> get(Uri uri) => _withRetry(
-        (token) => http
-            .get(uri, headers: _headers(token))
-            .timeout(const Duration(seconds: 10)),
-      );
+    (token) => http
+        .get(uri, headers: _headers(token))
+        .timeout(const Duration(seconds: 10)),
+  );
 
   /// POST kèm `Authorization` và `Content-Type: application/json`.
   ///
   /// [body] phải là chuỗi JSON đã encode sẵn (`jsonEncode(...)`), header đã
   /// khai báo là JSON nên truyền Map thô sẽ bị gửi sai định dạng.
   Future<http.Response> post(Uri uri, {Object? body}) => _withRetry(
-        (token) => http
-            .post(uri, headers: _headers(token), body: body)
-            .timeout(const Duration(seconds: 10)),
-      );
+    (token) => http
+        .post(uri, headers: _headers(token), body: body)
+        .timeout(const Duration(seconds: 10)),
+  );
 
   Future<http.Response> _withRetry(
-      Future<http.Response> Function(String token) fn) async {
+    Future<http.Response> Function(String token) fn,
+  ) async {
     final token = await _localStorage.getAccessToken();
     if (token == null) return http.Response('{"error":"unauthenticated"}', 401);
 
@@ -60,7 +61,7 @@ class AuthHttpHelper {
   }
 
   Map<String, String> _headers(String token) => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $token',
+  };
 }

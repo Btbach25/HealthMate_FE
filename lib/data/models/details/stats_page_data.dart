@@ -23,7 +23,7 @@ class StatsPageData {
       metrics: [],
     );
   }
-  
+
   StatsPageData copyWith({
     int? totalReadings,
     int? totalTypes,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fe/core/config/app_config.dart';
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_icons.dart';
@@ -24,8 +25,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 ///
 /// Widget này đồng thời sở hữu vòng đời việc đọc dữ liệu thiết bị:
 /// nó gọi [DeviceHealthCubit.poll] định kỳ và [DeviceHealthCubit.stopPeriodicSync]
-/// khi bị dispose. Trên web (`kIsWeb`) toàn bộ phần này bị bỏ qua vì
-/// HealthKit/Health Connect không tồn tại.
+/// khi bị dispose. Trên web (`kIsWeb`) phần này bị bỏ qua vì HealthKit/Health
+/// Connect không tồn tại — **trừ chế độ demo**, nơi "thiết bị" chỉ là mock
+/// service nên chạy được ở mọi nền tảng (thiếu nó thì thẻ "Điểm sẵn sàng" và
+/// "Mức độ căng thẳng" sẽ trống khi demo trên trình duyệt).
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -47,7 +50,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _startPolling() {
-    if (kIsWeb) return;
+    if (kIsWeb && !AppConfig.isDemoMode) return;
     final cubit = _deviceHealthCubit;
     if (cubit == null) return;
     cubit.poll().then((_) => cubit.startPeriodicSync());
@@ -64,7 +67,9 @@ class _HomeViewState extends State<HomeView> {
   @override
   void dispose() {
     _pollTimer?.cancel();
-    if (!kIsWeb) _deviceHealthCubit?.stopPeriodicSync();
+    if (!kIsWeb || AppConfig.isDemoMode) {
+      _deviceHealthCubit?.stopPeriodicSync();
+    }
     super.dispose();
   }
 
@@ -80,7 +85,10 @@ class _HomeViewState extends State<HomeView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                  CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 2.5,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Đang tải dữ liệu sức khỏe...',
@@ -104,29 +112,48 @@ class _HomeViewState extends State<HomeView> {
                         color: AppColors.errorLight,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.cloud_off_outlined, size: 40, color: AppColors.error),
+                      child: const Icon(
+                        Icons.cloud_off_outlined,
+                        size: 40,
+                        color: AppColors.error,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text(
                       'Không tải được dữ liệu',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textBlack),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textBlack,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      state.errorMessage ?? 'Vui lòng kiểm tra kết nối mạng và thử lại.',
+                      state.errorMessage ??
+                          'Vui lòng kiểm tra kết nối mạng và thử lại.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textGrey, fontSize: 13, height: 1.5),
+                      style: const TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
-                      onPressed: () => context.read<HomeBloc>().add(FetchHomeData()),
+                      onPressed: () =>
+                          context.read<HomeBloc>().add(FetchHomeData()),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Thử lại'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -150,15 +177,24 @@ class _HomeViewState extends State<HomeView> {
               onRefresh: () async {
                 final bloc = context.read<HomeBloc>();
                 bloc.add(FetchHomeData());
-                
-                await bloc.stream.firstWhere((s) => s.status != HomeStatus.loading);
+
+                await bloc.stream.firstWhere(
+                  (s) => s.status != HomeStatus.loading,
+                );
               },
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: AppSize.shellMaxWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: AppSize.shellMaxWidth,
+                  ),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      MediaQuery.of(context).padding.bottom + 16,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -181,7 +217,9 @@ class _HomeViewState extends State<HomeView> {
                               // ngay trong build().
                               if (!_syncStarted) {
                                 _syncStarted = true;
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
                                   if (!mounted) return;
                                   _startPolling();
                                 });
@@ -202,8 +240,12 @@ class _HomeViewState extends State<HomeView> {
                         // Health score card — luôn hiển thị
                         BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
                           builder: (context, dState) {
-                            if (dState.readinessLoading) return _ReadinessLoadingCard();
-                            return _ReadinessScoreCard(score: dState.readinessScore);
+                            if (dState.readinessLoading) {
+                              return _ReadinessLoadingCard();
+                            }
+                            return _ReadinessScoreCard(
+                              score: dState.readinessScore,
+                            );
                           },
                         ),
 
@@ -211,7 +253,9 @@ class _HomeViewState extends State<HomeView> {
 
                         BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
                           builder: (context, dState) {
-                            if (dState.stressLoading) return _StressLoadingCard();
+                            if (dState.stressLoading) {
+                              return _StressLoadingCard();
+                            }
                             return _StressCard(
                               prediction: dState.stressPrediction,
                               dataEstimated: dState.stressDataEstimated,
@@ -223,13 +267,15 @@ class _HomeViewState extends State<HomeView> {
                         const SizedBox(height: 16),
 
                         if (homeData.medicationProgress != null)
-                          MedicationCard(progress: homeData.medicationProgress!),
-                        
+                          MedicationCard(
+                            progress: homeData.medicationProgress!,
+                          ),
+
                         const SizedBox(height: 24),
 
                         NotificationList(notifications: homeData.notifications),
-                        
-                        const SizedBox(height: 48), 
+
+                        const SizedBox(height: 48),
                       ],
                     ),
                   ),
@@ -253,7 +299,11 @@ class _ReadinessLoadingCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: const [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
             SizedBox(width: 12),
             Text('Đang tính điểm sẵn sàng...', style: TextStyle(fontSize: 13)),
           ],
@@ -301,12 +351,19 @@ class _ReadinessScoreCard extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
               child: Center(
                 child: hasScore
                     ? Text(
                         score!.toStringAsFixed(0),
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
                       )
                     : Icon(Icons.hourglass_empty, color: color, size: 22),
               ),
@@ -315,10 +372,15 @@ class _ReadinessScoreCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Điểm sẵn sàng thể chất', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Điểm sẵn sàng thể chất',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 2),
                 Text(
-                  hasScore ? _scoreLabel(score!) : 'Đang chờ số liệu cập nhật...',
+                  hasScore
+                      ? _scoreLabel(score!)
+                      : 'Đang chờ số liệu cập nhật...',
                   style: TextStyle(fontSize: 12, color: color),
                 ),
               ],
@@ -349,9 +411,16 @@ class _StressLoadingCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: const [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
             SizedBox(width: 12),
-            Text('Đang phân tích mức độ căng thẳng...', style: TextStyle(fontSize: 13)),
+            Text(
+              'Đang phân tích mức độ căng thẳng...',
+              style: TextStyle(fontSize: 13),
+            ),
           ],
         ),
       ),
@@ -370,7 +439,11 @@ class _StressCard extends StatelessWidget {
   final StressPrediction? prediction;
   final bool dataEstimated;
   final bool apiUnavailable;
-  const _StressCard({required this.prediction, this.dataEstimated = false, this.apiUnavailable = false});
+  const _StressCard({
+    required this.prediction,
+    this.dataEstimated = false,
+    this.apiUnavailable = false,
+  });
 
   Color _color(StressPrediction p) {
     if (!p.isStress) return const Color(0xFF4CAF50);
@@ -415,9 +488,19 @@ class _StressCard extends StatelessWidget {
                     child: hasData
                         ? Text(
                             '${(p.probStress * 100).toStringAsFixed(0)}%',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
                           )
-                        : Icon(apiUnavailable ? Icons.cloud_off_outlined : Icons.psychology_outlined, color: color, size: 22),
+                        : Icon(
+                            apiUnavailable
+                                ? Icons.cloud_off_outlined
+                                : Icons.psychology_outlined,
+                            color: color,
+                            size: 22,
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -425,14 +508,20 @@ class _StressCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Mức độ căng thẳng', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Mức độ căng thẳng',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         hasData
                             ? _label(p)
                             : apiUnavailable
-                                ? 'Dịch vụ phân tích chưa sẵn sàng'
-                                : 'Chưa đủ dữ liệu (cần nhịp tim)',
+                            ? 'Dịch vụ phân tích chưa sẵn sàng'
+                            : 'Chưa đủ dữ liệu (cần nhịp tim)',
                         style: TextStyle(fontSize: 12, color: color),
                       ),
                     ],
@@ -445,13 +534,20 @@ class _StressCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 13, color: AppColors.textGrey),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 13,
+                    color: AppColors.textGrey,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     dataEstimated
                         ? 'HRV không có — dùng dữ liệu HR để ước tính'
                         : 'Kết quả chưa được hiệu chỉnh cá nhân',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textGrey,
+                    ),
                   ),
                 ],
               ),

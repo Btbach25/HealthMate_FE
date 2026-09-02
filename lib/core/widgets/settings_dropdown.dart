@@ -43,16 +43,18 @@ class SettingsDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       style: AppTextStyles.bodyMedium,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: icon != null 
+        prefixIcon: icon != null
             ? Icon(icon, color: AppColors.primary.withValues(alpha: 0.7))
             : null,
         filled: true,
-        fillColor: enabled ? AppColors.inputBackground : AppColors.surfaceVariant,
+        fillColor: enabled
+            ? AppColors.inputBackground
+            : AppColors.surfaceVariant,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.inputBorder),
@@ -84,4 +86,3 @@ class SettingsDropdown extends StatelessWidget {
     );
   }
 }
-

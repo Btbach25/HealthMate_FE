@@ -26,6 +26,7 @@ class ErrorDisplayWidget extends StatelessWidget {
   final String? message;
   final VoidCallback? onRetry;
   final IconData? icon;
+
   /// Bọc nội dung trong card (vd. màn Thuốc).
   final bool wrapInCard;
 
@@ -170,5 +171,3 @@ class ErrorDisplayWidget extends StatelessWidget {
     );
   }
 }
-
-

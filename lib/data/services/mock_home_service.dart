@@ -27,8 +27,8 @@ class MockHomeService implements HomeService {
   MockHomeService({
     LocalStorageService? localStorage,
     MedicationService? medicationService,
-  })  : _localStorage = localStorage,
-        _medicationService = medicationService;
+  }) : _localStorage = localStorage,
+       _medicationService = medicationService;
 
   @override
   Future<HomeData> getHomeData() async {

@@ -35,7 +35,8 @@ class GroupMedicationShareDialog extends StatefulWidget {
       _GroupMedicationShareDialogState();
 }
 
-class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog> {
+class _GroupMedicationShareDialogState
+    extends State<GroupMedicationShareDialog> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -87,7 +88,8 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
     }
   }
 
-  String _shareKey(String medicationId, String userId) => '$medicationId|$userId';
+  String _shareKey(String medicationId, String userId) =>
+      '$medicationId|$userId';
 
   /// Lưu theo kiểu so sánh chênh lệch: với mỗi thuốc, thêm những người mới tick và
   /// xoá bản ghi của những người vừa bỏ tick. Không có API ghi đè hàng loạt.
@@ -101,8 +103,10 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
         final medicationId = med.id;
         final selected = _selectedByMedication[medicationId] ?? <String>{};
         final existingUserIds = _existingSharesByKey.values
-            .where((s) =>
-                s.medicationId == medicationId && s.groupId == widget.groupId)
+            .where(
+              (s) =>
+                  s.medicationId == medicationId && s.groupId == widget.groupId,
+            )
             .map((s) => s.sharedWithUserId)
             .toSet();
 
@@ -144,9 +148,11 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
   @override
   Widget build(BuildContext context) {
     final eligibleMembers = widget.members
-        .where((m) =>
-            !sameUserId(m.userId, widget.currentUserId) &&
-            m.medicationReminderShareAllowed)
+        .where(
+          (m) =>
+              !sameUserId(m.userId, widget.currentUserId) &&
+              m.medicationReminderShareAllowed,
+        )
         .toList();
 
     return Dialog(
@@ -169,7 +175,9 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
                     ),
                   ),
                   IconButton(
-                    onPressed: _saving ? null : () => Navigator.of(context).pop(),
+                    onPressed: _saving
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
@@ -177,7 +185,9 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
               const SizedBox(height: 4),
               Text(
                 'Thiết lập theo từng thuốc. Chỉ hiện thành viên mà nhóm cho phép nhận nhắc thuốc.',
-                style: AppTextStyles.caption.copyWith(color: AppColors.textGrey),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textGrey,
+                ),
               ),
               const SizedBox(height: 12),
               Flexible(
@@ -252,7 +262,10 @@ class _GroupMedicationShareDialogState extends State<GroupMedicationShareDialog>
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final med = _medications[index];
-        final selected = _selectedByMedication.putIfAbsent(med.id, () => <String>{});
+        final selected = _selectedByMedication.putIfAbsent(
+          med.id,
+          () => <String>{},
+        );
         return Container(
           decoration: BoxDecoration(
             color: AppColors.inputBackground,

@@ -52,4 +52,3 @@ class GeneralSettings extends Equatable {
   @override
   List<Object> get props => [darkMode, language, dateFormat, timeFormat];
 }
-

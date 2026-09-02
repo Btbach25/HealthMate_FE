@@ -40,7 +40,9 @@ class HealthOverview extends Equatable {
           ? Weight.fromJson(json['weight'] as Map<String, dynamic>)
           : null,
       bloodPressure: json['blood_pressure'] != null
-          ? BloodPressure.fromJson(json['blood_pressure'] as Map<String, dynamic>)
+          ? BloodPressure.fromJson(
+              json['blood_pressure'] as Map<String, dynamic>,
+            )
           : null,
       temperature: json['temperature'] != null
           ? Temperature.fromJson(json['temperature'] as Map<String, dynamic>)
@@ -76,5 +78,11 @@ class HealthOverview extends Equatable {
   }
 
   @override
-  List<Object?> get props => [heartRate, weight, bloodPressure, temperature, bloodOxygen];
+  List<Object?> get props => [
+    heartRate,
+    weight,
+    bloodPressure,
+    temperature,
+    bloodOxygen,
+  ];
 }

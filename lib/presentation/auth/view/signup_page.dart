@@ -41,15 +41,28 @@ class SignUpView extends StatelessWidget {
       listener: (context, state) {
         if (!context.mounted) return;
         if (state.status == FormStatus.failure) {
-          ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
+          ToastUtils.showCustomToast(
+            context,
+            state.errorMessage,
+            ToastType.error,
+          );
         }
         if (state.status == FormStatus.success) {
-          ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
+          ToastUtils.showCustomToast(
+            context,
+            state.successMessage,
+            ToastType.success,
+          );
           if (state.needsVerification) {
             // Ưu tiên verificationEmail (email BE thực sự gửi OTP tới, có thể
             // đã được chuẩn hoá), chỉ fallback về email người dùng gõ.
-            final emailToVerify = state.verificationEmail.isNotEmpty ? state.verificationEmail : state.email;
-            context.go('/otp', extra: {'email': emailToVerify, 'flow': 'signup'});
+            final emailToVerify = state.verificationEmail.isNotEmpty
+                ? state.verificationEmail
+                : state.email;
+            context.go(
+              '/otp',
+              extra: {'email': emailToVerify, 'flow': 'signup'},
+            );
           } else {
             context.go('/login');
           }
@@ -68,7 +81,11 @@ class SignUpForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Đăng ký tài khoản', style: AppStyles.h1, textAlign: TextAlign.center),
+        const Text(
+          'Đăng ký tài khoản',
+          style: AppStyles.h1,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p8),
         const Text(
           'Tạo tài khoản HealthMate để chăm sóc sức khỏe gia đình',
@@ -113,7 +130,8 @@ class _NameInput extends StatelessWidget {
       buildWhen: (previous, current) => previous.name != current.name,
       builder: (context, state) {
         return TextField(
-          onChanged: (name) => context.read<AuthFormBloc>().add(NameChanged(name)),
+          onChanged: (name) =>
+              context.read<AuthFormBloc>().add(NameChanged(name)),
           decoration: const InputDecoration(
             hintText: 'Nhập họ tên của bạn',
             prefixIcon: Icon(Icons.person_outline),
@@ -131,7 +149,8 @@ class _EmailInput extends StatelessWidget {
       buildWhen: (previous, current) => previous.email != current.email,
       builder: (context, state) {
         return TextField(
-          onChanged: (email) => context.read<AuthFormBloc>().add(EmailChanged(email)),
+          onChanged: (email) =>
+              context.read<AuthFormBloc>().add(EmailChanged(email)),
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
             hintText: 'Nhập email của bạn',
@@ -147,7 +166,9 @@ class _SignUpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthFormBloc, AuthFormState>(
-      buildWhen: (previous, current) => previous.status != current.status || previous.isValidSignUp != current.isValidSignUp,
+      buildWhen: (previous, current) =>
+          previous.status != current.status ||
+          previous.isValidSignUp != current.isValidSignUp,
       builder: (context, state) {
         return ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -157,13 +178,18 @@ class _SignUpButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSize.r12),
             ),
           ),
-          onPressed: state.status == FormStatus.inProgress || !state.isValidSignUp
+          onPressed:
+              state.status == FormStatus.inProgress || !state.isValidSignUp
               ? null
               : () => context.read<AuthFormBloc>().add(SignUpSubmitted()),
           child: state.status == FormStatus.inProgress
               ? const SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text('Đăng ký', style: AppStyles.button),
         );
@@ -181,7 +207,10 @@ class _LoginPrompt extends StatelessWidget {
         const Text('Đã có tài khoản? '),
         TextButton(
           onPressed: () => context.go('/login'),
-          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+          ),
           child: const Text('Đăng nhập ngay', style: AppStyles.link),
         ),
       ],

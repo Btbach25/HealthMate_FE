@@ -17,7 +17,7 @@ class MockStatsService implements StatsService {
   final LocalStorageService? _localStorage;
 
   MockStatsService({LocalStorageService? localStorage})
-      : _localStorage = localStorage;
+    : _localStorage = localStorage;
 
   Future<String> _currentUserId() async {
     final storage = _localStorage;

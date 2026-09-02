@@ -12,43 +12,52 @@ final _numberedStart = RegExp(
   r'^\s*(?:[^\w\n]{0,4})\s*(\d+)\s*(?:[.)-]\s*|\s+)',
   multiLine: true,
 );
+
 /// Dòng số lượng trên đơn: `SL: 20 viên`.
 final _slLine = RegExp(
   r'SL\s*[:\s]*(\d+)\s*([^\n]*)',
   caseSensitive: false,
 );
+
 /// Số lần uống/ngày, dạng đầy đủ: "một ngày uống 2 lần", "uống 3 lần/ngày".
 final _timesPerDay = RegExp(
   r'(?:một\s+)?ngày\s+uống\s+(\d+)\s+lần|uống\s+(\d+)\s+lần\s*/?\s*ngày',
   caseSensitive: false,
 );
+
 /// Bản rút gọn của [_timesPerDay], dùng làm phương án hai khi OCR mất chữ.
 final _timesPerDayShort = RegExp(
   r'ngày\s*uống\s*(\d+)\s*lần|uống\s*(\d+)\s*lần',
   caseSensitive: false,
 );
+
 /// Dấu hiệu thuốc bôi / nhỏ / vật tư chăm sóc → KHÔNG đưa vào lịch uống.
 final _topicalOrCare = RegExp(
   r'rửa|bôi|nhỏ|chăm\s*sóc|vết\s*mổ|rốn|không\s*uống|nhỏ\s*tai|mắt',
   caseSensitive: false,
 );
+
 /// Dấu hiệu thuốc uống (đơn vị liều, chữ "uống").
 final _oralHint = RegExp(
   r'uống|viên|mg\b|ml\b|cal\b',
   caseSensitive: false,
 );
+
 /// Dấu hiệu có hướng dẫn dùng theo ngày — cũng được tính là thuốc uống.
 final _dayDrinkHint = RegExp(r'ngày\s*uống|mỗi\s*lần', caseSensitive: false);
+
 /// Liều mỗi lần: "mỗi lần: 1,5 viên", "mỗi lần 10 ml".
 final _perDosePattern = RegExp(
   r'mỗi\s*lần\s*[:\-]?\s*([0-9]+(?:[.,][0-9]+)?\s*(?:viên|gói|ống|giọt|ml|mg))',
   caseSensitive: false,
 );
+
 /// Thời điểm uống nằm trong ngoặc: "(sáng, tối)", "(sáng - chiều)".
 final _momentPattern = RegExp(
   r'\(([^)]*(?:sáng|trưa|chiều|tối)[^)]*)\)',
   caseSensitive: false,
 );
+
 /// Tổng số lượng cấp phát: "20 viên", "2 lọ".
 final _quantityPattern = RegExp(
   r'([0-9]{1,4})\s*(viên|gói|ống|chai|lọ)\b',
@@ -347,8 +356,9 @@ List<String> _splitNumberedBlocks(String raw) {
 /// nhiễu (số nhà, mã đơn), tách theo nó sẽ hại nhiều hơn lợi.
 List<String> _splitInlineNumberedBlocks(String raw) {
   final text = raw.replaceAll('\r', '\n');
-  final marker =
-      RegExp(r'(?=(?:^|[\s\n\|\]\[\(\):;,\-\\])(\d{1,2})\s+[A-Za-zÀ-ỹ])');
+  final marker = RegExp(
+    r'(?=(?:^|[\s\n\|\]\[\(\):;,\-\\])(\d{1,2})\s+[A-Za-zÀ-ỹ])',
+  );
   final matches = marker.allMatches(text).toList();
   if (matches.length < 2) return const [];
 
@@ -427,14 +437,15 @@ ParsedPrescriptionLine _parseBlock(String block) {
     qtyNote = u.isNotEmpty ? 'SL: $n $u' : 'SL: $n';
   }
 
-  final instr = [if (qtyNote.isNotEmpty) qtyNote, instrPart]
-      .where((s) => s.trim().isNotEmpty)
-      .join('\n')
-      .trim();
+  final instr = [
+    if (qtyNote.isNotEmpty) qtyNote,
+    instrPart,
+  ].where((s) => s.trim().isNotEmpty).join('\n').trim();
 
   var timesPerDay = 1;
   final merged = '$instr $body';
-  final m1 = _timesPerDay.firstMatch(merged) ?? _timesPerDayShort.firstMatch(merged);
+  final m1 =
+      _timesPerDay.firstMatch(merged) ?? _timesPerDayShort.firstMatch(merged);
   if (m1 != null) {
     final g = m1.group(1) ?? m1.group(2);
     if (g != null) timesPerDay = int.tryParse(g) ?? 1;
@@ -453,8 +464,11 @@ ParsedPrescriptionLine _parseBlock(String block) {
     }
   }
 
-  final likelyOral = !_topicalOrCare.hasMatch(body) &&
-      (_oralHint.hasMatch(body) || _oralHint.hasMatch(name) || _dayDrinkHint.hasMatch(body));
+  final likelyOral =
+      !_topicalOrCare.hasMatch(body) &&
+      (_oralHint.hasMatch(body) ||
+          _oralHint.hasMatch(name) ||
+          _dayDrinkHint.hasMatch(body));
 
   final perDose = _extractPerDose(merged);
   final moment = _extractMoment(merged);

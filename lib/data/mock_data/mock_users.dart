@@ -84,121 +84,121 @@ class MockUsers {
 
   /// Hồ sơ của người đang đăng nhập trong demo.
   static User get demoUser => _build(
-        id: demoUserId,
-        email: demoEmail,
-        name: 'Nguyễn Văn Minh',
-        phone: '0901 234 567',
-        gender: 'male',
-        birthday: '1988-04-12',
-        weight: 68.5,
-        height: 172.0,
-        bloodGroup: 'O+',
-        address: '12 Nguyễn Trãi, Thanh Xuân, Hà Nội',
-        allergies: const ['Hải sản', 'Penicillin'],
-        createdDaysAgo: 420,
-      );
+    id: demoUserId,
+    email: demoEmail,
+    name: 'Nguyễn Văn Minh',
+    phone: '0901 234 567',
+    gender: 'male',
+    birthday: '1988-04-12',
+    weight: 68.5,
+    height: 172.0,
+    bloodGroup: 'O+',
+    address: '12 Nguyễn Trãi, Thanh Xuân, Hà Nội',
+    allergies: const ['Hải sản', 'Penicillin'],
+    createdDaysAgo: 420,
+  );
 
   /// Vợ — thành viên nhóm "Gia đình nhà mình".
   static User get hoa => _build(
-        id: hoaId,
-        email: 'hoa.tran@healthmate.vn',
-        name: 'Trần Thị Hoa',
-        phone: '0902 345 678',
-        gender: 'female',
-        birthday: '1990-09-02',
-        weight: 55.0,
-        height: 160.0,
-        bloodGroup: 'A+',
-        address: '12 Nguyễn Trãi, Thanh Xuân, Hà Nội',
-        createdDaysAgo: 380,
-      );
+    id: hoaId,
+    email: 'hoa.tran@healthmate.vn',
+    name: 'Trần Thị Hoa',
+    phone: '0902 345 678',
+    gender: 'female',
+    birthday: '1990-09-02',
+    weight: 55.0,
+    height: 160.0,
+    bloodGroup: 'A+',
+    address: '12 Nguyễn Trãi, Thanh Xuân, Hà Nội',
+    createdDaysAgo: 380,
+  );
 
   /// Bố — chủ nhóm "Ông bà & các cháu".
   static User get hung => _build(
-        id: hungId,
-        email: 'hung.nguyen@healthmate.vn',
-        name: 'Nguyễn Văn Hùng',
-        phone: '0903 456 789',
-        gender: 'male',
-        birthday: '1958-01-20',
-        weight: 66.0,
-        height: 168.0,
-        bloodGroup: 'B+',
-        address: '45 Lê Lợi, Hà Đông, Hà Nội',
-        allergies: const ['Aspirin'],
-        createdDaysAgo: 365,
-      );
+    id: hungId,
+    email: 'hung.nguyen@healthmate.vn',
+    name: 'Nguyễn Văn Hùng',
+    phone: '0903 456 789',
+    gender: 'male',
+    birthday: '1958-01-20',
+    weight: 66.0,
+    height: 168.0,
+    bloodGroup: 'B+',
+    address: '45 Lê Lợi, Hà Đông, Hà Nội',
+    allergies: const ['Aspirin'],
+    createdDaysAgo: 365,
+  );
 
   /// Con gái.
   static User get minhAnh => _build(
-        id: minhAnhId,
-        email: 'minhanh.nguyen@healthmate.vn',
-        name: 'Nguyễn Minh Anh',
-        phone: '0904 567 890',
-        gender: 'female',
-        birthday: '2010-06-15',
-        weight: 42.0,
-        height: 150.0,
-        bloodGroup: 'O+',
-        createdDaysAgo: 300,
-      );
+    id: minhAnhId,
+    email: 'minhanh.nguyen@healthmate.vn',
+    name: 'Nguyễn Minh Anh',
+    phone: '0904 567 890',
+    gender: 'female',
+    birthday: '2010-06-15',
+    weight: 42.0,
+    height: 150.0,
+    bloodGroup: 'O+',
+    createdDaysAgo: 300,
+  );
 
   /// Em trai.
   static User get baoLong => _build(
-        id: baoLongId,
-        email: 'baolong.nguyen@healthmate.vn',
-        name: 'Nguyễn Bảo Long',
-        phone: '0905 678 901',
-        gender: 'male',
-        birthday: '1995-11-30',
-        weight: 70.0,
-        height: 175.0,
-        bloodGroup: 'AB+',
-        createdDaysAgo: 260,
-      );
+    id: baoLongId,
+    email: 'baolong.nguyen@healthmate.vn',
+    name: 'Nguyễn Bảo Long',
+    phone: '0905 678 901',
+    gender: 'male',
+    birthday: '1995-11-30',
+    weight: 70.0,
+    height: 175.0,
+    bloodGroup: 'AB+',
+    createdDaysAgo: 260,
+  );
 
   /// Chị gái — người gửi lời mời đang chờ user demo xử lý.
   static User get thuMai => _build(
-        id: thuMaiId,
-        email: 'thumai.le@healthmate.vn',
-        name: 'Lê Thị Thu Mai',
-        phone: '0906 789 012',
-        gender: 'female',
-        birthday: '1985-03-08',
-        weight: 57.0,
-        height: 162.0,
-        bloodGroup: 'A+',
-        createdDaysAgo: 240,
-        provider: LoginProvider.google,
-      );
+    id: thuMaiId,
+    email: 'thumai.le@healthmate.vn',
+    name: 'Lê Thị Thu Mai',
+    phone: '0906 789 012',
+    gender: 'female',
+    birthday: '1985-03-08',
+    weight: 57.0,
+    height: 162.0,
+    bloodGroup: 'A+',
+    createdDaysAgo: 240,
+    provider: LoginProvider.google,
+  );
 
   /// Người đã được user demo mời, đang chờ phản hồi.
   static User get quocDat => _build(
-        id: quocDatId,
-        email: 'quocdat.pham@healthmate.vn',
-        name: 'Phạm Quốc Đạt',
-        phone: '0907 890 123',
-        gender: 'male',
-        birthday: '1992-07-19',
-        weight: 72.0,
-        height: 176.0,
-        bloodGroup: 'O-',
-        createdDaysAgo: 120,
-      );
+    id: quocDatId,
+    email: 'quocdat.pham@healthmate.vn',
+    name: 'Phạm Quốc Đạt',
+    phone: '0907 890 123',
+    gender: 'male',
+    birthday: '1992-07-19',
+    weight: 72.0,
+    height: 176.0,
+    bloodGroup: 'O-',
+    createdDaysAgo: 120,
+  );
 
   /// Người đã đồng ý lời mời, đang chờ chủ nhóm duyệt.
   static User get thanhLan => _build(
-        id: thanhLanId,
-        email: 'thanhlan.vu@healthmate.vn',
-        name: 'Vũ Thị Thanh Lan',
-        phone: '0908 901 234',
-        gender: 'female',
-        birthday: '1993-12-05',
-        weight: 53.0,
-        height: 158.0,
-        bloodGroup: 'B-',
-        createdDaysAgo: 90,
-      );
+    id: thanhLanId,
+    email: 'thanhlan.vu@healthmate.vn',
+    name: 'Vũ Thị Thanh Lan',
+    phone: '0908 901 234',
+    gender: 'female',
+    birthday: '1993-12-05',
+    weight: 53.0,
+    height: 158.0,
+    bloodGroup: 'B-',
+    createdDaysAgo: 90,
+  );
 
   /// Những người đã ở trong nhóm gia đình của user demo.
   static List<User> get members => [hoa, hung, minhAnh, baoLong, thuMai];

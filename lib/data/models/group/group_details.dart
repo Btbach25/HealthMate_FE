@@ -54,4 +54,3 @@ class GroupDetails extends Equatable {
   @override
   List<Object?> get props => [group, members];
 }
-

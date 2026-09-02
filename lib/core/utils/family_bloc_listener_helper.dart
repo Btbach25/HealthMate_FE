@@ -36,7 +36,7 @@ class FamilyBlocListenerHelper {
   static void Function(BuildContext, FamilyState) createDialogListener({
     required void Function() setLoading,
     required void Function(String, {Color? backgroundColor, Duration? duration})
-        showInlineMessage,
+    showInlineMessage,
     required FamilyStatus successStatus,
     String? successMessage,
     bool shouldPop = true,
@@ -78,7 +78,7 @@ class FamilyBlocListenerHelper {
   static void Function(BuildContext, FamilyState) createFormListener({
     required void Function() setLoading,
     required void Function(String, {Color? backgroundColor, Duration? duration})
-        showInlineMessage,
+    showInlineMessage,
     required FamilyStatus successStatus,
     String? successMessage,
     VoidCallback? onSuccess,

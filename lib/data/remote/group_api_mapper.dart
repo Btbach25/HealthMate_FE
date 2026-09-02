@@ -60,7 +60,9 @@ class GroupApiMapper {
       id: canonicalUserId(id),
       name: _str(json['name']),
       memberCount: _int(json['member_count']),
-      userRole: GroupMemberRole.fromValue(_str(json['user_role']).isEmpty ? null : _str(json['user_role'])),
+      userRole: GroupMemberRole.fromValue(
+        _str(json['user_role']).isEmpty ? null : _str(json['user_role']),
+      ),
       createdAt: createdAt,
       updatedAt: updatedAt,
       lastActivity: _parseDateOrNull(json['last_activity']),
@@ -85,9 +87,7 @@ class GroupApiMapper {
         : (altName.isNotEmpty ? altName : '');
     final displayName = resolvedName.isNotEmpty
         ? resolvedName
-        : (emailRaw.isNotEmpty
-            ? emailRaw.split('@').first
-            : 'Thành viên');
+        : (emailRaw.isNotEmpty ? emailRaw.split('@').first : 'Thành viên');
     final createdAt = _parseDate(json['created_at']);
     return FamilyMember(
       id: userId,
@@ -134,7 +134,10 @@ class GroupApiMapper {
     final inviteeId = _str(json['user_id']);
     final inviteeEmail = _str(json['user_email'] ?? json['email']);
     final inviteeName = _str(json['user_name'] ?? json['name']);
-    final invitee = (inviteeId.isNotEmpty || inviteeEmail.isNotEmpty || inviteeName.isNotEmpty)
+    final invitee =
+        (inviteeId.isNotEmpty ||
+            inviteeEmail.isNotEmpty ||
+            inviteeName.isNotEmpty)
         ? User(
             id: inviteeId,
             email: inviteeEmail,
@@ -152,7 +155,9 @@ class GroupApiMapper {
       group: group,
       invitee: invitee,
       relationship: null,
-      status: GroupMemberStatus.fromValue(_str(json['status']).isEmpty ? null : _str(json['status'])),
+      status: GroupMemberStatus.fromValue(
+        _str(json['status']).isEmpty ? null : _str(json['status']),
+      ),
       sentAt: sentAt,
       sharedMetrics: const [],
     );
@@ -168,7 +173,10 @@ class GroupApiMapper {
     final inviteeId = _str(memberJson['user_id']);
     final inviteeEmail = _str(memberJson['email']);
     final inviteeName = _str(memberJson['name']);
-    final invitee = (inviteeId.isNotEmpty || inviteeEmail.isNotEmpty || inviteeName.isNotEmpty)
+    final invitee =
+        (inviteeId.isNotEmpty ||
+            inviteeEmail.isNotEmpty ||
+            inviteeName.isNotEmpty)
         ? User(
             id: inviteeId,
             email: inviteeEmail,
@@ -186,7 +194,9 @@ class GroupApiMapper {
       group: group,
       invitee: invitee,
       relationship: null,
-      status: GroupMemberStatus.fromValue(_str(memberJson['status']).isEmpty ? null : _str(memberJson['status'])),
+      status: GroupMemberStatus.fromValue(
+        _str(memberJson['status']).isEmpty ? null : _str(memberJson['status']),
+      ),
       sentAt: sentAt,
       sharedMetrics: _parseMetricTypes(memberJson['shared_metrics']),
     );

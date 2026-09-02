@@ -79,14 +79,13 @@ class NotificationSettings extends Equatable {
 
   @override
   List<Object> get props => [
-        medicationReminders,
-        healthAlerts,
-        groupNotifications,
-        pushNotifications,
-        emailNotifications,
-        soundEnabled,
-        vibrationEnabled,
-        reminderVolume,
-      ];
+    medicationReminders,
+    healthAlerts,
+    groupNotifications,
+    pushNotifications,
+    emailNotifications,
+    soundEnabled,
+    vibrationEnabled,
+    reminderVolume,
+  ];
 }
-

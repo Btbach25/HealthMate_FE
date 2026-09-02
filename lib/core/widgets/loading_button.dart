@@ -53,7 +53,8 @@ class LoadingButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor ?? AppColors.primary,
         foregroundColor: foregroundColor ?? Colors.white,
-        disabledBackgroundColor: disabledBackgroundColor ??
+        disabledBackgroundColor:
+            disabledBackgroundColor ??
             (backgroundColor ?? AppColors.primary).withValues(alpha: 0.6),
         padding: padding ?? const EdgeInsets.symmetric(vertical: AppSize.p16),
         shape: RoundedRectangleBorder(
@@ -70,15 +71,15 @@ class LoadingButton extends StatelessWidget {
               ),
             )
           : icon != null
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 20),
-                    const SizedBox(width: 8),
-                    Text(text),
-                  ],
-                )
-              : Text(text),
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 20),
+                const SizedBox(width: 8),
+                Text(text),
+              ],
+            )
+          : Text(text),
     );
 
     return LayoutBuilder(

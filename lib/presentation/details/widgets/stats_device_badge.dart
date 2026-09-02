@@ -16,8 +16,7 @@ class StatsDeviceBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.warningLight,
         borderRadius: BorderRadius.circular(8),
@@ -25,16 +24,15 @@ class StatsDeviceBadge extends StatelessWidget {
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.smartphone,
-              size: 11,
-              color: AppColors.warning),
+          Icon(Icons.smartphone, size: 11, color: AppColors.warning),
           SizedBox(width: 3),
           Text(
             'Thiết bị',
             style: TextStyle(
-                fontSize: 10,
-                color: AppColors.warning,
-                fontWeight: FontWeight.w600),
+              fontSize: 10,
+              color: AppColors.warning,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

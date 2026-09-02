@@ -226,7 +226,7 @@ class HealthDataFetcher {
   Future<bool> _ensurePermissionForType(HealthDataType type) async {
     final hasPerm = await _health.hasPermissions([type]);
     if (hasPerm == true) return true;
-    
+
     // Nếu chưa được cấp (false hoặc null), thử request lại
     try {
       final granted = await _health.requestAuthorization([type]);
@@ -235,7 +235,9 @@ class HealthDataFetcher {
         return true;
       }
     } catch (e) {
-      debugPrint('[HealthFetcher] requestAuthorization error for ${type.name}: $e');
+      debugPrint(
+        '[HealthFetcher] requestAuthorization error for ${type.name}: $e',
+      );
     }
     return false;
   }
@@ -245,13 +247,15 @@ class HealthDataFetcher {
     int hoursBack,
   ) async {
     if (!_health.isDataTypeAvailable(type)) return [];
-    
+
     // Đảm bảo quyền được cấp trước khi fetch, đặc biệt cho WORKOUT
     if (!await _ensurePermissionForType(type)) {
-      debugPrint('[HealthFetcher] Permission denied for ${type.name}, skipping fetch');
+      debugPrint(
+        '[HealthFetcher] Permission denied for ${type.name}, skipping fetch',
+      );
       return [];
     }
-    
+
     try {
       final points = await _health.getHealthDataFromTypes(
         startTime: _start(hoursBack),
@@ -264,8 +268,10 @@ class HealthDataFetcher {
       debugPrint('[HealthFetcher] ${type.name} error: $e');
       if (e.toString().toLowerCase().contains('securityexception') ||
           e.toString().toLowerCase().contains('permission')) {
-        debugPrint('[HealthFetcher] Permission issue detected for ${type.name}; '
-            'user may need to manually grant in Health Connect app');
+        debugPrint(
+          '[HealthFetcher] Permission issue detected for ${type.name}; '
+          'user may need to manually grant in Health Connect app',
+        );
       }
       return [];
     }

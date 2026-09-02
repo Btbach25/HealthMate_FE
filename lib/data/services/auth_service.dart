@@ -62,16 +62,20 @@ class AuthApiService implements AuthService {
       debugPrint('[Auth] → POST $url');
       final sw = Stopwatch()..start();
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 30));
       sw.stop();
-      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
+      debugPrint(
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+      );
 
       if (response.body.isEmpty) {
         throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
@@ -88,18 +92,22 @@ class AuthApiService implements AuthService {
 
         await _localStorage.saveTokens(
           accessToken: authResponse.accessToken,
-          refreshToken: authResponse.refreshToken
+          refreshToken: authResponse.refreshToken,
         );
 
         await _localStorage.saveUser(authResponse.user);
 
         return authResponse.user;
       }
-      final msg = body is Map<String, dynamic> ? (body['error'] ?? '').toString() : '';
-      final isUnverified = msg.toLowerCase().contains('account not verified') ||
+      final msg = body is Map<String, dynamic>
+          ? (body['error'] ?? '').toString()
+          : '';
+      final isUnverified =
+          msg.toLowerCase().contains('account not verified') ||
           msg.toLowerCase().contains('not verified') ||
           msg.contains('chưa xác thực');
-      if ((response.statusCode == 401 || response.statusCode == 403) && isUnverified) {
+      if ((response.statusCode == 401 || response.statusCode == 403) &&
+          isUnverified) {
         throw Exception(
           'Tài khoản chưa xác thực. Hãy nhập mã OTP đã gửi đến email (hoặc bấm Gửi lại OTP).',
         );
@@ -128,7 +136,9 @@ class AuthApiService implements AuthService {
         if (googleUser == null) return null;
         final googleAuth = await googleUser.authentication;
         idToken = googleAuth.idToken;
-        debugPrint('[Auth] idToken=${idToken != null ? "ok (${idToken.length} chars)" : "null"}');
+        debugPrint(
+          '[Auth] idToken=${idToken != null ? "ok (${idToken.length} chars)" : "null"}',
+        );
       }
       if (idToken == null) {
         throw Exception('Không hoàn tất đăng nhập Google. Vui lòng thử lại.');
@@ -137,13 +147,17 @@ class AuthApiService implements AuthService {
       final url = Uri.parse('$baseUrl/auth/google');
       debugPrint('[Auth] → POST $url');
       final sw = Stopwatch()..start();
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_token': idToken}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id_token': idToken}),
+          )
+          .timeout(const Duration(seconds: 30));
       sw.stop();
-      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
+      debugPrint(
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+      );
 
       if (response.body.isEmpty) {
         throw Exception('Không nhận được phản hồi. Vui lòng thử lại sau.');
@@ -191,16 +205,24 @@ class AuthApiService implements AuthService {
       debugPrint('[Auth] → POST $url (register)');
       final sw = Stopwatch()..start();
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'email': email, 'password': password, 'name': name}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+              'name': name,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
       sw.stop();
-      debugPrint('[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
+      debugPrint(
+        '[Auth] ← ${response.statusCode} (${sw.elapsedMilliseconds}ms) body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}',
+      );
 
       if (response.statusCode == 500) {
         throw Exception(
@@ -222,15 +244,18 @@ class AuthApiService implements AuthService {
           'Email này đã được đăng ký. Nếu bạn chưa xác thực OTP (đăng ký lần trước bị lỗi), hãy đăng nhập bằng email này — app sẽ gửi lại mã OTP. Ngược lại hãy dùng email khác.',
         );
       }
-      String errorMessage = (body is Map<String, dynamic>
-          ? (body['error'] ?? 'Đăng ký thất bại')
-          : 'Đăng ký thất bại').toString();
+      String errorMessage =
+          (body is Map<String, dynamic>
+                  ? (body['error'] ?? 'Đăng ký thất bại')
+                  : 'Đăng ký thất bại')
+              .toString();
 
       if (errorMessage.contains("Field validation for 'Email'")) {
         errorMessage = "Email không hợp lệ.";
       } else if (errorMessage.contains(
-        "user with this email already exists",
-      ) || errorMessage.toLowerCase().contains("already exists")) {
+            "user with this email already exists",
+          ) ||
+          errorMessage.toLowerCase().contains("already exists")) {
         errorMessage = "Email này đã được sử dụng.";
       } else if (errorMessage.contains("associated with a Google account")) {
         errorMessage =
@@ -259,29 +284,43 @@ class AuthApiService implements AuthService {
   Future<bool> verifyOtp({required String email, required String otp}) async {
     try {
       // Backend yêu cầu email hợp lệ và otp đúng 6 ký tự (len=6)
-      final normalizedOtp = otp.trim().replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'\D'), '');
+      final normalizedOtp = otp
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '')
+          .replaceAll(RegExp(r'\D'), '');
       if (normalizedOtp.length != 6) {
         throw Exception('Mã OTP phải đủ 6 chữ số.');
       }
-      final otpToSend = normalizedOtp.length > 6 ? normalizedOtp.substring(0, 6) : normalizedOtp;
+      final otpToSend = normalizedOtp.length > 6
+          ? normalizedOtp.substring(0, 6)
+          : normalizedOtp;
 
       final url = Uri.parse('$baseUrl/auth/otp/verify');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode({'email': email.trim(), 'otp': otpToSend}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email.trim(), 'otp': otpToSend}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        final body = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : <String, dynamic>{};
         if (body is Map<String, dynamic>) {
-          if (body.containsKey('access_token') && body.containsKey('refresh_token')) {
+          if (body.containsKey('access_token') &&
+              body.containsKey('refresh_token')) {
             await _localStorage.saveTokens(
               accessToken: cvToString(body['access_token']),
               refreshToken: cvToString(body['refresh_token']),
             );
           }
-          if (body.containsKey('user') && body['user'] is Map<String, dynamic>) {
+          if (body.containsKey('user') &&
+              body['user'] is Map<String, dynamic>) {
             final user = User.fromJson(body['user'] as Map<String, dynamic>);
             await _localStorage.saveUser(user);
           }
@@ -289,13 +328,22 @@ class AuthApiService implements AuthService {
         return true;
       }
 
-      final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
-      final errorMsg = body is Map<String, dynamic> ? (body['error'] ?? body['message']) : null;
+      final body = response.body.isNotEmpty
+          ? jsonDecode(response.body)
+          : <String, dynamic>{};
+      final errorMsg = body is Map<String, dynamic>
+          ? (body['error'] ?? body['message'])
+          : null;
       if (response.statusCode == 400) {
-        throw Exception(errorMsg?.toString() ?? 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+        throw Exception(
+          errorMsg?.toString() ?? 'Mã OTP không hợp lệ hoặc đã hết hạn.',
+        );
       }
       if (response.statusCode == 404) {
-        throw Exception(errorMsg?.toString() ?? 'Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng gửi lại mã.');
+        throw Exception(
+          errorMsg?.toString() ??
+              'Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng gửi lại mã.',
+        );
       }
       throw Exception(errorMsg?.toString() ?? 'OTP không chính xác');
     } on TimeoutException {
@@ -313,18 +361,25 @@ class AuthApiService implements AuthService {
         throw Exception('Thiếu email. Vui lòng quay lại đăng nhập và thử lại.');
       }
       final url = Uri.parse('$baseUrl/auth/otp/resend');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode({'email': e}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': e}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) return;
 
       final body = response.body.isNotEmpty
           ? jsonDecode(response.body)
           : <String, dynamic>{};
-      final errMsg = body is Map<String, dynamic> ? (body['error'] ?? body['message']) : null;
+      final errMsg = body is Map<String, dynamic>
+          ? (body['error'] ?? body['message'])
+          : null;
       if (response.statusCode == 500) {
         throw Exception(
           'Hiện không gửi được email xác nhận. '
@@ -332,10 +387,15 @@ class AuthApiService implements AuthService {
         );
       }
       if (response.statusCode == 400) {
-        throw Exception(errMsg?.toString() ?? 'Email không hợp lệ. Vui lòng quay lại đăng nhập.');
+        throw Exception(
+          errMsg?.toString() ??
+              'Email không hợp lệ. Vui lòng quay lại đăng nhập.',
+        );
       }
       if (response.statusCode == 409) {
-        throw Exception(errMsg?.toString() ?? 'Tài khoản đã xác thực. Hãy đăng nhập.');
+        throw Exception(
+          errMsg?.toString() ?? 'Tài khoản đã xác thực. Hãy đăng nhập.',
+        );
       }
       throw Exception(errMsg?.toString() ?? 'Không thể gửi lại OTP');
     } on TimeoutException {
@@ -356,11 +416,13 @@ class AuthApiService implements AuthService {
   @override
   Future<String?> refreshAccessToken(String refreshToken) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;

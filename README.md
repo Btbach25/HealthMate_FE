@@ -8,6 +8,7 @@
 <p align="center">
   <a href="#chạy-thử-trong-2-phút">Chạy thử</a> ·
   <a href="#cài-đặt-đầy-đủ">Cài đặt</a> ·
+  <a href="#deploy">Deploy</a> ·
   <a href="ARCHITECTURE.md">Kiến trúc</a> ·
   <a href="CONTRIBUTING.md">Đóng góp</a> ·
   <a href="API_DOC.md">API</a>
@@ -61,8 +62,8 @@ năng — dùng khi onboarding người mới hoặc review PR mà chưa dựng 
 
 | Thành phần | Phiên bản |
 |---|---|
-| Flutter SDK | 3.24 trở lên (kênh `stable`) |
-| Dart SDK | 3.8 trở lên (đi kèm Flutter) |
+| Flutter SDK | **3.47.2** (bản đã kiểm chứng; CI pin đúng bản này) |
+| Dart SDK | 3.13+ (đi kèm Flutter) |
 | Android | SDK API 21+ |
 | iOS | macOS + Xcode 15+ + CocoaPods |
 | Web | Chrome |
@@ -257,6 +258,134 @@ cùng client ID này được dùng làm `serverClientId` để backend verify `
 - **Web** — bắt buộc truyền `FirebaseOptions` thủ công; điền các biến
   `FIREBASE_*` trong `.env`. Thiếu thì app vẫn chạy bình thường, chỉ không có
   push notification.
+
+---
+
+## Deploy
+
+Có hai đường, dùng cái nào cũng được — hoặc cả hai.
+
+### A. GitHub Pages — bản demo, không cần cài gì
+
+Đã có sẵn workflow [`.github/workflows/deploy-demo.yml`](.github/workflows/deploy-demo.yml).
+Bật một lần rồi thôi:
+
+1. **Settings → Pages → Source** chọn **GitHub Actions**.
+2. Đẩy lên `master` (hoặc chạy tay workflow *Deploy demo lên GitHub Pages*).
+3. URL nhận được: `https://<tài-khoản>.github.io/HealthMate_FE/`
+
+Bản này build với `--dart-define=DEMO_MODE=true` nên chạy hoàn toàn bằng mock
+data: **không gọi backend, không cần secret, an toàn để public**. Đây là bản
+nên gửi cho người khác xem thử hoặc gắn vào README/CV.
+
+> `--base-href` được đặt tự động theo tên repo. Đổi tên repo thì không phải sửa gì.
+
+### B. Firebase Hosting — bản chạy API thật
+
+Dự án đã có sẵn [`firebase.json`](firebase.json) và [`.firebaserc`](.firebaserc)
+trỏ tới project `healthmate-6734d` (SPA rewrite + cache header đã cấu hình).
+
+Cần Firebase CLI. Máy không có Node vẫn cài được bằng bản standalone:
+
+```powershell
+# Windows — tải firebase-tools-instant-win.exe từ https://firebase.tools
+# hoặc nếu đã có Node:
+npm install -g firebase-tools
+```
+
+Rồi:
+
+```bash
+firebase login
+make deploy-demo     # bản mock data
+make deploy-web      # bản gọi API thật tại BASE_URL
+```
+
+**Trước khi deploy bản API thật, đọc kỹ:**
+
+- **`.env` được deploy nguyên văn thành một file tĩnh đọc được công khai.**
+  `flutter build web` copy nó thành `build/web/assets/.env`, nên bất kỳ ai cũng
+  mở được `https://<domain>/assets/.env` và đọc toàn bộ — kể cả comment. Đây
+  không phải "nhúng vào JavaScript đã minify" mà là plain text ở đường dẫn đoán
+  được. Hệ quả:
+  - Chỉ để trong `.env` những giá trị **vốn dĩ đã public** (`BASE_URL`,
+    OAuth *Web* client ID). Tuyệt đối không có khoá server, secret, token.
+  - Trước khi build bản public, kiểm tra lại file sẽ ship:
+    ```bash
+    flutter build web --release && cat build/web/assets/.env
+    ```
+  - Workflow GitHub Pages đã an toàn sẵn: nó dựng `.env` từ `.env.example`
+    (toàn giá trị rỗng) nên không có gì rò rỉ.
+- Backend phải bật CORS cho domain vừa deploy, nếu không mọi request đều chết ở
+  preflight.
+- Domain mới phải được thêm vào **Authorized JavaScript origins** của OAuth Web
+  client, nếu không đăng nhập Google sẽ báo `Error 400: origin_mismatch`.
+- `BASE_URL` đang là `http://` mà trang deploy là `https://` → trình duyệt chặn
+  mixed content. Backend phải có HTTPS trước khi deploy bản API thật.
+
+### Điều kiện bắt buộc: backend phải chạy HTTPS
+
+Trang deploy luôn được phục vụ qua `https://` (GitHub Pages, Firebase Hosting,
+Netlify… đều ép HTTPS). Trình duyệt **chặn thẳng** mọi request từ trang HTTPS
+sang `http://`, gọi là *mixed content* — không có cách nào tắt cho người dùng
+cuối. Vì vậy `BASE_URL` phải là `https://` trước khi deploy bản live.
+
+Trở ngại: **Let's Encrypt không cấp chứng chỉ cho địa chỉ IP trần.** Phải có
+tên miền. Ba cách, xếp theo độ dễ:
+
+**1. Cloudflare Tunnel — không cần mở cổng, không cần quản lý chứng chỉ**
+
+```bash
+# trên máy chủ backend
+cloudflared tunnel --url http://localhost:8080
+```
+
+Trả về ngay một địa chỉ `https://<ngẫu-nhiên>.trycloudflare.com`. Đủ để demo,
+nhưng địa chỉ đổi mỗi lần chạy lại. Muốn cố định thì gắn một domain vào
+Cloudflare rồi tạo named tunnel.
+
+**2. Caddy + tên miền — HTTPS tự động, phù hợp cho chạy thật**
+
+Tên miền miễn phí lấy ở [DuckDNS](https://www.duckdns.org) (trỏ về IP máy chủ),
+rồi trên máy chủ:
+
+```caddyfile
+# /etc/caddy/Caddyfile
+healthmate.duckdns.org {
+    reverse_proxy localhost:8080
+}
+```
+
+```bash
+sudo systemctl reload caddy
+```
+
+Caddy tự xin và tự gia hạn chứng chỉ Let's Encrypt. Cần mở cổng 80 và 443.
+
+**3. AWS ALB + ACM** — nếu backend chạy trên EC2. Chứng chỉ miễn phí nhưng
+Load Balancer tốn khoảng 16 USD/tháng, vẫn phải có tên miền.
+
+> **Cách chữa cháy KHÔNG nên dùng lâu dài:** Netlify/Vercel cho phép rewrite
+> `/api/*` sang `http://<ip>/...` phía máy chủ, nên trình duyệt chỉ thấy HTTPS
+> và hết báo mixed content. Nhưng chặng từ proxy tới backend **vẫn là plaintext**
+> — access token và dữ liệu sức khoẻ đi trần trên Internet. Với một ứng dụng y
+> tế thì đây chỉ là giải pháp tạm trong lúc dựng HTTPS thật.
+
+### Sau khi backend đã có HTTPS
+
+Bốn việc, thiếu một là hỏng:
+
+1. `.env` → `BASE_URL=https://<tên-miền>` (không có `/` ở cuối).
+2. Backend bật CORS cho đúng origin của trang FE (`https://btbach25.github.io`).
+3. Thêm origin đó vào **Authorized JavaScript origins** của OAuth Web client,
+   nếu không đăng nhập Google báo `Error 400: origin_mismatch`.
+4. Build lại rồi deploy — `.env` cũ đã nằm trong bundle, không sửa lại là vẫn
+   trỏ về địa chỉ cũ.
+
+### Nền tảng khác
+
+`build/web` là thư mục tĩnh thuần, kéo thả lên Netlify / Vercel / Cloudflare
+Pages đều chạy. Chỉ cần cấu hình rewrite mọi đường dẫn về `/index.html` (SPA).
 
 ---
 

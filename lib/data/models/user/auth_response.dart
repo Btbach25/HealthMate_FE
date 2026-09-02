@@ -20,8 +20,8 @@ class AuthResponse {
     return AuthResponse(
       accessToken: cvToString(json['access_token']),
       refreshToken: cvToString(json['refresh_token']),
-      user: json['user'] != null 
-          ? User.fromJson(json['user'] as Map<String, dynamic>) 
+      user: json['user'] != null
+          ? User.fromJson(json['user'] as Map<String, dynamic>)
           : User.empty(),
     );
   }

@@ -29,7 +29,10 @@ class StatsChartList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: charts.length,
       itemBuilder: (context, index) {
-        return StatsChartCard(chart: charts[index], selectedRange: selectedRange);
+        return StatsChartCard(
+          chart: charts[index],
+          selectedRange: selectedRange,
+        );
       },
       separatorBuilder: (context, index) {
         return const SizedBox(height: 16);

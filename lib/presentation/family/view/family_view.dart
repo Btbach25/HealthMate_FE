@@ -1,6 +1,7 @@
 import 'package:fe/core/constants/app_size.dart';
 import 'package:fe/core/theme/app_colors.dart';
 import 'package:fe/core/theme/app_text_styles.dart';
+import 'package:fe/core/widgets/clickable.dart';
 import 'package:fe/core/widgets/error_widget.dart';
 import 'package:fe/core/widgets/loading_widget.dart';
 import 'package:fe/data/enums/group_member_status.dart';
@@ -50,22 +51,22 @@ class FamilyView extends StatelessWidget {
           }
 
           return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    final bloc = context.read<FamilyBloc>();
-                    bloc.add(const FetchFamilyGroups());
-                    try {
-                      await bloc.stream
-                          .firstWhere((s) => s.status != FamilyStatus.loading)
-                          .timeout(const Duration(seconds: 45));
-                    } catch (_) {}
-                  },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(AppSize.p20),
-                    child: Column(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  final bloc = context.read<FamilyBloc>();
+                  bloc.add(const FetchFamilyGroups());
+                  try {
+                    await bloc.stream
+                        .firstWhere((s) => s.status != FamilyStatus.loading)
+                        .timeout(const Duration(seconds: 45));
+                  } catch (_) {}
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSize.p20),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
@@ -138,7 +139,6 @@ class FamilyView extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSize.spacing32),
 
-
                       FamilySummaryCards(
                         groupsJoined: state.summary.groupsJoined,
                         pendingInvitations: _totalPendingInvitations(state),
@@ -146,7 +146,6 @@ class FamilyView extends StatelessWidget {
                       const SizedBox(height: 20),
                       const _FamilyPurposeBanner(),
                       const SizedBox(height: 28),
-
 
                       if (state.summary.groups.isNotEmpty) ...[
                         Text(
@@ -157,15 +156,23 @@ class FamilyView extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSize.spacing20),
                         ...state.summary.groups.map((group) {
-                              final currentUserId = context.read<AuthBloc>().state.user.id;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: AppSize.spacing16),
-                                child: FamilyGroupCard(
-                                  group: group,
-                                  currentUserId: currentUserId.isEmpty ? null : currentUserId,
-                                ),
-                              );
-                            }),
+                          final currentUserId = context
+                              .read<AuthBloc>()
+                              .state
+                              .user
+                              .id;
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSize.spacing16,
+                            ),
+                            child: FamilyGroupCard(
+                              group: group,
+                              currentUserId: currentUserId.isEmpty
+                                  ? null
+                                  : currentUserId,
+                            ),
+                          );
+                        }),
                         const SizedBox(height: AppSize.spacing8),
                       ],
 
@@ -174,15 +181,16 @@ class FamilyView extends StatelessWidget {
                         const SizedBox(height: AppSize.spacing24),
                       ],
 
-
                       const _CreateGroupCard(),
-                      SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 100,
+                      ),
                     ],
-                  ),
                   ),
                 ),
               ),
-            );
+            ),
+          );
         },
       ),
     );
@@ -301,7 +309,7 @@ class _CreateGroupCard extends StatelessWidget {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha:0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (dialogContext) {
         return BlocProvider.value(
           value: bloc,
@@ -315,7 +323,7 @@ class _CreateGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Clickable(
       onTap: () => _openCreateGroupDialog(context),
       child: Container(
         padding: const EdgeInsets.all(AppSize.p24),
@@ -323,13 +331,13 @@ class _CreateGroupCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha:0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             style: BorderStyle.solid,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha:0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -400,10 +408,11 @@ class _CreateGroupCard extends StatelessWidget {
 /// [BE-REQ-03] pendingOwnerApproval được tính vào badge vì chủ nhóm cần duyệt.
 int _totalPendingInvitations(FamilyState state) {
   final outgoingActive = state.outgoingInvitations
-      .where((o) =>
-          o.status == GroupMemberStatus.pending ||
-          o.status == GroupMemberStatus.pendingOwnerApproval)
+      .where(
+        (o) =>
+            o.status == GroupMemberStatus.pending ||
+            o.status == GroupMemberStatus.pendingOwnerApproval,
+      )
       .length;
   return state.incomingInvitations.length + outgoingActive;
 }
-

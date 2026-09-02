@@ -55,13 +55,21 @@ class OtpView extends StatelessWidget {
       listener: (context, state) {
         if (!context.mounted) return;
         if (state.status == FormStatus.failure) {
-          ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
+          ToastUtils.showCustomToast(
+            context,
+            state.errorMessage,
+            ToastType.error,
+          );
         }
         // Chỉ OtpSubmitted mới emit success. OtpResendRequested cố ý không emit
         // success, nếu không người dùng sẽ bị điều hướng đi ngay khi vừa bấm
         // "Gửi lại".
         if (state.status == FormStatus.success) {
-          ToastUtils.showCustomToast(context, 'Xác thực thành công!', ToastType.success);
+          ToastUtils.showCustomToast(
+            context,
+            'Xác thực thành công!',
+            ToastType.success,
+          );
           if (flow == OtpFlow.forgot) {
             context.go('/reset-password');
           } else {
@@ -86,7 +94,11 @@ class OtpForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Xác thực OTP', style: AppStyles.h1, textAlign: TextAlign.center),
+        const Text(
+          'Xác thực OTP',
+          style: AppStyles.h1,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p8),
         const Text(
           'Nhập mã OTP đã được gửi đến email của bạn',
@@ -101,7 +113,10 @@ class OtpForm extends StatelessWidget {
           // ValueKey theo email: khi email đổi (người dùng quay lại đổi email),
           // widget bị dựng mới nên controller và các ô nhập được xoá sạch thay
           // vì giữ lại mã cũ.
-          builder: (context, state) => _OtpInput(key: ValueKey('otp_${state.email}'), email: state.email),
+          builder: (context, state) => _OtpInput(
+            key: ValueKey('otp_${state.email}'),
+            email: state.email,
+          ),
         ),
         const SizedBox(height: AppSize.p12),
 
@@ -208,8 +223,12 @@ class _SubmitButton extends StatelessWidget {
               : () => context.read<AuthFormBloc>().add(OtpSubmitted()),
           child: state.status == FormStatus.inProgress
               ? const SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text('Xác thực', style: AppStyles.button),
         );
@@ -232,7 +251,10 @@ class _ChangeEmailButton extends StatelessWidget {
       // pop() chứ không go(): quay lại đúng màn đã đẩy tới đây (login, đăng ký
       // hoặc quên mật khẩu) để người dùng sửa email rồi gửi lại.
       onPressed: () => context.pop(),
-      child: const Text('Thay đổi email', style: TextStyle(fontSize: 16, color: Colors.black87)),
+      child: const Text(
+        'Thay đổi email',
+        style: TextStyle(fontSize: 16, color: Colors.black87),
+      ),
     );
   }
 }
@@ -260,7 +282,11 @@ class _ResendButton extends StatelessWidget {
     return TextButton(
       onPressed: () {
         context.read<AuthFormBloc>().add(OtpResendRequested());
-        ToastUtils.showCustomToast(context, "Đang gửi lại mã...", ToastType.info);
+        ToastUtils.showCustomToast(
+          context,
+          "Đang gửi lại mã...",
+          ToastType.info,
+        );
       },
       child: const Text('Chưa nhận được mã? Gửi lại'),
     );

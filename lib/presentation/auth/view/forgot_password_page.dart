@@ -38,10 +38,18 @@ class ForgotPasswordView extends StatelessWidget {
       listener: (context, state) {
         if (!context.mounted) return;
         if (state.status == FormStatus.failure) {
-          ToastUtils.showCustomToast(context, state.errorMessage, ToastType.error);
+          ToastUtils.showCustomToast(
+            context,
+            state.errorMessage,
+            ToastType.error,
+          );
         }
         if (state.status == FormStatus.success) {
-          ToastUtils.showCustomToast(context, state.successMessage, ToastType.success);
+          ToastUtils.showCustomToast(
+            context,
+            state.successMessage,
+            ToastType.success,
+          );
           // Route /otp đọc `extra` dạng Map { email, flow }. Bắt buộc truyền
           // flow 'forgot', nếu không router mặc định về OtpFlow.login và người
           // dùng bị đưa về trang chủ thay vì /reset-password sau khi xác thực.
@@ -61,7 +69,11 @@ class ForgotPasswordForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Quên mật khẩu', style: AppStyles.h1, textAlign: TextAlign.center),
+        const Text(
+          'Quên mật khẩu',
+          style: AppStyles.h1,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSize.p8),
         const Text(
           'Nhập email để nhận mã khôi phục mật khẩu',
@@ -85,7 +97,8 @@ class _EmailInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      onChanged: (email) => context.read<AuthFormBloc>().add(EmailChanged(email)),
+      onChanged: (email) =>
+          context.read<AuthFormBloc>().add(EmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
       decoration: const InputDecoration(
         hintText: 'Nhập email của bạn',
@@ -111,12 +124,16 @@ class _SubmitButton extends StatelessWidget {
           ),
           onPressed: state.status == FormStatus.inProgress
               ? null
-              : () => context.read<AuthFormBloc>().add(ForgotPasswordSubmitted()),
+              : () =>
+                    context.read<AuthFormBloc>().add(ForgotPasswordSubmitted()),
           child: state.status == FormStatus.inProgress
               ? const SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text('Gửi mã khôi phục', style: AppStyles.button),
         );

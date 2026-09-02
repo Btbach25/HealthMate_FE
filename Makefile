@@ -91,6 +91,16 @@ build-demo-apk: ## Build APK demo chạy hoàn toàn bằng mock data
 build-demo-web: ## Build web demo chạy hoàn toàn bằng mock data
 	$(FLUTTER) build web --release --dart-define=DEMO_MODE=true
 
+# --- Deploy ---------------------------------------------------------------
+# Cần Firebase CLI: https://firebase.tools  (Windows có bản .exe không cần Node)
+# Lần đầu chạy: firebase login
+
+deploy-demo: build-demo-web ## Deploy bản demo (mock data) lên Firebase Hosting
+	firebase deploy --only hosting
+
+deploy-web: build-web ## Deploy bản gọi API thật lên Firebase Hosting
+	firebase deploy --only hosting
+
 # --- Assets ---------------------------------------------------------------
 
 icons: ## Sinh lại app icon từ assets/icons/app_logo.png

@@ -49,12 +49,12 @@ Future<void> showPrescriptionScanDialog(BuildContext context) {
 /// đụng controller đang được [AnimatedSwitcher] animate.
 class _DraftEntry {
   _DraftEntry.fromParsed(ParsedPrescriptionLine p)
-      : includeInSchedule = p.likelyOral,
-        allergyHints = List<String>.from(p.allergyHints),
-        name = TextEditingController(text: p.name),
-        dosage = TextEditingController(text: p.dosage),
-        instructions = TextEditingController(text: p.instructions),
-        times = TextEditingController(text: p.suggestedTimes.join(', '));
+    : includeInSchedule = p.likelyOral,
+      allergyHints = List<String>.from(p.allergyHints),
+      name = TextEditingController(text: p.name),
+      dosage = TextEditingController(text: p.dosage),
+      instructions = TextEditingController(text: p.instructions),
+      times = TextEditingController(text: p.suggestedTimes.join(', '));
 
   final TextEditingController name;
   final TextEditingController dosage;
@@ -106,6 +106,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   String? _error;
   bool _requireReselect = false;
   List<_DraftEntry>? _entries;
+
   /// Tăng mỗi lần OCR thay TOÀN BỘ danh sách nháp.
   ///
   /// Số này đi vào key của [AnimatedSwitcher] để Flutter không tái dùng element
@@ -143,11 +144,14 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     // AnimatedSwitcher vẫn giữ widget cũ trong lúc animate-out, nên dispose
     // ngay sẽ gây "TextEditingController was used after being disposed".
     // Hoãn quá thời gian chuyển cảnh rồi mới dispose.
-    Future<void>.delayed(_stateSwitchDuration + const Duration(milliseconds: 40), () {
-      for (final e in entries) {
-        e.dispose();
-      }
-    });
+    Future<void>.delayed(
+      _stateSwitchDuration + const Duration(milliseconds: 40),
+      () {
+        for (final e in entries) {
+          e.dispose();
+        }
+      },
+    );
   }
 
   /// Chấm điểm 0–1 xem chuỗi này có giống tên thuốc thật không.
@@ -159,11 +163,15 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return 0;
     final len = trimmed.length;
-    final badChars = RegExp(r'[^A-Za-zÀ-ỹ0-9\s\-\+\(\)\.,/]').allMatches(trimmed).length;
+    final badChars = RegExp(
+      r'[^A-Za-zÀ-ỹ0-9\s\-\+\(\)\.,/]',
+    ).allMatches(trimmed).length;
     final badRatio = badChars / len;
     var score = (1 - badRatio).clamp(0.0, 1.0);
-    if (RegExp(r'\b\d+(?:[.,]\d+)?\s*(mg|ml|g|mcg|iu|ui)\b', caseSensitive: false)
-        .hasMatch(trimmed)) {
+    if (RegExp(
+      r'\b\d+(?:[.,]\d+)?\s*(mg|ml|g|mcg|iu|ui)\b',
+      caseSensitive: false,
+    ).hasMatch(trimmed)) {
       score += 0.1;
     }
     if (RegExp(r'[A-Za-zÀ-ỹ]{4,}').hasMatch(trimmed)) {
@@ -218,8 +226,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       r'(furosem|agif|atorva|lipot|bidifer|folic|sulfat|calci|vitamin\s*d3|pregabalin|clopidogrel)',
       caseSensitive: false,
     ).hasMatch(n);
-    final hasDoseUnit = RegExp(r'\b\d+(?:[.,]\d+)?\s*(mg|ml|g|mcg|iu|ui)\b', caseSensitive: false)
-        .hasMatch(n);
+    final hasDoseUnit = RegExp(
+      r'\b\d+(?:[.,]\d+)?\s*(mg|ml|g|mcg|iu|ui)\b',
+      caseSensitive: false,
+    ).hasMatch(n);
     return medLike || hasDoseUnit;
   }
 
@@ -233,8 +243,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     final merged = List<ParsedPrescriptionLine>.from(serverItems);
     for (final local in localItems) {
       if (!_isAcceptableLocalName(local.name)) continue;
-      final duplicated =
-          merged.any((server) => _isLikelyDuplicateName(server.name, local.name));
+      final duplicated = merged.any(
+        (server) => _isLikelyDuplicateName(server.name, local.name),
+      );
       if (!duplicated) {
         merged.add(local);
       }
@@ -283,7 +294,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   ///
   /// "Số thuốc parse được thấp" chỉ chặn khi ra ≤1 dòng, vì đơn 2 thuốc thật
   /// cũng hay dính cảnh báo này.
-  bool _shouldForceReselectFromWarnings(List<String> warnings, int parsedCount) {
+  bool _shouldForceReselectFromWarnings(
+    List<String> warnings,
+    int parsedCount,
+  ) {
     if (warnings.isEmpty) return false;
     final joined = warnings.join(' ').toLowerCase();
     if (joined.contains('không parse') || joined.contains('khong parse')) {
@@ -333,13 +347,20 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                 apiResult.warnings.isNotEmpty);
         if (shouldRescueWithText) {
           debugPrint(
-              '[OCR] server rescue check items=${apiResult.items.length} warnings=${apiResult.warnings.length} raw_len=${serverText.length}');
-          final parsedMaps =
-              await compute(parsePrescriptionPlanInBackground, serverText);
-          final reparsed = parsedMaps.map(ParsedPrescriptionLine.fromMap).toList();
+            '[OCR] server rescue check items=${apiResult.items.length} warnings=${apiResult.warnings.length} raw_len=${serverText.length}',
+          );
+          final parsedMaps = await compute(
+            parsePrescriptionPlanInBackground,
+            serverText,
+          );
+          final reparsed = parsedMaps
+              .map(ParsedPrescriptionLine.fromMap)
+              .toList();
           if (reparsed.length > apiResult.items.length) {
             parsed = reparsed;
-            debugPrint('[OCR] using reparsed server text items=${parsed.length}');
+            debugPrint(
+              '[OCR] using reparsed server text items=${parsed.length}',
+            );
           } else {
             parsed = apiResult.items;
             debugPrint('[OCR] keeping server parsed items=${parsed.length}');
@@ -356,24 +377,37 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
             apiResult.warnings.isNotEmpty && parsed.length <= 1;
         if (shouldHybridLocal) {
           debugPrint(
-              '[OCR] hybrid rescue: server items=${parsed.length}, running local OCR');
+            '[OCR] hybrid rescue: server items=${parsed.length}, running local OCR',
+          );
           final localText = await recognizePrescriptionImage(file);
           final localTrimmed = localText.trim();
-          debugPrint('[OCR] hybrid local recognized length=${localTrimmed.length}');
+          debugPrint(
+            '[OCR] hybrid local recognized length=${localTrimmed.length}',
+          );
           if (localTrimmed.isNotEmpty) {
-            final localParsedMaps =
-                await compute(parsePrescriptionPlanInBackground, localTrimmed);
-            final localParsed =
-                localParsedMaps.map(ParsedPrescriptionLine.fromMap).toList();
+            final localParsedMaps = await compute(
+              parsePrescriptionPlanInBackground,
+              localTrimmed,
+            );
+            final localParsed = localParsedMaps
+                .map(ParsedPrescriptionLine.fromMap)
+                .toList();
             debugPrint('[OCR] hybrid local parsed items=${localParsed.length}');
             if (localParsed.length > parsed.length) {
-              final merged = _mergeServerWithLocalCandidates(parsed, localParsed);
+              final merged = _mergeServerWithLocalCandidates(
+                parsed,
+                localParsed,
+              );
               if (merged.length > parsed.length) {
                 parsed = merged;
-                debugPrint('[OCR] hybrid merged server+local items=${parsed.length}');
+                debugPrint(
+                  '[OCR] hybrid merged server+local items=${parsed.length}',
+                );
               } else {
                 parsed = localParsed;
-                debugPrint('[OCR] hybrid chose local parsed items=${parsed.length}');
+                debugPrint(
+                  '[OCR] hybrid chose local parsed items=${parsed.length}',
+                );
               }
             }
           }
@@ -392,8 +426,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
               : trimmed;
           debugPrint('[OCR] recognized preview=$preview');
         }
-        final parsedMaps =
-            await compute(parsePrescriptionPlanInBackground, trimmed);
+        final parsedMaps = await compute(
+          parsePrescriptionPlanInBackground,
+          trimmed,
+        );
         parsed = parsedMaps.map(ParsedPrescriptionLine.fromMap).toList();
       }
 
@@ -618,66 +654,115 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
           constraints: const BoxConstraints(maxWidth: 360),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.document_scanner_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.document_scanner_rounded,
-                      color: AppColors.primary,
-                      size: 20,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Chọn ảnh đơn',
+                        style: AppTextStyles.h4.copyWith(fontSize: 17),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  kIsWeb
+                      ? 'Chọn file ảnh từ thiết bị.'
+                      : 'Chụp mới hoặc chọn nhanh từ thư viện.',
+                  style: AppTextStyles.caption,
+                ),
+                const SizedBox(height: 14),
+                if (!kIsWeb) ...[
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pick(ImageSource.camera);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Ink(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(
+                          alpha: 0.45,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.photo_camera_rounded,
+                            size: 21,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Chụp ảnh',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textBlack,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textGrey,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Chọn ảnh đơn',
-                      style: AppTextStyles.h4.copyWith(fontSize: 17),
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                 ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                kIsWeb
-                    ? 'Chọn file ảnh từ thiết bị.'
-                    : 'Chụp mới hoặc chọn nhanh từ thư viện.',
-                style: AppTextStyles.caption,
-              ),
-              const SizedBox(height: 14),
-              if (!kIsWeb) ...[
                 InkWell(
                   onTap: () {
                     Navigator.pop(ctx);
-                    _pick(ImageSource.camera);
+                    _pick(ImageSource.gallery);
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Ink(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.cardBorder),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.photo_camera_rounded,
+                        Icon(
+                          kIsWeb
+                              ? Icons.image_rounded
+                              : Icons.photo_library_rounded,
                           size: 21,
                           color: AppColors.primary,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Chụp ảnh',
+                            kIsWeb ? 'Chọn ảnh từ máy' : 'Thư viện ảnh',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textBlack,
                               fontWeight: FontWeight.w600,
@@ -692,53 +777,14 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-              ],
-              InkWell(
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pick(ImageSource.gallery);
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Ink(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        kIsWeb ? Icons.image_rounded : Icons.photo_library_rounded,
-                        size: 21,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          kIsWeb ? 'Chọn ảnh từ máy' : 'Thư viện ảnh',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textBlack,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textGrey,
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Hủy'),
                 ),
-              ),
-              const SizedBox(height: 4),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Hủy'),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -754,19 +800,16 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
   }
 
   Widget _buildAllergyBanner(List<AllergyMatch> matches) {
-    final hasHigh =
-        matches.any((m) => m.severity == AllergySeverity.highRisk);
-    final bannerColor =
-        hasHigh ? AppColors.errorLight : const Color(0xFFFFF3E0);
+    final hasHigh = matches.any((m) => m.severity == AllergySeverity.highRisk);
+    final bannerColor = hasHigh
+        ? AppColors.errorLight
+        : const Color(0xFFFFF3E0);
     final borderColor = hasHigh
         ? AppColors.error.withValues(alpha: 0.35)
         : const Color(0xFFFFB74D);
-    final iconColor =
-        hasHigh ? AppColors.error : const Color(0xFFF57C00);
-    final titleColor =
-        hasHigh ? AppColors.error : const Color(0xFFE65100);
-    final bodyColor =
-        hasHigh ? AppColors.error : const Color(0xFFBF360C);
+    final iconColor = hasHigh ? AppColors.error : const Color(0xFFF57C00);
+    final titleColor = hasHigh ? AppColors.error : const Color(0xFFE65100);
+    final bodyColor = hasHigh ? AppColors.error : const Color(0xFFBF360C);
 
     return Container(
       width: double.infinity,
@@ -811,8 +854,8 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
     final stateKey = _busy
         ? 'busy'
         : (_error != null
-            ? 'error'
-            : (_entries != null ? 'entries|$_entriesGeneration' : 'idle'));
+              ? 'error'
+              : (_entries != null ? 'entries|$_entriesGeneration' : 'idle'));
 
     return AnimatedSwitcher(
       duration: _stateSwitchDuration,
@@ -822,7 +865,7 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
         opacity: animation,
         child: SizeTransition(
           sizeFactor: animation,
-          axisAlignment: -1,
+          alignment: Alignment.topCenter,
           child: child,
         ),
       ),
@@ -844,7 +887,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                     ),
                   ),
                   SizedBox(width: 12),
-                  Text('Đang đọc đơn, bạn chờ một chút nhé…', style: AppTextStyles.caption),
+                  Text(
+                    'Đang đọc đơn, bạn chờ một chút nhé…',
+                    style: AppTextStyles.caption,
+                  ),
                 ],
               ),
             ],
@@ -863,14 +909,18 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.error_outline_rounded,
-                        color: AppColors.error, size: 20),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.error),
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                   ],
@@ -898,8 +948,9 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                           entry: e,
                           onRemove: () => _removeEntry(index),
                           onIncludeChanged: (v) {
-                            setState(() =>
-                                _entries![index].includeInSchedule = v);
+                            setState(
+                              () => _entries![index].includeInSchedule = v,
+                            );
                           },
                         ),
                       );
@@ -1072,10 +1123,10 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
       await bloc.stream
           .timeout(const Duration(seconds: 90))
           .firstWhere(
-        (s) =>
-            s.medications.length >= countBefore + n ||
-            s.errorMessage != null,
-      );
+            (s) =>
+                s.medications.length >= countBefore + n ||
+                s.errorMessage != null,
+          );
     } on TimeoutException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1160,10 +1211,14 @@ class _PrescriptionScanDialogState extends State<PrescriptionScanDialog> {
                       FilledButton.icon(
                         onPressed: _busy ? null : _chooseSource,
                         icon: Icon(
-                          kIsWeb ? Icons.image_rounded : Icons.add_a_photo_rounded,
+                          kIsWeb
+                              ? Icons.image_rounded
+                              : Icons.add_a_photo_rounded,
                           size: 20,
                         ),
-                        label: Text(kIsWeb ? 'Chọn ảnh đơn' : 'Chụp hoặc chọn ảnh'),
+                        label: Text(
+                          kIsWeb ? 'Chọn ảnh đơn' : 'Chụp hoặc chọn ảnh',
+                        ),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -1238,23 +1293,29 @@ class _PlanItemCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '#$index',
-                    style: AppTextStyles.labelSmall
-                        .copyWith(color: AppColors.primary),
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: onRemove,
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.textGrey, size: 22),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.textGrey,
+                    size: 22,
+                  ),
                   tooltip: 'Xóa',
                   visualDensity: VisualDensity.compact,
                 ),
@@ -1265,14 +1326,19 @@ class _PlanItemCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      size: 16, color: AppColors.error),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       entry.allergyHints.join(' · '),
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.error, height: 1.3),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.error,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ],
@@ -1338,7 +1404,9 @@ class _PlanItemCard extends StatelessWidget {
               ),
               value: entry.includeInSchedule,
               thumbColor: WidgetStateProperty.resolveWith(
-                (states) => states.contains(WidgetState.selected) ? AppColors.primary : null,
+                (states) => states.contains(WidgetState.selected)
+                    ? AppColors.primary
+                    : null,
               ),
               onChanged: onIncludeChanged,
             ),
@@ -1353,8 +1421,10 @@ class _PlanItemCard extends StatelessWidget {
         hintText: hint,
         filled: true,
         fillColor: AppColors.background,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.cardBorder),

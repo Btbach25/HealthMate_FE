@@ -19,23 +19,29 @@ class AppColors {
   static const Color primaryDark = Color(0xFF1E8A5A);
   static const Color primaryLight = Color(0xFF4FB883);
   static const Color primaryContainer = Color(0xFFE9F6F0);
-  
+
   // Background Colors
   static const Color background = Color(0xFFFAFAFA);
   static const Color surface = Colors.white;
   static const Color surfaceVariant = Color(0xFFF5F5F5);
-  
+
+  /// Nền trang phía sau cột nội dung khi chạy trên desktop/web rộng.
+  ///
+  /// Phải tối hơn [background] rõ rệt, nếu không cột app sẽ chìm vào nền và
+  /// trông như layout bị vỡ. Chỉ dùng trong khung shell ở `lib/app.dart`.
+  static const Color pageBackdrop = Color(0xFFE7EAEE);
+
   // Input Colors
   static const Color inputBackground = Color(0xFFF7F8F9);
   static const Color inputBorder = Color(0xFFE0E0E0);
   static const Color inputFocusBorder = primary;
-  
+
   // Text Colors
   static const Color textBlack = Color(0xFF1E1E1E);
   static const Color textSecondary = Color(0xFF424242);
   static const Color textGrey = Color(0xFF8A8A8E);
   static const Color textLight = Color(0xFFBDBDBD);
-  
+
   // Status Colors
   static const Color error = Color(0xFFE53935);
   static const Color errorLight = Color(0xFFFFEBEE);
@@ -56,7 +62,7 @@ class AppColors {
   // Card Colors
   static const Color cardBorder = Color(0xFFEDEDED);
   static const Color cardShadow = Color(0x1A000000);
-  
+
   // Tag Colors
   static const Color tagUrgentText = error;
   static const Color tagUrgentBg = errorLight;
@@ -68,7 +74,7 @@ class AppColors {
   static const Color tagWarningBg = warningLight;
   static const Color tagNormalText = primary;
   static const Color tagNormalBg = primaryContainer;
-  
+
   // Icon Colors
   static const Color heartIconColor = tagUrgentText;
   static const Color heartIconBg = tagUrgentBg;
@@ -79,20 +85,20 @@ class AppColors {
   static const Color tempIconBg = tagWarningBg;
   static const Color statsHeaderIconBg = primary;
   static const Color statsHeaderIconColor = Colors.white;
-  
+
   // Gradient Colors
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primary, primaryDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static const LinearGradient primaryLightGradient = LinearGradient(
     colors: [primaryLight, primary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   // Shadow Colors
   static List<BoxShadow> get cardShadowList => [
     BoxShadow(
@@ -102,7 +108,7 @@ class AppColors {
       spreadRadius: 0,
     ),
   ];
-  
+
   static List<BoxShadow> get cardShadowHover => [
     BoxShadow(
       color: cardShadow.withValues(alpha: 0.3),
@@ -111,7 +117,7 @@ class AppColors {
       spreadRadius: 0,
     ),
   ];
-  
+
   static List<BoxShadow> get buttonShadow => [
     BoxShadow(
       color: primary.withValues(alpha: 0.3),

@@ -45,7 +45,10 @@ bool shouldProactivelyRefreshAccessToken(
     final map = jsonDecode(json) as Map<String, dynamic>;
     final exp = map['exp'];
     if (exp is! num) return false;
-    final expiry = DateTime.fromMillisecondsSinceEpoch((exp * 1000).round(), isUtc: true);
+    final expiry = DateTime.fromMillisecondsSinceEpoch(
+      (exp * 1000).round(),
+      isUtc: true,
+    );
     return DateTime.now().toUtc().isAfter(expiry.subtract(clockSkew));
   } catch (_) {
     return false;

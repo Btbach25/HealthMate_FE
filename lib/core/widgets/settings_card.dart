@@ -84,7 +84,11 @@ class SettingsCard extends StatelessWidget {
             ],
           ),
           if (children.isNotEmpty) ...[
-            const Divider(height: 28, thickness: 0.8, color: AppColors.cardBorder),
+            const Divider(
+              height: 28,
+              thickness: 0.8,
+              color: AppColors.cardBorder,
+            ),
             ...children,
           ],
         ],

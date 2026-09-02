@@ -163,14 +163,13 @@ class OutgoingInvitation extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        groupId,
-        group,
-        invitee,
-        relationship,
-        status,
-        sentAt,
-        sharedMetrics,
-      ];
+    id,
+    groupId,
+    group,
+    invitee,
+    relationship,
+    status,
+    sentAt,
+    sharedMetrics,
+  ];
 }
-

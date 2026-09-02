@@ -16,5 +16,3 @@ class FamilyGroupManagementPage extends StatelessWidget {
     );
   }
 }
-
-

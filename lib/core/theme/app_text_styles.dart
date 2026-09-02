@@ -25,7 +25,7 @@ class AppTextStyles {
     height: 1.2,
     letterSpacing: -0.5,
   );
-  
+
   static const TextStyle h2 = TextStyle(
     fontSize: AppSize.fontSize28,
     fontWeight: FontWeight.bold,
@@ -33,21 +33,21 @@ class AppTextStyles {
     height: 1.3,
     letterSpacing: -0.3,
   );
-  
+
   static const TextStyle h3 = TextStyle(
     fontSize: AppSize.fontSize24,
     fontWeight: FontWeight.w600,
     color: AppColors.textBlack,
     height: 1.4,
   );
-  
+
   static const TextStyle h4 = TextStyle(
     fontSize: AppSize.fontSize20,
     fontWeight: FontWeight.w600,
     color: AppColors.textBlack,
     height: 1.4,
   );
-  
+
   // Body Text
   static const TextStyle bodyLarge = TextStyle(
     fontSize: AppSize.fontSize18,
@@ -55,21 +55,21 @@ class AppTextStyles {
     color: AppColors.textBlack,
     height: 1.5,
   );
-  
+
   static const TextStyle bodyMedium = TextStyle(
     fontSize: AppSize.fontSize16,
     fontWeight: FontWeight.normal,
     color: AppColors.textBlack,
     height: 1.5,
   );
-  
+
   static const TextStyle bodySmall = TextStyle(
     fontSize: AppSize.fontSize14,
     fontWeight: FontWeight.normal,
     color: AppColors.textBlack,
     height: 1.5,
   );
-  
+
   // Labels
   static const TextStyle labelLarge = TextStyle(
     fontSize: AppSize.fontSize16,
@@ -77,21 +77,21 @@ class AppTextStyles {
     color: AppColors.textBlack,
     height: 1.4,
   );
-  
+
   static const TextStyle labelMedium = TextStyle(
     fontSize: AppSize.fontSize14,
     fontWeight: FontWeight.w600,
     color: AppColors.textBlack,
     height: 1.4,
   );
-  
+
   static const TextStyle labelSmall = TextStyle(
     fontSize: AppSize.fontSize12,
     fontWeight: FontWeight.w500,
     color: AppColors.textGrey,
     height: 1.4,
   );
-  
+
   // Caption
   static const TextStyle caption = TextStyle(
     fontSize: AppSize.fontSize12,
@@ -99,7 +99,7 @@ class AppTextStyles {
     color: AppColors.textGrey,
     height: 1.4,
   );
-  
+
   // Button Text
   static const TextStyle buttonLarge = TextStyle(
     fontSize: AppSize.fontSize16,
@@ -108,7 +108,7 @@ class AppTextStyles {
     height: 1.2,
     letterSpacing: 0.5,
   );
-  
+
   static const TextStyle buttonMedium = TextStyle(
     fontSize: AppSize.fontSize14,
     fontWeight: FontWeight.w600,
@@ -116,7 +116,7 @@ class AppTextStyles {
     height: 1.2,
     letterSpacing: 0.3,
   );
-  
+
   /// Đổi màu một style. Hiện chưa nơi nào dùng — trong app đang gọi thẳng
   /// `style.copyWith(color: ...)`, ngắn hơn và quen tay hơn.
   static TextStyle withColor(TextStyle style, Color color) {
@@ -131,5 +131,3 @@ class AppTextStyles {
     return style.copyWith(color: style.color?.withValues(alpha: opacity));
   }
 }
-
-

@@ -183,7 +183,9 @@ class DeviceStatsConverter {
     for (final p in pts) {
       total += _numericValue(p) ?? 0;
     }
-    final uniqueDays = pts.map((p) => DateTime(p.dateFrom.year, p.dateFrom.month, p.dateFrom.day)).toSet();
+    final uniqueDays = pts
+        .map((p) => DateTime(p.dateFrom.year, p.dateFrom.month, p.dateFrom.day))
+        .toSet();
     final avgPerDay = uniqueDays.isEmpty ? total : total / uniqueDays.length;
 
     return MetricSummary(
